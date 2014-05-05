@@ -1,0 +1,1148 @@
+# MAT manual
+
+###### \[in package MGL-MAT\]
+## mgl-mat ASDF System Details
+
+- Version: 0.0.1
+- Description: MAT is library for working with multi-dimensional
+  arrays which supports efficient interfacing to foreign and CUDA
+  code. BLAS and CUBLAS bindings are available.
+- Licence: MIT, see COPYING.
+- Author: Gábor Melis
+- Mailto: [mega@retes.hu](mailto:mega@retes.hu)
+- Homepage: [http://quotenil.com](http://quotenil.com)
+
+## Introduction
+
+### What's MAT?
+
+MAT is library for working with multi-dimensional arrays which
+supports efficient interfacing to foreign and CUDA code with
+automatic translations between cuda, foreign and lisp storage. BLAS
+and CUBLAS bindings are available.
+
+### What kind of matrices are supported?
+
+Currently only single and double float matrices are supported, but
+it would be easy to add single and double precision complex types
+too. Other numeric types, such as byte and native integer, can be
+added too, but they are not supported by CUBLAS. There are no
+restrictions on the number of dimensions, and reshaping is possible.
+The CUBLAS functions operate on the visible portion of the
+matrix (which is subject to displacement and shaping), invisible
+elements are not affected.
+
+## Basics
+
+A MAT is a CUBE (see @CUBE-MANUAL) whose facets are different
+representations of numeric arrays. These facets can be accessed with
+WITH-FACETS with one of the following [FACET-NAME][]s:
+
+- [facet-name] BACKING-ARRAY
+
+    The corresponding facet is a one dimensional lisp array.
+
+- [facet-name] ARRAY
+
+    Same as BACKING-ARRAY if the matrix is one-dimensional, all
+    elements are visible (see @MAT-SHAPING), else it's a lisp array
+    displaced to the backing array.
+
+- [facet-name] FOREIGN-ARRAY
+
+    The facet is a [FOREIGN-ARRAY][class] which is an OFFSET-POINTER
+    wrapping a CFFI:POINTER. See *FOREIGN-ARRAY-STRATEGY*.
+
+- [facet-name] CUDA-ARRAY
+
+    The facet is CUDA-ARRAY which is an OFFSET-POINTER wrapping a
+    CL-CUDA::CU-DEVICE-PTR, allocated with CU-MEM-ALLOC and freed
+    automatically.
+    
+    Facets bound by with WITH-FACETS are to be treated as dynamic
+    extent: it is not allowed to keep a reference to them beyond the
+    dynamic scope of WITH-FACETS.
+    
+    For example, to fill matrix X of CTYPE :DOUBLE with ones it most
+    convenient to work with the one dimensional BACKING-ARRAY:
+    
+    ```
+    (let ((displacement (mat-displacement x))
+          (size (mat-size x)))
+     (with-facets ((x* (x 'backing-array :direction :output)))
+       (fill x* 1d0 :start displacement :end (+ displacement size))))
+    ```
+    
+    DIRECTION is :OUTPUT because we clobber all values in X. Armed with
+    this knowledge about the direction, WITH-FACETS will not copy data
+    from another facet if the backing array is not up-to-date.
+    
+    To transpose a 2d matrix with the ARRAY facet:
+    
+    ```
+    (destructuring-bind (n-rows n-columns) (mat-dimensions x)
+      (with-facets ((x* (x 'array :direction :io)))
+        (dotimes (row n-rows)
+          (dotimes (column n-columns)
+            (setf (aref x* row column) (aref x* column row))))))
+    ```
+    
+    Note that DIRECTION is :IO, because we need the data in this facet
+    to be up-to-date (that's the input part) and we are invalidating all
+    other facets by changing values (that's the output part).
+    
+    To sum the values of a matrix using the FOREIGN-ARRAY facet:
+    
+    ```
+    (let ((sum 0))
+      (with-facets ((x* (x 'foreign-array :direction :input)))
+        (let ((pointer (offset-pointer x*)))
+          (loop for index below (mat-size x)
+                do (incf sum (cffi:mem-aref pointer (mat-ctype x) index)))))
+      sum)
+    ```
+    
+    See DIRECTION for a complete description of :INPUT, :OUTPUT and :IO.
+    For MAT objects, that needs to be refined. If a MAT is reshaped
+    and/or displaced in a way that not all elements are visible then
+    those elements are always kept intact and copied around. This is
+    accomplished by turning :OUTPUT into :IO automatically on such MATs.
+    
+    Most operations automatically use CUDA, if available and
+    initialized. See WITH-CUDA for detail.
+
+- [class] MAT CUBE
+
+    A MAT is a data CUBE that is much like a lisp
+    array, it supports DISPLACEMENT, arbitrary DIMENSIONS and
+    INITIAL-ELEMENT with the usual semantics. However, a MAT supports
+    different representations of the same data. See @MAT-BASICS for a
+    tuturialish treatment.
+
+- [reader] MAT-CTYPE MAT
+
+    One of *SUPPORTED-CTYPES*. The matrix can hold
+    only values of this type.
+
+- [reader] MAT-DISPLACEMENT MAT
+
+    A value in the [0,MAX-SIZE][] interval. This is like
+    the DISPLACED-INDEX-OFFSET of a lisp array.
+
+- [reader] MAT-DIMENSIONS MAT
+
+    Like ARRAY-DIMENSIONS. It holds a list of
+    dimensions, but it is allowed to pass in scalars too.
+
+- [function] MAT-DIMENSION MAT AXIS-NUMBER
+
+    Return the dimension along AXIS-NUMBER. Similar to
+    ARRAY-DIMENSION.
+
+- [reader] MAT-INITIAL-ELEMENT MAT
+
+    If non-nil, then when a facet is created, it is
+    filled with INITIAL-ELEMENT coerced to the appropriate numeric
+    type. If NIL, then no initialization is performed.
+
+- [reader] MAT-SIZE MAT
+
+    The number of elements in the visible portion of
+    the array. This is always the product of the elements
+    MAT-DIMENSIONS and is similar to ARRAY-TOTAL-SIZE.
+
+- [reader] MAT-MAX-SIZE MAT
+
+    The total size can be larger than MAT-SIZE, but
+    cannot change. Also DISPLACEMENT + SIZE must not exceed it. This
+    is not
+
+- [function] MAKE-MAT DIMENSIONS &REST ARGS &KEY (CTYPE *DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS
+
+    Return a new matrix. If INITIAL-CONTENTS is given then the matrix
+    contents are copied with REPLACE!. See class MAT for the description
+    of the rest of the parameters. This is exactly what (MAKE-INSTANCE
+    'MAT ...) does except DIMENSIONS is not a keyword argument so
+    MAKE-MAT looks more like MAKE-ARRAY.
+
+- [function] ARRAY-TO-MAT ARRAY &KEY CTYPE
+
+    Create a MAT that's equivalent to ARRAY. Displacement of the
+    created array will be 0 and the size will be equal to
+    ARRAY-TOTAL-SIZE.
+
+- [function] MAT-TO-ARRAY MAT
+
+- [function] REPLACE! MAT SEQ-OF-SEQS
+
+    Replace the contents of MAT with the elements of SEQ-OF-SEQS.
+    SEQ-OF-SEQS is a nested sequence of sequences similar to the
+    INITIAL-CONTENTS argument of MAKE-ARRAY. The total number of
+    elements must match the size of MAT. Returns MAT.
+
+## Element types
+
+- [variable] *SUPPORTED-CTYPES* (:FLOAT :DOUBLE)
+
+- [type] CTYPE
+
+- [variable] *DEFAULT-MAT-CTYPE* :DOUBLE
+
+    By default MATs are created with this ctype. One of :FLOAT
+    or :DOUBLE (the default).
+
+- [function] COERCE-TO-CTYPE X &KEY (CTYPE *DEFAULT-MAT-CTYPE*)
+
+    Coerce the scalar X to the lisp type corresponding to CTYPE.
+
+## Printing
+
+- [variable] *PRINT-MAT* T
+
+    Controls whether the contents of a MAT object are printed as an
+    array (subject to the standard printer control variables).
+
+- [variable] *PRINT-MAT-FACETS* T
+
+    Controls whether a summary of existing and up-to-date views is
+    printed whe a MAT object is printed. The summary that looks like
+    `ABcf` indicates that all four facets (ARRAY, BACKING-ARRAY,
+    CUDA-ARRAY, FOREIGN-ARRAY) are present and the first two are
+    up-to-date. A summary of a single #- indicates that there are no
+    facets.
+
+## Shaping
+
+Reshaping and displacement of MAT objects works somewhat similarly
+to lisp arrays. The key difference is that they are destructive
+operations. See RESHAPE-AND-DISPLACE!, RESHAPE!, DISPLACE!,
+RESHAPE-TO-ROW-MATRIX! and WITH-SHAPE-AND-DISPLACEMENT. ADJUST! is
+the odd one out, it may create a new MAT.
+
+Existing facets are adjusted by all operations. For LISP-ARRAY
+facets, this means creating a new lisp array displaced to the
+backing array. The backing array stays the same, clients are
+supposed to observe MAT-DISPLACEMENT, MAT-DIMENSIONS or MAT-SIZE.
+The FOREIGN-ARRAY and CUDA-ARRAY facets are OFFSET-POINTER's so
+displacement is done by changing the offset. Clients need to observe
+MAT-DIMENSIONS in any case.
+
+- [function] RESHAPE-AND-DISPLACE! MAT DIMENSIONS DISPLACEMENT
+
+    Change the visible (or active) portion of MAT by altering its
+    displacement offset and dimensions. Future operations will only
+    affect this visible portion as if the rest of the elements were not
+    there. Return MAT.
+    
+    DISPLACEMENT + the new size must not exceed MAT-MAX-SIZE.
+    Furthermore, there must be no facets being viewed (with WITH-FACETS)
+    when calling this function as the identity of the facets is not
+    stable.
+
+- [function] RESHAPE! MAT DIMENSIONS
+
+    Like RESHAPE-AND-DISPLACE! but only alters the dimensions.
+
+- [function] DISPLACE! MAT DISPLACEMENT
+
+    Like RESHAPE-AND-DISPLACE! but only alters the displacement.
+
+- [function] RESHAPE-TO-ROW-MATRIX! MAT ROW
+
+    Reshape the 2d MAT to make only a single ROW visible. This is made
+    possible by the row major layout, hence no column counterpart.
+
+- [macro] WITH-SHAPE-AND-DISPLACEMENT (MAT &OPTIONAL (DIMENSIONS NIL DIMENSIONSP) (DISPLACEMENT NIL DISPLACEMENTP)) &BODY BODY
+
+    Reshape and displace MAT if DIMENSIONS and/or DISPLACEMENT is given
+    and restore the original shape and displacement after BODY is
+    executed. If neither is specificed, then nothing will be changed,
+    but BODY is still allowed to alter the shape and displacement.
+
+- [function] ADJUST! MAT DIMENSIONS DISPLACEMENT &KEY (DESTROY-OLD-P T)
+
+    Like RESHAPE-AND-DISPLACE! but creates a new matrix if MAT isn't
+    large enough. If a new matrix is created, the contents are not
+    copied over and the old matrix is destroyed with DESTROY-CUBE if
+    DESTROY-OLD-P.
+
+## Caching
+
+Allocating and initializing a MAT object and its necessary facets
+can be expensive. The following macros remember the previous value
+of a binding in the same thread and lexical environment. Only weak
+references are constructed so the cached objects can be garbage
+collected.
+
+While the cache is global, thread safety is guaranteed by having
+separate subcaches per thread. Each subcache is keyed by a gensym
+that's unique to each invocation of the caching macro, so different
+occurrences of caching macros in the source never share data. Still
+recursion could lead to data sharing between different invocations
+of the same function. To prevent this, the cached object is removed
+from the cache while it is used so other invocations will create a
+fresh one which isn't particularly efficient but at least it's
+safe.
+
+- [macro] WITH-THREAD-CACHED-MAT (VAR DIMENSIONS &REST ARGS &KEY (CTYPE *DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS) &BODY BODY
+
+    Bind VAR to a matrix of DIMENSIONS, CTYPE, etc. Cache this matrix,
+    and possibly reuse it later by reshaping it. When BODY exits the
+    cached object is updated with the binding of VAR which BODY may
+    change.
+
+- [macro] WITH-ONES (VAR DIMENSIONS &KEY (CTYPE *DEFAULT-MAT-CTYPE*)) &BODY BODY
+
+    Bind VAR to a matrix of DIMENSIONS whose every element is 1. The
+    matrix is cached for efficiency.
+
+## Foreign arrays
+
+One facet of MAT objects is [FOREIGN-ARRAY][facet-name] which is
+backed by a memory area that can be pinned or is allocated in
+foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
+
+- [class] FOREIGN-ARRAY OFFSET-POINTER
+
+    [FOREIGN-ARRAY][class] wraps a foreign pointer (in
+    the sense of CFFI:POINTERP). That is, both OFFSET-POINTER and
+    BASE-POINTER return a foreign pointer. There are no other public
+    operations that work with [FOREIGN-ARRAY][class] objects, their sole
+    purpose is represent facets of MAT objects.
+
+- [variable] *FOREIGN-ARRAY-STRATEGY* "-see below-"
+
+    One of :PIN-BACKING-ARRAY, :STATIC-BACKING-ARRAY and :ALLOCATE (see
+    type FOREIGN-ARRAY-STRATEGY). This variable controls how foreign
+    arrays are handled and it can be changed at any time.
+    
+    If it's :PIN-BACKING-ARRAY (only supported if (PINNING-SUPPORTED-P),
+    then no separate storage is allocated for the foreign array, instead
+    it aliases the lisp array (via the BACKING-ARRAY facet).
+    
+    If it's :STATIC-BACKING-ARRAY, then the lisp backing arrays are
+    allocated statically via the static-vectors library. On some
+    implementations, explicit freeing of static vectors is necessary,
+    this is taken care of by finalizers or can be controlled with
+    WITH-FACET-BARRIER.
+    
+    If it's :DYNAMIC, then each time the foreign array is needed, it's
+    allocated and freed dynamically.
+    
+    The default is :PIN-BACKING-ARRAY if available, because it's the most
+    effecient. If pinning is not available, then
+    it's :STATIC-BACKING-ARRAY.
+
+- [type] FOREIGN-ARRAY-STRATEGY
+
+    One of :PIN-BACKING-ARRAY, :STATIC-BACKING-ARRAY, :DYNAMIC. See
+    *FOREIGN-ARRAY-STRATEGY* for their semantics.
+
+- [function] PINNING-SUPPORTED-P 
+
+    Return true iff the lisp implementation efficiently supports
+    pinning lisp arrays. Pinning ensures that the garbage collector
+    doesn't move the array in memory. Currently this is only supported on
+    SBCL gencgc platforms.
+
+## CUDA
+
+- [macro] WITH-CUDA (&KEY (ENABLED '*CUDA-ENABLED*) (DEVICE-ID *CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED *CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES *CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T)) &BODY BODY
+
+    Initializes cuda with with all bells and whistles before BODY and
+    deinitializes it after. Simply wrapping WITH-CUDA around a piece
+    code is enough to make use of the first available cuda device or
+    fall back on blas and lisp kernels if there is none.
+    
+    If cuda is already initialized, then it sets up a facet barrier
+    which destroys CUDA-ARRAY facets after ensuring that the ARRAY facet
+    is up-to-date.
+    
+    Else, if cuda is available and ENABLED, then in addition to the
+    facet barrier, a cuda context is set up, *N-MEMCPY-HOST-TO-DEVICE*,
+    *N-MEMCPY-DEVICE-TO-HOST* are bound to zero, the highest possible
+    -arch option for the device is added to *CL-CUDA:NVCC-OPTIONS* (if
+    OVERRIDE-ARCH-P), a cublas handle created, and *CURAND-STATE* is
+    bound to a CURAND-XORWOW-STATE with N-RANDOM-STATES, seeded with
+    RANDOM-SEED.
+    
+    Else - that is, if cuda not available -, BODY is simply executed.
+
+- [function] CALL-WITH-CUDA FN &KEY ((:ENABLED *CUDA-ENABLED*) *CUDA-ENABLED*) (DEVICE-ID *CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED *CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES *CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T)
+
+    Like WITH-CUDA, but takes a no argument function instead of the
+    macro's BODY.
+
+- [variable] *CUDA-ENABLED* T
+
+    Set or bind this to false to disable all use of cuda. If this is
+    done from within WITH-CUDA, then cuda becomes temporarily disabled. If
+    this is done from outside WITH-CUDA, then it changes the default
+    values of the ENABLED argument of any future WITH-CUDAs which turns
+    off cuda initialization entirely.
+
+- [function] USE-CUDA-P 
+
+    Return true if cuda is enabled (*CUDA-ENABLED*) and it's
+    initialized. MAT operations use this to decide whether to go for the
+    cuda implementation or BLAS/Lisp. It's provided for implementing new
+    operations.
+
+- [variable] *N-MEMCPY-HOST-TO-DEVICE* 0
+
+    Incremented each time a host to device copy is performed. Bound to
+    0 by WITH-CUDA. Useful for tracking down performance problems.
+
+- [variable] *N-MEMCPY-DEVICE-TO-HOST* 0
+
+    Incremented each time a device to host copy is performed. Bound to
+    0 by WITH-CUDA. Useful for tracking down performance problems.
+
+- [function] CHOOSE-1D-BLOCK-AND-GRID N MAX-N-WARPS-PER-BLOCK
+
+    Return two values, one suitable as the :BLOCK-DIM, the other as
+    the :GRID-DIM argument for a cuda kernel call where both are
+    one-dimensional (only the first element may be different from 1).
+    
+    The number of threads in a block is a multiple of *CUDA-WARP-SIZE*.
+    The number of blocks is between 1 and and *CUDA-MAX-N-BLOCKS*. This
+    means that the kernel must be able handle any number of elements in
+    each thread. For example, a strided kernel that adds a constant to
+    each element of a length N vector looks like this:
+    
+    (let ((stride (\* block-dim-x grid-dim-x)))
+        (do ((i (+ (\* block-dim-x block-idx-x) thread-idx-x)
+                (+ i stride)))
+            ((>= i n))
+          (set (aref x i) (+ (aref x i) alpha))))
+    
+    It is often the most efficient to have MAX-N-WARPS-PER-BLOCK is around
+    4. Note that the maximum number of threads per block is limited by
+    hardware (512 for compute capability < 2.0, 1024 for later versions),
+    so *CUDA-MAX-N-BLOCKS* times MAX-N-WARPS-PER-BLOCK must not exceed
+    that limit.
+
+- [function] CHOOSE-2D-BLOCK-AND-GRID DIMENSIONS MAX-N-WARPS-PER-BLOCK
+
+    Return two values, one suitable as the :BLOCK-DIM, the other as
+    the :GRID-DIM argument for a cuda kernel call where both are
+    two-dimensional (only the first two elements may be different from 1).
+    
+    The number of threads in a block is a multiple of *CUDA-WARP-SIZE*.
+    The number of blocks is between 1 and and *CUDA-MAX-N-BLOCKS*.
+    Currently - but this may change - the BLOCK-DIM-X is always
+    *CUDA-WARP-SIZE* and GRID-DIM-X is always 1.
+    
+    This means that the kernel must be able handle any number of elements
+    in each thread. For example, a strided kernel that adds a constant to
+    each element of a HEIGHT\*WIDTH matrix looks like this:
+    
+      (let ((id-x (+ (\* block-dim-x block-idx-x) thread-idx-x))
+            (id-y (+ (\* block-dim-y block-idx-y) thread-idx-y))
+            (stride-x (\* block-dim-x grid-dim-x))
+            (stride-y (\* block-dim-y grid-dim-y)))
+        (do ((row id-y (+ row stride-y)))
+            ((>= row height))
+          (let ((i (\* row width)))
+            (do ((column id-x (+ column stride-x)))
+                ((>= column width))
+              (set (aref x i) (+ (aref x i) alpha))
+              (incf i stride-x)))))
+
+- [function] CHOOSE-3D-BLOCK-AND-GRID DIMENSIONS MAX-N-WARPS-PER-BLOCK
+
+    Return two values, one suitable as the :BLOCK-DIM, the other as
+    the :GRID-DIM argument for a cuda kernel call where both are
+    two-dimensional (only the first two elements may be different from 1).
+    
+    The number of threads in a block is a multiple of *CUDA-WARP-SIZE*.
+    The number of blocks is between 1 and and *CUDA-MAX-N-BLOCKS*.
+    Currently - but this may change - the BLOCK-DIM-X is always
+    *CUDA-WARP-SIZE* and GRID-DIM-X is always 1.
+    
+    This means that the kernel must be able handle any number of elements
+    in each thread. For example, a strided kernel that adds a constant to
+    each element of a THICKNESS*HEIGHT*WIDTH 3d array looks like this:
+    
+      (let ((id-x (+ (\* block-dim-x block-idx-x) thread-idx-x))
+            (id-y (+ (\* block-dim-y block-idx-y) thread-idx-y))
+            (id-z (+ (\* block-dim-z block-idx-z) thread-idx-z))
+            (stride-x (\* block-dim-x grid-dim-x))
+            (stride-y (\* block-dim-y grid-dim-y))
+            (stride-z (\* block-dim-z grid-dim-z)))
+        (do ((plane id-z (+ plane stride-z)))
+            ((>= plane thickness))
+          (do ((row id-y (+ row stride-y)))
+              ((>= row height))
+            (let ((i (\* (+ (\* plane height) row)
+                        width)))
+              (do ((column id-x (+ column stride-x)))
+                  ((>= column width))
+                (set (aref x i) (+ (aref x i) alpha))
+                (incf i stride-x))))))
+
+- [condition] CUDA-OUT-OF-MEMORY STORAGE-CONDITION
+
+- [variable] *CUDA-DEFAULT-DEVICE-ID* 0
+
+    The default value of WITH-CUDA's :DEVICE-ID argument.
+
+- [variable] *CUDA-DEFAULT-RANDOM-SEED* 1234
+
+    The default value of WITH-CUDA's :RANDOM-SEED argument.
+
+- [variable] *CUDA-DEFAULT-N-RANDOM-STATES* 4096
+
+    The default value of WITH-CUDA's :N-RANDOM-STATES argument.
+
+### CUBLAS
+
+WITH-CUDA should take of everything. No need to use these at all
+unless you have a very good reason to bypass it.
+
+- [condition] CUBLAS-ERROR ERROR
+
+- [reader] CUBLAS-ERROR-FUNCTION-NAME CUBLAS-ERROR
+
+- [reader] CUBLAS-ERROR-STATUS CUBLAS-ERROR
+
+- [variable] *CUBLAS-HANDLE* "-unbound-"
+
+- [function] CUBLAS-CREATE HANDLE
+
+- [function] CUBLAS-DESTROY &KEY (HANDLE *CUBLAS-HANDLE*)
+
+- [macro] WITH-CUBLAS-HANDLE NIL &BODY BODY
+
+- [function] CUBLAS-GET-VERSION VERSION &KEY (HANDLE *CUBLAS-HANDLE*)
+
+### CURAND
+
+This the low level CURAND API.
+
+- [macro] WITH-CURAND-STATE (STATE) &BODY BODY
+
+- [variable] *CURAND-STATE* "-unbound-"
+
+- [class] CURAND-XORWOW-STATE
+
+- [reader] N-STATES CURAND-XORWOW-STATE
+
+- [reader] STATES CURAND-XORWOW-STATE
+
+## BLAS
+
+Only some BLAS functions are implemented, but it should be easy to
+add more as needed. All of them default to using CUDA, if it is
+initialized and enabled (see USE-CUDA-P).
+
+Level 1 BLAS operations
+
+- [function] ASUM X &KEY (N (MAT-SIZE X)) (INCX 1)
+
+    Return the l1 norm of X, that is, sum of the absolute values of its
+    elements.
+
+- [function] AXPY! ALPHA X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)
+
+    Set Y to ALPHA \* X + Y. Return Y.
+
+- [function] COPY! X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)
+
+    Copy X into Y. Return Y.
+
+- [function] DOT X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)
+
+    Return the dot product of X and Y.
+
+- [function] NRM2 X &KEY (N (MAT-SIZE X)) (INCX 1)
+
+    Return the l2 norm of X, which is the square root of the sum of the
+    squares of its elements.
+
+- [function] SCAL! ALPHA X &KEY (N (MAT-SIZE X)) (INCX 1)
+
+    Set X to ALPHA \* X. Return X.
+
+Level 3 BLAS operations
+
+- [function] GEMM! ALPHA A B BETA C &KEY TRANSPOSE-A? TRANSPOSE-B? M N K LDA LDB LDC
+
+    Basically C = ALPHA \* A' \* B' + BETA \* C. A' is A or its transpose
+    depending on TRANSPOSE-A?. B' is B or its transpose depending on
+    TRANSPOSE-B?. Returns C.
+    
+    A' is an MxK matrix. B' is a KxN matrix. C is an MxN matrix.
+    
+    LDA is the width of the matrix A (not of A'). If A is not transposed,
+    then K <= LDA, if it's transposed then M <= LDA.
+    
+    LDB is the width of the matrix B (not of B'). If B is not transposed,
+    then N <= LDB, if it's transposed then K <= LDB.
+    
+    In the example below M=3, N=2, K=5, LDA=6, LDB=3, LDC=4. The cells
+    marked with + do not feature in the calculation.
+    
+                   N
+                  --+
+                  --+
+                K -B+
+                  --+
+                  --+
+                  +++
+            K
+          -----+  --++
+        M --A--+  -C++
+          -----+  --++
+          ++++++  ++++
+
+
+## Destructive API
+
+- [function] .SQUARE! X &KEY (N (MAT-SIZE X))
+
+    Set X to its elementwise square. Return X.
+
+- [function] .SQRT! X &KEY (N (MAT-SIZE X))
+
+    Set X to its elementwise square root. Return X.
+
+- [function] .LOGISTIC! X &KEY (N (MAT-SIZE X))
+
+    Destructively apply the logistic function to X in an elementwise
+    manner. Return X.
+
+- [function] .+! ALPHA X
+
+    Add the scalar ALPHA to each element of X destructively modifying
+    X. Return X.
+
+- [function] .<! X Y
+
+    For each element of X and Y set Y to 1 if the element in Y is
+    greater than the element in X, and to 0 otherwise.
+
+- [function] FILL! ALPHA X &KEY (N (MAT-SIZE X))
+
+    Fill matrix X with ALPHA. Return X.
+
+- [function] SUM! X Y &KEY AXIS (ALPHA 1) (BETA 0)
+
+    Sum matrix X along AXIS and add ALPHA \* SUMS to BETA \* Y
+    destructively modifying Y. Return Y. On a 2d matrix (nothing else is
+    supported currently), if AXIS is 0, then columns are summed, if AXIS
+    is 1 then rows are summed.
+
+Finally, some neural network operations.
+
+- [function] CONVOLVE! X W Y &KEY START STRIDE ANCHOR BATCHED
+
+    Y = Y + conv(X, W) and return Y. If BATCHED, then the first
+    dimension of X and Y is the number of elements in the batch (B),
+    else B is assumed to be 1. The rest of the dimensions encode the
+    input (X) and output (Y} N dimensional feature maps. START, STRIDE
+    and ANCHOR are lists of length N. START is the multi-dimensional
+    index of the first element of the input feature map (for each
+    element in the batch) for which the convolution must be computed.
+    Then (ELT STRIDE (- N 1)) is added to the last element of START and
+    so on until (ARRAY-DIMENSION X 1) is reached. Then the last element
+    of START is reset, (ELT STRIDE (- N 2)) is added to the first but
+    last element of START and we scan the last dimension again. Take a
+    2d example, START is (0 0), STRIDE is (1 2), and X is a B\*2x7
+    matrix.
+    
+    W is:
+    
+        1 2 1
+        2 4 2
+        1 2 1
+    
+    and ANCHOR is (1 1) which refers to the element of W whose value is
+    4. This anchor point of W is placed over elements of X whose multi
+    dimensional index is in numbers in this figure (only one element in
+    the batch is shown):
+    
+        0,0 . 0,2 . 0,4 . 0,6
+        1,0 . 1,2 . 1,4 . 1,6
+    
+    When applying W at position P of X, the convolution is the sum of
+    the products of overlapping elements of X and W when W's ANCHOR is
+    placed at P. Elements of W over the edges of X are multiplied with 0
+    so are effectively ignored. The order of application of W to
+    positions defined by START, STRIDE and ANCHOR is undefined.
+    
+    Y must be a B\*2x4 (or 2x4 if not BATCHED) matrix in this example,
+    just large enough to hold the results of the convolutions.
+
+- [function] DERIVE-CONVOLVE! X XD W WD YD &KEY START STRIDE ANCHOR BATCHED
+
+    Add the dF/dX to XD and and dF/dW to WD where YD is dF/dY for some
+    function F where Y is the result of convolution with the same
+    arguments. 
+
+- [function] MAX-POOL! X Y &KEY START STRIDE ANCHOR BATCHED POOL-DIMENSIONS
+
+
+
+- [function] DERIVE-MAX-POOL! X XD Y YD &KEY START STRIDE ANCHOR BATCHED POOL-DIMENSIONS
+
+    Add the dF/dX to XD and and dF/dW to WD where YD is dF/dY for some
+    function F where Y is the result of MAX-POOL! with the same
+    arguments. 
+
+## Non-destructive API
+
+- [function] COPY-MAT A
+
+    Return a copy of the active portion with regards to displacement
+    and shape of A. 
+
+- [function] COPY-ROW A ROW
+
+    Return ROW of A as a new 1d matrix.
+
+- [function] COPY-COLUMN A COLUMN
+
+    Return COLUMN of A as a new 1d matrix.
+
+- [function] MAT-AS-SCALAR A
+
+    Return the first element of A. A must be of size 1.
+
+- [function] SCALAR-AS-MAT X &KEY (CTYPE (LISP->CTYPE (TYPE-OF X)))
+
+    Return a matrix of one dimension and one element: X. CTYPE, the
+    type of the matrix, defaults to the ctype corresponding to the type
+    of X.
+
+- [function] M= A B
+
+    Check whether A and B, which must be matrices of the same size, are
+    elementwise equal.
+
+- [function] TRANSPOSE A
+
+    Return the transpose of A.
+
+- [function] M* A B &KEY TRANSPOSE-A? TRANSPOSE-B?
+
+    Compute op(A) \* op(B). Where op is either the identity or the
+    transpose operation depending on TRANSPOSE-A? and TRANSPOSE-B?.
+
+- [function] MM* M &REST ARGS
+
+    Convenience function to multiply several matrices. 
+    
+    (mm\* a b c) => a \* b \* c
+
+- [function] M- A B
+
+    Return A - B.
+
+- [function] M+ A B
+
+    Return A + B.
+
+- [function] INVERT A
+
+    Return the inverse of A.
+
+- [function] LOGDET MAT
+
+    Logarithm of the determinant of a matrix. Return -1, 1 or 0 (or
+    equivalent) to correct for the sign, as a second value.
+
+## Random numbers
+
+This is rather experimental.
+
+- [function] MV-GAUSSIAN-RANDOM &KEY MEANS COVARIANCES
+
+    Return a column vector of samples from the multivariate normal
+    distribution defined by MEANS (Nx1) and COVARIANCES (NxN).
+
+- [generic-function] COPY-RANDOM-STATE STATE
+
+- [function] UNIFORM-RANDOM! MAT &KEY (LIMIT 1)
+
+    Fill MAT with random numbers sampled uniformly from the [0,LIMIT)
+    interval of MAT's type.
+
+## I/O
+
+- [generic-function] WRITE-MAT MAT STREAM
+
+    Write MAT to STREAM in portable binary format.
+    Displacement and size are taken into account, only visible elements
+    are written.
+
+- [generic-function] READ-MAT MAT STREAM
+
+    Destructively modify the visible portion (with
+    regards to displacement and shape) of MAT by reading MAT-SIZE number
+    of elements from STREAM. No sanity checks are performed, READ-MAT
+    may return without error even if STREAM contains garbage.
+
+## Extension API
+
+Macros for defining cuda and lisp kernels. Typically operations
+have a cuda and a lisp implementations and decide which to use with
+USE-CUDA-P. These are provided to help writing new operations.
+
+- [macro] DEFINE-LISP-KERNEL (NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (&REST PARAMS) &BODY BODY
+
+    This is an extended CL-CUDA:DEFKERNEL macro. It knows how to deal
+    with MAT objects and can define the same function for multiple
+    CTYPES. Example:
+    
+        (define-lisp-kernel (lisp-.+!)
+            ((alpha single-float) (x :mat :input) (start-x index) (n index))
+          (loop for xi of-type index upfrom start-x
+                  below (the! index (+ start-x n))
+                do (incf (aref x xi) alpha)))
+    
+    Parameters are either of the form `(<NAME> <LISP-TYPE)`
+    or `(<NAME> :MAT <DIRECTION>)`. In the latter case, the appropriate
+    CFFI:POINTER is passed to the kernel. `<DIRECTION>` is passed on to
+    the WITH-FACET that's used to acquire the foreign array. Note that
+    the return type is not declared.
+    
+    Both the signature and the body are written as if for single floats,
+    but one function is defined for each ctype in CTYPES by transforming
+    types, constants and code by substituting them with their ctype
+    equivalents. Currently this only means that one needs to write only
+    one kernel for SINGLE-FLOAT and DOUBLE-FLOAT. All such functions get
+    the declaration from *DEFAULT-LISP-KERNEL-DECLARATIONS*.
+    
+    Finally, a dispatcher function with NAME is defined which determines
+    the ctype of the MAT objects passed for :MAT typed parameters. It's
+    an error if they are not of the same type. Scalars declared
+    SINGLE-FLOAT are coerced to that type and the appropriate kernel is
+    called.
+
+- [variable] *DEFAULT-LISP-KERNEL-DECLARATIONS* ((OPTIMIZE SPEED (SB-C::INSERT-ARRAY-BOUNDS-CHECKS 0)))
+
+    These declarations are added automatically to kernel functions.
+
+- [macro] DEFINE-CUDA-KERNEL (NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (RETURN-TYPE PARAMS) &BODY BODY
+
+    This is an extended CL-CUDA:DEFKERNEL macro. It knows how to deal
+    with MAT objects and can define the same function for multiple
+    CTYPES. Example:
+    
+        (define-cuda-kernel (cuda-.+!)
+            (void ((alpha float) (x :mat :input) (n int)))
+          (let ((stride (* block-dim-x grid-dim-x)))
+            (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+                    (+ i stride)))
+                ((>= i n))
+              (set (aref x i) (+ (aref x i) alpha)))))
+    
+    The signature looks pretty much like in CL-CUDA:DEFKERNEL, but
+    parameters can take the form of `(<NAME> :MAT <DIRECTION>)` too, in
+    which case the appropriate CL-CUDA::CU-DEVICE-PTR is passed to the
+    kernel. `<DIRECTION>` is passed on to the WITH-FACET that's used to
+    acquire the cuda array.
+    
+    Both the signature and the body are written as if for single floats,
+    but one function is defined for each ctype in CTYPES by transforming
+    types, constants and code by substituting them with their ctype
+    equivalents. Currently this only means that one needs to write only
+    one kernel for FLOAT and DOUBLE.
+    
+    Finally, a dispatcher function with NAME is defined which determines
+    the ctype of the MAT objects passed for :MAT typed parameters. It's
+    an error if they are not of the same type. Scalars declared FLOAT
+    are coerced to that type and the appropriate kernel is called.
+# Cube manual
+
+###### \[in package MGL-CUBE\]
+## Introduction
+
+This is the libray on which MGL-MAT (see MGL-MAT:@MAT-MANUAL) is
+built. The idea of automatically translating between various
+representations may be useful for other applications, so this got
+its own package and all ties to MGL-MAT has been severed.
+
+This package defines CUBE, an abstract base class that provides a
+framework for automatic conversion between various representations
+of the same data. To define a cube, CUBE needs to be subclassed and
+the @FACET-EXTENSION-API be implemented.
+
+If you are only interested in how to use cubes in general, read
+@CUBE-BASICS, @DESTRUCTION-OF-CUBES and @FACET-BARRIER.
+
+If you want to implement a new cube datatype, then see
+@FACET-EXTENSION-API, @DEFAULT-CALL-WITH-FACET\* and @CUBE-VIEWS.
+
+## Basics
+
+Here we learn what a CUBE is and how to access the data in it with
+WITH-FACET.
+
+- [class] CUBE
+
+    A datacube that has various representations of the
+    same stuff. These representations go by the name \`facet'. Clients
+    must use WITH-FACET to acquire a dynamic extent reference to a
+    facet. With the information provided in the DIRECTION argument of
+    WITH-FACET, the cube keeps track of which facets are up-to-date and
+    copies data between them as necessary.
+    
+    The cube is an abstract class, it does not provide useful behavior
+    in itself. One must subclass it and implement the
+    @FACET-EXTENSION-API.
+    
+    Also see @CUBE-VIEWS, @DESTRUCTION-OF-CUBES and @FACET-BARRIER.
+
+- [macro] WITH-FACET (FACET (CUBE FACET-NAME &KEY (DIRECTION :IO) TYPE)) &BODY BODY
+
+    Bind the variable FACET to the facet with FACET-NAME of CUBE. FACET
+    is to be treated as dynamic extent: it is not allowed to keep a
+    reference to it. For the description of the DIRECTION parameter, see
+    the type DIRECTION.
+
+- [type] DIRECTION
+
+    Used by WITH-FACET, DIRECTION can be :INPUT, :OUTPUT or :IO.
+    
+    - :INPUT promises that the facet will only be read and never
+      written. Other up-to-date facets of the same cube remain
+      up-to-date. If the facet in question is not up-to-date then data
+      is copied to it from one of the up-to-date facets (see
+      SELECT-COPY-SOURCE-FOR-FACET\*).
+    
+    - :OUTPUT promises that *all* data will be overwritten without
+      reading any data. All up-to-date facets become non-up-to-date,
+      while this facet is marked as up-to-date. No copying of data takes
+      place.
+    
+    - :IO promises nothing about the type of access. All up-to-date
+      facets become non-up-to-date, while this facet is marked as
+      up-to-date. If the facet in question is not up-to-date then data
+      is copied to it from one of the up-to-date facets (see
+      SELECT-COPY-SOURCE-FOR-FACET\*).
+    
+     Any number of WITH-FACET's with direction :INPUT may be active at
+     the same time, but :IO and :OUTPUT cannot coexists with any other
+     WITH-FACET regardless of the direction. See CHECK-NO-WRITERS and
+     CHECK-NO-WATCHERS called by @DEFAULT-CALL-WITH-FACET\*.
+
+- [macro] WITH-FACETS (&REST FACET-BINDING-SPECS) &BODY BODY
+
+    A shorthand for writing nested WITH-FACET calls.
+    
+    ```
+    (with-facet (f1 (c1 'name1 :direction :input))
+      (with-facet (f2 (c2 'name2 :direction :output))
+        ...))
+    ```
+    
+    is equivalent to:
+    
+    ```
+    (with-facets ((f1 (c1 'name1 :direction :input))
+                  (f2 (c2 'name2 :direction :output)))
+      ...))
+    ```
+
+
+## Facet extension API
+
+- [locative] FACET-NAME
+
+    The FACET-NAME locative is to refer to stuff defined with
+    DEFINE-FACET-NAME.
+
+- [macro] DEFINE-FACET-NAME SYMBOL LAMBDA-LIST &BODY DOCSTRING
+
+    Just a macro to document the symbol FACET-NAME means a facet
+    name (as in the [FACET-NAME][locative]).
+
+- [generic-function] MAKE-FACET* CUBE FACET-NAME
+
+    As the first value, return a new object capable of
+    storing CUBE's data in the facet with FACET-NAME. As the second
+    value, return a facet description which is going to be passed to
+    DESTROY-FACET\*. As the third value, return a generalized boolean
+    indicating whether this facet must be explicitly destroyed (in which
+    case a finalizer will be added to CUBE). Called by WITH-FACET (or
+    more directly WATCH-FACET) when there is no facet with
+    FACET-NAME.
+
+- [generic-function] DESTROY-FACET* FACET-NAME FACET FACET-DESCRIPTION
+
+    Destroy FACET that belongs to a facet with
+    FACET-NAME and FACET-DESCRIPTION. The cube this facet belongs to is
+    not among the parameters because this method can be called from a
+    finalizer on the cube (so we can't have a reference to the cube
+    portably) which also means that it may run in an unpredictable
+    thread.
+
+- [generic-function] COPY-FACET* CUBE FROM-FACET-NAME FROM-FACET TO-FACET-NAME TO-FACET
+
+    Copy the CUBE's data from FROM-FACET with
+    FROM-FACET-NAME to TO-FACET with TO-FACET-NAME. Called by
+    WITH-FACET (or more directly WATCH-FACET) when necessary. FROM-FACET
+    is what SELECT-COPY-SOURCE-FOR-FACET\* returned.
+
+- [generic-function] CALL-WITH-FACET* CUBE FACET-NAME DIRECTION FN
+
+    Ensure that the facet with FACET-NAME exists.
+    Depending on DIRECTION and up-to-dateness, maybe copy data. Finally,
+    call FN with the facet. The default implementation acquires the
+    facet from WATCH-FACET calls FN with it and finally calls
+    UNWATCH-FACET. However, specializations are allowed to create only
+    temporary, dynamic extent views without ever calling WATCH-FACET and
+    UNWATCH-FACET.
+
+- [generic-function] SET-UP-TO-DATE-P* CUBE FACET-NAME VIEW VALUE
+
+    Set the VIEW-UP-TO-DATE-P slot of VIEW to VALUE.
+    The default implementation simply SETFs it. This being a generic
+    function allows subclasses to ensure that certain facets which share
+    storage are always up-to-date at the same time.
+
+- [generic-function] SELECT-COPY-SOURCE-FOR-FACET* CUBE TO-NAME TO-FACET
+
+    Return a facet name selected from the up-to-date
+    views from which CUBE's data should be copied to TO-FACET. The
+    default method simply returns the first up-to-date view.
+
+Also see @DEFAULT-CALL-WITH-FACET\*.
+
+## The default implementation of CALL-WITH-FACET*
+
+- [method] CALL-WITH-FACET* CUBE FACET-NAME DIRECTION FN
+
+    The default implementation of CALL-WITH-FACET\* is defined in terms
+    of the WATCH-FACET and the UNWATCH-FACET generic functions. These can
+    be considered part of the @FACET-EXTENSION-API.
+
+- [generic-function] WATCH-FACET CUBE FACET-NAME DIRECTION
+
+    This is what the default CALL-WITH-FACET\* method,
+    in terms of which WITH-FACET is implemented, calls first. The
+    default method takes care of creating views, copying and tracking
+    up-to-dateness.
+    
+    Calls CHECK-NO-WRITERS (unless *LET-INPUT-THROUGH-P*) and
+    CHECK-NO-WATCHERS (unless *LET-OUTPUT-THROUGH-P*) depending on
+    DIRECTION to detect situations with a writer being concurrent to
+    readers/writers because that would screw up the tracking
+    up-to-dateness.
+    
+    The default implementation should suffice most of the time. MGL-MAT
+    specializes it to override the DIRECTION arg if it's :OUTPUT but not
+    all elements are visible due to reshaping.
+
+- [generic-function] UNWATCH-FACET CUBE FACET-NAME
+
+    This is what the default CALL-WITH-FACET\* method,
+    in terms of which WITH-FACET is implemented, calls last. The default
+    method takes care of taking down views. External resource managers
+    may want to hook into this to handle unused facets.
+
+- [variable] *LET-INPUT-THROUGH-P* NIL
+
+    If true, WITH-FACETS (more precisely, the default implementation of
+    CALL-WITH-FACET\*) with :DIRECTION :INPUT does not call
+    CHECK-NO-WRITERS. This knob is intended to be bound locally for
+    debugging purposes.
+
+- [variable] *LET-OUTPUT-THROUGH-P* NIL
+
+    If true, WITH-FACETS (more precisely, the default implementation of
+    CALL-WITH-FACET\*) with :DIRECTION :IO or :OUTPUT does not call
+    CHECK-NO-WATCHERS. This knob is intended to be bound locally for
+    debugging purposes.
+
+- [function] CHECK-NO-WRITERS CUBE MESSAGE-FORMAT &REST MESSAGE-ARGS
+
+    Signal an error if CUBE has views being written (i.e. direction
+    is :IO or :OUTPUT.
+
+- [function] CHECK-NO-WATCHERS CUBE MESSAGE-FORMAT &REST MESSAGE-ARGS
+
+    Signal an error if CUBE has active views regardless of the
+    direction.
+
+## Views
+
+We learn what a VIEW is, how it's related to facets. See VIEWS,
+FIND-VIEW, and the default method of SET-UP-TO-DATE-P\*. Views are
+only visible to those implementing the @FACET-EXTENSION-API.
+
+- [class] VIEW STRUCTURE-OBJECT
+
+    A cube has facets, as we discussed in @CUBE-BASICS. The object
+    which holds the data in a particular representation is the facet. A
+    VIEW holds one such facet and some metadata pertaining to it: its
+    name (VIEW-FACET-NAME), whether it's up-to-date (VIEW-UP-TO-DATE-P),
+    etc. VIEW ojbects are never seen when simply using a cube, they are
+    for implementing the @FACET-EXTENSION-API.
+
+- [structure-accessor] VIEW-FACET-NAME
+
+- [structure-accessor] VIEW-FACET
+
+- [structure-accessor] VIEW-FACET-DESCRIPTION
+
+- [structure-accessor] VIEW-UP-TO-DATE-P
+
+- [function] VIEWS CUBE
+
+    Return the views of CUBE.
+
+- [function] FIND-VIEW CUBE FACET-NAME
+
+    Return the view of CUBE for the facet with FACET-NAME or NIL if no
+    such view exists.
+
+## Destroying cubes
+
+Lifetime management of facets is manual (but facets of garbage
+cubes are freed automatically by a finalizer, see MAKE-FACET\*). One
+may destroy a single facet or all facets of a cube with
+DESTROY-FACET and DESTROY-CUBE, respectively. Also see
+@FACET-BARRIER.
+
+- [function] DESTROY-FACET CUBE FACET-NAME
+
+    Free resources associated with the facet with FACET-NAME and remove
+    it from VIEWS of CUBE.
+
+- [function] DESTROY-CUBE CUBE
+
+    Destroy all facets of CUBE with DESTROY-FACET.
+
+## Facet barriers
+
+A facility to control lifetime of facets tied to a dynamic extent.
+Also see @DESTRUCTION-OF-CUBES.
+
+- [macro] WITH-FACET-BARRIER (CUBE-TYPE ENSURES DESTROYS) &BODY BODY
+
+    When BODY exits, destroy facets which:
+    
+    - are of cubes with CUBE-TYPE
+    
+    - have a facet name among DESTROYS
+    
+    - were created in in the dynamic extent of BODY
+    
+    Before destroying the facets make sure that the facets with names
+    among ENSURES are up-to-date. WITH-FACET-BARRIERs can be nested, in
+    case of multiple barriers matching the cube's type and the created
+    facet's name, the innermost one takes precedence.
+    
+    The purpose of this macro is twofold. First, it makes it easy to
+    temporarily work with a certain facet of many cubes without leaving
+    newly created facets around. Second, it can be used to make sure
+    that facets whose extent is tied to some dynamic boundary (such as
+    the thread in which they were created) are destroyed.
+
+- [function] COUNT-BARRED-FACETS FACET-NAME &KEY (TYPE 'CUBE)
+
+    Count facets with FACET-NAME of cubes of TYPE which will be
+    destroyed by a facet barrier.
