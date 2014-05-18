@@ -35,13 +35,13 @@
 
 (defsection @mat-what-kind-of-matrices
     (:title "What kind of matrices are supported?")
-  "Currently only single and double float matrices are supported, but
-  it would be easy to add single and double precision complex types
-  too. Other numeric types, such as byte and native integer, can be
-  added too, but they are not supported by CUBLAS. There are no
-  restrictions on the number of dimensions, and reshaping is possible.
-  The CUBLAS functions operate on the visible portion of the
-  matrix (which is subject to displacement and shaping), invisible
+  "Currently only row-major single and double float matrices are
+  supported, but it would be easy to add single and double precision
+  complex types too. Other numeric types, such as byte and native
+  integer, can be added too, but they are not supported by CUBLAS.
+  There are no restrictions on the number of dimensions, and reshaping
+  is possible. The CUBLAS functions operate on the visible portion of
+  the matrix (which is subject to displacement and shaping), invisible
   elements are not affected.")
 
 (defsection @mat-basics (:title "Basics")
@@ -393,7 +393,7 @@
 
 (defun reshape-to-row-matrix! (mat row)
   "Reshape the 2d MAT to make only a single ROW visible. This is made
-  possible by the row major layout, hence no column counterpart."
+  possible by the row-major layout, hence no column counterpart."
   (destructuring-bind (n-rows n-columns) (mat-dimensions mat)
     (assert (< row n-rows))
     (reshape-and-displace! mat (list 1 n-columns)

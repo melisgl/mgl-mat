@@ -73,13 +73,13 @@ and CUBLAS bindings are available.</p>
 
 <h3><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-IS-IT MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INTRODUCTION MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-BASICS MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)">&#8634;</a></span>2.2 What kind of matrices are supported?</h3>
 
-<p>Currently only single and double float matrices are supported, but
-it would be easy to add single and double precision complex types
-too. Other numeric types, such as byte and native integer, can be
-added too, but they are not supported by CUBLAS. There are no
-restrictions on the number of dimensions, and reshaping is possible.
-The CUBLAS functions operate on the visible portion of the
-matrix (which is subject to displacement and shaping), invisible
+<p>Currently only row-major single and double float matrices are
+supported, but it would be easy to add single and double precision
+complex types too. Other numeric types, such as byte and native
+integer, can be added too, but they are not supported by CUBLAS.
+There are no restrictions on the number of dimensions, and reshaping
+is possible. The CUBLAS functions operate on the visible portion of
+the matrix (which is subject to displacement and shaping), invisible
 elements are not affected.</p>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29'></a></p>
@@ -405,7 +405,7 @@ stable.</p></li>
 <li><p>[function] <strong>RESHAPE-TO-ROW-MATRIX!</strong> <em>MAT ROW</em></p>
 
 <p>Reshape the 2d <code>MAT</code> to make only a single <code>ROW</code> visible. This is made
-possible by the row major layout, hence no column counterpart.</p></li>
+possible by the row-major layout, hence no column counterpart.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20MGL-PAX-3AMACRO-29'></a></p>

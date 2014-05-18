@@ -55,13 +55,13 @@ and CUBLAS bindings are available.
 
 ### 2.2 What kind of matrices are supported?
 
-Currently only single and double float matrices are supported, but
-it would be easy to add single and double precision complex types
-too. Other numeric types, such as byte and native integer, can be
-added too, but they are not supported by CUBLAS. There are no
-restrictions on the number of dimensions, and reshaping is possible.
-The CUBLAS functions operate on the visible portion of the
-matrix (which is subject to displacement and shaping), invisible
+Currently only row-major single and double float matrices are
+supported, but it would be easy to add single and double precision
+complex types too. Other numeric types, such as byte and native
+integer, can be added too, but they are not supported by CUBLAS.
+There are no restrictions on the number of dimensions, and reshaping
+is possible. The CUBLAS functions operate on the visible portion of
+the matrix (which is subject to displacement and shaping), invisible
 elements are not affected.
 
 <a name='x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29'></a>
@@ -342,7 +342,7 @@ displacement is done by changing the offset. Clients need to observe
 - [function] **RESHAPE-TO-ROW-MATRIX!** *MAT ROW*
 
     Reshape the 2d `MAT` to make only a single `ROW` visible. This is made
-    possible by the row major layout, hence no column counterpart.
+    possible by the row-major layout, hence no column counterpart.
 
 <a name='x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20MGL-PAX-3AMACRO-29'></a>
 
