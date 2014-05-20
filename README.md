@@ -247,6 +247,20 @@ representations of numeric arrays. These facets can be accessed with
     `INITIAL-CONTENTS` argument of `MAKE-ARRAY`. The total number of
     elements must match the size of `MAT`. Returns `MAT`.
 
+<a name='x-28MGL-MAT-3AMREF-20FUNCTION-29'></a>
+
+- [function] **MREF** *MAT &REST INDICES*
+
+    Like `AREF` for arrays. Don't use this if you care about performance
+    at all. SETFable.
+
+<a name='x-28MGL-MAT-3AROW-MAJOR-MREF-20FUNCTION-29'></a>
+
+- [function] **ROW-MAJOR-MREF** *MAT INDEX*
+
+    Like `ROW-MAJOR-AREF` for arrays. Don't use this if you care about
+    performance at all. SETFable.
+
 <a name='x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29'></a>
 
 ## 4 Element types

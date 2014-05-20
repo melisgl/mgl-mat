@@ -180,6 +180,16 @@ WITH-FACETS with one of the following [FACET-NAME][]s:
     INITIAL-CONTENTS argument of MAKE-ARRAY. The total number of
     elements must match the size of MAT. Returns MAT.
 
+- [function] MREF MAT &REST INDICES
+
+    Like AREF for arrays. Don't use this if you care about performance
+    at all. SETFable.
+
+- [function] ROW-MAJOR-MREF MAT INDEX
+
+    Like ROW-MAJOR-AREF for arrays. Don't use this if you care about
+    performance at all. SETFable.
+
 ## Element types
 
 - [variable] *SUPPORTED-CTYPES* (:FLOAT :DOUBLE)

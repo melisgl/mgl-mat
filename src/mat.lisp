@@ -64,7 +64,9 @@
   (make-mat function)
   (array-to-mat function)
   (mat-to-array function)
-  (replace! function))
+  (replace! function)
+  (mref function)
+  (row-major-mref function))
 
 (export 'with-facet)
 (export 'with-facets)
@@ -262,6 +264,31 @@
       (foo dimensions seq-of-seqs))
     (unless (= i (+ start n))
       (error "Total size of ~S is not ~S." seq-of-seqs n))))
+
+(defun mref (mat &rest indices)
+  "Like AREF for arrays. Don't use this if you care about performance
+  at all. SETFable."
+  (with-facets ((a (mat 'array :direction :input)))
+    (apply #'aref a indices)))
+
+(defun set-mref (value mat &rest indices)
+  (with-facets ((a (mat 'array :direction :io)))
+    (setf (apply #'aref a indices) value)))
+
+(defsetf mref (mat &rest indices) (value)
+  `(set-mref ,value ,mat ,@indices))
+
+(defun row-major-mref (mat index)
+  "Like ROW-MAJOR-AREF for arrays. Don't use this if you care about
+  performance at all. SETFable."
+  (with-facets ((a (mat 'array :direction :input)))
+    (row-major-aref a index)))
+
+(defun set-row-major-mref (mat index value)
+  (with-facets ((a (mat 'array :direction :io)))
+    (setf (row-major-aref a index) value)))
+
+(defsetf row-major-mref set-row-major-mref)
 
 
 (defsection @mat-printing (:title "Printing")
