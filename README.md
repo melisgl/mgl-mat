@@ -20,9 +20,10 @@
 - [10 BLAS][0386]
 - [11 Destructive API][e71c]
 - [12 Non-destructive API][9984]
-- [13 Random numbers][ef83]
-- [14 I/O][78d7]
-- [15 Extension API][8b4f]
+- [13 Mappings][7388]
+- [14 Random numbers][ef83]
+- [15 I/O][78d7]
+- [16 Extension API][8b4f]
 
 ###### \[in package MGL-MAT\]
 <a name='x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29'></a>
@@ -990,9 +991,33 @@ Finally, some neural network operations.
     Logarithm of the determinant of a matrix. Return -1, 1 or 0 (or
     equivalent) to correct for the sign, as a second value.
 
+<a name='x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29'></a>
+
+## 13 Mappings
+
+<a name='x-28MGL-MAT-3AMAP-CONCAT-20FUNCTION-29'></a>
+
+- [function] **MAP-CONCAT** *FN MATS MAT &KEY KEY*
+
+    Call `FN` with each element of `MATS` and `MAT` temporarily reshaped to
+    the dimensions of the current element of `MATS` and return `MAT`. For
+    the next element the displacement is increased so that there is no
+    overlap. `MATS` is keyed by `KEY` just like the CL sequence functions.
+
+<a name='x-28MGL-MAT-3AMAP-ROWS-20FUNCTION-29'></a>
+
+- [function] **MAP-ROWS** *FN MATS MAT &KEY KEY (FROM-ROW 0) (FROM-COLUMN 0)*
+
+    Call `FN` with each element of `MATS` and `MAT` temporarily reshaped to
+    its first row, second row, etc and return `MAT`. Actually the first
+    row is given by `FROM-ROW` and rows are not necessarily full rows if
+    `FROM-COLUMN` is greater than 0. `MATS` is keyed by `KEY` just like in CL
+    sequence functions. It is not an error if there are fewer `MATS` than
+    rows in `MAT`.
+
 <a name='x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29'></a>
 
-## 13 Random numbers
+## 14 Random numbers
 
 This is rather experimental.
 
@@ -1016,7 +1041,7 @@ This is rather experimental.
 
 <a name='x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29'></a>
 
-## 14 I/O
+## 15 I/O
 
 <a name='x-28MGL-MAT-3AWRITE-MAT-20GENERIC-FUNCTION-29'></a>
 
@@ -1037,7 +1062,7 @@ This is rather experimental.
 
 <a name='x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 15 Extension API
+## 16 Extension API
 
 Macros for defining cuda and lisp kernels. Typically operations
 have a cuda and a lisp implementations and decide which to use with
@@ -1531,6 +1556,7 @@ Also see [Destroying cubes][2fa1].
   [692d]: #x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-VIEWS MGL-PAX:SECTION)"
   [6ccf]: #x-28MGL-MAT-3A-40MAT-PRINTING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-PRINTING MGL-PAX:SECTION)"
   [7043]: #x-28MGL-MAT-3AFOREIGN-ARRAY-20CLASS-29 "(MGL-MAT:FOREIGN-ARRAY CLASS)"
+  [7388]: #x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-MAPPINGS MGL-PAX:SECTION)"
   [773f]: #x-28MGL-MAT-3AMAT-20CLASS-29 "(MGL-MAT:MAT CLASS)"
   [776e]: #x-28MGL-CUBE-3AVIEW-20CLASS-29 "(MGL-CUBE:VIEW CLASS)"
   [78d7]: #x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-IO MGL-PAX:SECTION)"

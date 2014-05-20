@@ -34,9 +34,10 @@
 <li><a href="#x-28MGL-MAT-3A-40MAT-BLAS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-BLAS MGL-PAX:SECTION)">10 BLAS</a></li>
 <li><a href="#x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-DESTRUCTIVE-API MGL-PAX:SECTION)">11 Destructive API</a></li>
 <li><a href="#x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-NON-DESTRUCTIVE-API MGL-PAX:SECTION)">12 Non-destructive API</a></li>
-<li><a href="#x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-RANDOM MGL-PAX:SECTION)">13 Random numbers</a></li>
-<li><a href="#x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-IO MGL-PAX:SECTION)">14 I/O</a></li>
-<li><a href="#x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)">15 Extension API</a></li>
+<li><a href="#x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MAPPINGS MGL-PAX:SECTION)">13 Mappings</a></li>
+<li><a href="#x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-RANDOM MGL-PAX:SECTION)">14 Random numbers</a></li>
+<li><a href="#x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-IO MGL-PAX:SECTION)">15 I/O</a></li>
+<li><a href="#x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)">16 Extension API</a></li>
 </ul>
 
 <h6>[in package MGL-MAT]</h6>
@@ -1070,7 +1071,7 @@ arguments. </p></li>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-DESTRUCTIVE-API MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-RANDOM MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-NON-DESTRUCTIVE-API MGL-PAX:SECTION)">&#8634;</a></span>12 Non-destructive API</h2>
+<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-DESTRUCTIVE-API MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MAPPINGS MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-NON-DESTRUCTIVE-API MGL-PAX:SECTION)">&#8634;</a></span>12 Non-destructive API</h2>
 
 <p><a name='x-28MGL-MAT-3ACOPY-MAT-20FUNCTION-29'></a></p>
 
@@ -1184,9 +1185,37 @@ transpose operation depending on <code>TRANSPOSE-A?</code> and <code>TRANSPOSE-B
 equivalent) to correct for the sign, as a second value.</p></li>
 </ul>
 
+<p><a name='x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29'></a></p>
+
+<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-NON-DESTRUCTIVE-API MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-RANDOM MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MAPPINGS MGL-PAX:SECTION)">&#8634;</a></span>13 Mappings</h2>
+
+<p><a name='x-28MGL-MAT-3AMAP-CONCAT-20FUNCTION-29'></a></p>
+
+<ul>
+<li><p>[function] <strong>MAP-CONCAT</strong> <em>FN MATS MAT &amp;KEY KEY</em></p>
+
+<p>Call <code>FN</code> with each element of <code>MATS</code> and <code>MAT</code> temporarily reshaped to
+the dimensions of the current element of <code>MATS</code> and return <code>MAT</code>. For
+the next element the displacement is increased so that there is no
+overlap. <code>MATS</code> is keyed by <code>KEY</code> just like the CL sequence functions.</p></li>
+</ul>
+
+<p><a name='x-28MGL-MAT-3AMAP-ROWS-20FUNCTION-29'></a></p>
+
+<ul>
+<li><p>[function] <strong>MAP-ROWS</strong> <em>FN MATS MAT &amp;KEY KEY (FROM-ROW 0) (FROM-COLUMN 0)</em></p>
+
+<p>Call <code>FN</code> with each element of <code>MATS</code> and <code>MAT</code> temporarily reshaped to
+its first row, second row, etc and return <code>MAT</code>. Actually the first
+row is given by <code>FROM-ROW</code> and rows are not necessarily full rows if
+<code>FROM-COLUMN</code> is greater than 0. <code>MATS</code> is keyed by <code>KEY</code> just like in CL
+sequence functions. It is not an error if there are fewer <code>MATS</code> than
+rows in <code>MAT</code>.</p></li>
+</ul>
+
 <p><a name='x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-NON-DESTRUCTIVE-API MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-IO MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-RANDOM MGL-PAX:SECTION)">&#8634;</a></span>13 Random numbers</h2>
+<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MAPPINGS MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-IO MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-RANDOM MGL-PAX:SECTION)">&#8634;</a></span>14 Random numbers</h2>
 
 <p>This is rather experimental.</p>
 
@@ -1216,7 +1245,7 @@ interval of <code>MAT</code>'s type.</p></li>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-RANDOM MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-IO MGL-PAX:SECTION)">&#8634;</a></span>14 I/O</h2>
+<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-RANDOM MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-IO MGL-PAX:SECTION)">&#8634;</a></span>15 I/O</h2>
 
 <p><a name='x-28MGL-MAT-3AWRITE-MAT-20GENERIC-FUNCTION-29'></a></p>
 
@@ -1241,7 +1270,7 @@ may return without error even if <code>STREAM</code> contains garbage.</p></li>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-IO MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)">&#8634;</a></span>15 Extension API</h2>
+<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-IO MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)">&#8634;</a></span>16 Extension API</h2>
 
 <p>Macros for defining cuda and lisp kernels. Typically operations
 have a cuda and a lisp implementations and decide which to use with

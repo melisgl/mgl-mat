@@ -19,6 +19,7 @@
   (@mat-blas section)
   (@mat-destructive-api section)
   (@mat-non-destructive-api section)
+  (@mat-mappings section)
   (@mat-random section)
   (@mat-io section)
   (@mat-extension-api section))
@@ -1242,6 +1243,47 @@ X. Return X."
   equivalent) to correct for the sign, as a second value."
   (with-facets ((array (mat 'array :direction :input)))
     (lla:logdet array)))
+
+
+(defsection @mat-mappings (:title "Mappings")
+  (map-concat function)
+  (map-rows function))
+
+(defun map-concat (fn mats mat &key key)
+  "Call FN with each element of MATS and MAT temporarily reshaped to
+  the dimensions of the current element of MATS and return MAT. For
+  the next element the displacement is increased so that there is no
+  overlap. MATS is keyed by KEY just like the CL sequence functions."
+  (let* ((start (mat-displacement mat))
+         (end (+ start (mat-size mat))))
+    (with-shape-and-displacement (mat)
+      (map nil (lambda (m)
+                 (let ((size (mat-size m)))
+                   (assert (<= (+ start size) end))
+                   (reshape-and-displace! mat (mat-dimensions m) start)
+                   (funcall fn (if key (funcall key m) m) mat)
+                   (incf start size)))
+           mats)))
+  mat)
+
+(defun map-rows (fn mats mat &key key (from-row 0) (from-column 0))
+  "Call FN with each element of MATS and MAT temporarily reshaped to
+  its first row, second row, etc and return MAT. Actually the first
+  row is given by FROM-ROW and rows are not necessarily full rows if
+  FROM-COLUMN is greater than 0. MATS is keyed by KEY just like in CL
+  sequence functions. It is not an error if there are fewer MATS than
+  rows in MAT."
+  (let* ((n-columns (mat-dimension mat 1))
+         (displacement (mat-displacement mat))
+         (size (- n-columns from-column)))
+    (assert (<= 0 size))
+    (with-shape-and-displacement (mat)
+      (reshape! mat (list 1 size))
+      (loop for m in mats
+            for row upfrom from-row
+            do (displace! mat (+ displacement (* row n-columns) from-column))
+               (funcall fn (if key (funcall key m) m) mat))))
+  mat)
 
 
 (defsection @mat-random (:title "Random numbers")
