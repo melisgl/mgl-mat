@@ -786,6 +786,11 @@ This is rather experimental.
     Fill MAT with random numbers sampled uniformly from the [0,LIMIT)
     interval of MAT's type.
 
+- [function] GAUSSIAN-RANDOM! MAT &KEY (MEAN 0) (STDDEV 1)
+
+    Fill MAT with independent normally distributed random numbers with
+    MEAN and STDDEV.
+
 ## I/O
 
 - [generic-function] WRITE-MAT MAT STREAM

@@ -1039,6 +1039,13 @@ This is rather experimental.
     Fill `MAT` with random numbers sampled uniformly from the [0,LIMIT)
     interval of `MAT`'s type.
 
+<a name='x-28MGL-MAT-3AGAUSSIAN-RANDOM-21-20FUNCTION-29'></a>
+
+- [function] **GAUSSIAN-RANDOM!** *MAT &KEY (MEAN 0) (STDDEV 1)*
+
+    Fill `MAT` with independent normally distributed random numbers with
+    `MEAN` and `STDDEV`.
+
 <a name='x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29'></a>
 
 ## 15 I/O
