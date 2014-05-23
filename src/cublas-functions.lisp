@@ -10,7 +10,7 @@
    (x :mat :input) (incx :int) (y :mat :io) (incy :int)))
 
 (define-cublas-function (copy)
-  ((n :int) (x :mat :input) (incx :int) (y :mat :input) (incy :int)))
+  ((n :int) (x :mat :input) (incx :int) (y :mat :output) (incy :int)))
 
 (define-cublas-function (dot)
   ((n :int) (x :mat :input) (incx :int) (y :mat :input) (incy :int)
