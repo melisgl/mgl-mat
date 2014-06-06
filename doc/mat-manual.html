@@ -18,6 +18,7 @@
 <ul>
 <li><a href="#x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-IS-IT MGL-PAX:SECTION)">2.1 What's MAT?</a></li>
 <li><a href="#x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)">2.2 What kind of matrices are supported?</a></li>
+<li><a href="#x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INSTALLATION MGL-PAX:SECTION)">2.3 Installation</a></li>
 </ul></li>
 <li><a href="#x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-BASICS MGL-PAX:SECTION)">3 Basics</a></li>
 <li><a href="#x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-CTYPES MGL-PAX:SECTION)">4 Element types</a></li>
@@ -72,7 +73,7 @@ and CUBLAS bindings are available.</p>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h3><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-IS-IT MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INTRODUCTION MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-BASICS MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)">&#8634;</a></span>2.2 What kind of matrices are supported?</h3>
+<h3><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-IS-IT MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INTRODUCTION MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INSTALLATION MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)">&#8634;</a></span>2.2 What kind of matrices are supported?</h3>
 
 <p>Currently only row-major single and double float matrices are
 supported, but it would be easy to add single and double precision
@@ -83,9 +84,17 @@ is possible. The CUBLAS functions operate on the visible portion of
 the matrix (which is subject to displacement and shaping), invisible
 elements are not affected.</p>
 
+<p><a name='x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29'></a></p>
+
+<h3><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INTRODUCTION MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-BASICS MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INSTALLATION MGL-PAX:SECTION)">&#8634;</a></span>2.3 Installation</h3>
+
+<p>All dependencies are in quicklisp except for cl-cuda whose official
+repository has not incorporated my changes yet, so you'll need <a href="https://github.com/melisgl/cl-cuda" >my
+fork</a> for the time being.</p>
+
 <p><a name='x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-CTYPES MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-BASICS MGL-PAX:SECTION)">&#8634;</a></span>3 Basics</h2>
+<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INSTALLATION MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-CTYPES MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-BASICS MGL-PAX:SECTION)">&#8634;</a></span>3 Basics</h2>
 
 <p>A <a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> is a <a href="cube-manual.html#x-28MGL-CUBE-3ACUBE-20CLASS-29" title="(MGL-CUBE:CUBE CLASS)"><code>CUBE</code></a> (see <a href="cube-manual.html#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">Cube manual</a>) whose facets are different
 representations of numeric arrays. These facets can be accessed with

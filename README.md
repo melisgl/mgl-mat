@@ -8,6 +8,7 @@
 - [2 Introduction][b0b5]
     - [2.1 What's MAT?][01b0]
     - [2.2 What kind of matrices are supported?][dd58]
+    - [2.3 Installation][d56c]
 - [3 Basics][f966]
 - [4 Element types][00a6]
 - [5 Printing][6ccf]
@@ -64,6 +65,14 @@ There are no restrictions on the number of dimensions, and reshaping
 is possible. The CUBLAS functions operate on the visible portion of
 the matrix (which is subject to displacement and shaping), invisible
 elements are not affected.
+
+<a name='x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29'></a>
+
+### 2.3 Installation
+
+All dependencies are in quicklisp except for cl-cuda whose official
+repository has not incorporated my changes yet, so you'll need [my
+fork](https://github.com/melisgl/cl-cuda) for the time being.
 
 <a name='x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29'></a>
 
@@ -1608,6 +1617,7 @@ Also see [Destroying cubes][2fa1].
   [c62e]: #x-28MGL-CUBE-3AVIEWS-20FUNCTION-29 "(MGL-CUBE:VIEWS FUNCTION)"
   [c65e]: #x-28MGL-MAT-3AFOREIGN-ARRAY-STRATEGY-20TYPE-29 "(MGL-MAT:FOREIGN-ARRAY-STRATEGY TYPE)"
   [caa5]: #x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-CURAND MGL-PAX:SECTION)"
+  [d56c]: #x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-INSTALLATION MGL-PAX:SECTION)"
   [d95a]: #x-28MGL-CUBE-3AFIND-VIEW-20FUNCTION-29 "(MGL-CUBE:FIND-VIEW FUNCTION)"
   [dc10]: #x-28MGL-MAT-3AREAD-MAT-20GENERIC-FUNCTION-29 "(MGL-MAT:READ-MAT GENERIC-FUNCTION)"
   [dd58]: #x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)"
