@@ -236,7 +236,7 @@
 
 (defun mat-to-array (mat)
   (with-facet (array (mat 'array :direction :input))
-    (aops:reshape array (mat-dimensions mat))))
+    (alexandria:copy-array array)))
 
 (defun replace! (mat seq-of-seqs)
   "Replace the contents of MAT with the elements of SEQ-OF-SEQS.
