@@ -861,6 +861,8 @@
   (.sqrt! function)
   (.logistic! function)
   (.+! function)
+  (.*! function)
+  (geem! function)
   (.<! function)
   (fill! function)
   (sum! function)
@@ -903,13 +905,54 @@
 
 (defun .+! (alpha x)
   "Add the scalar ALPHA to each element of X destructively modifying
-X. Return X."
+  X. Return X."
   (let ((n (mat-size x)))
     (if (use-cuda-p)
         (multiple-value-bind (block-dim grid-dim) (choose-1d-block-and-grid n 4)
           (cuda-.+! alpha x n :grid-dim grid-dim :block-dim block-dim))
         (lisp-.+! alpha x (mat-displacement x) n)))
   x)
+
+(defun .*! (x y)
+  (geem! 1 x y 0 y))
+
+(define-cuda-kernel (cuda-geem!)
+    (void ((alpha float) (a :mat :input) (b :mat :input)
+           (beta float) (c :mat :io) (n int)))
+  (let ((stride (* block-dim-x grid-dim-x)))
+    (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+            (+ i stride)))
+        ((>= i n))
+      (set (aref c i) (+ (* alpha (* (aref a i) (aref b i)))
+                         (* beta (aref c i)))))))
+
+(define-lisp-kernel (lisp-geem!)
+    ((alpha single-float) (a :mat :input) (start-a index)
+     (b :mat :input) (start-b index)
+     (beta single-float) (c :mat :io) (start-c index) (n index))
+  (loop for ai of-type index upfrom start-a
+          below (the! index (+ start-a n))
+        for bi of-type index upfrom start-b
+        for ci of-type index upfrom start-c
+        do (setf (aref c ci) (+ (* alpha (* (aref a ai) (aref b bi)))
+                                (* beta (aref c ci))))))
+
+(defun geem! (alpha a b beta c)
+  "Like GEMM!, but multiplication is elementwise."
+  (let* ((n (mat-size a))
+         (ctype (mat-ctype a))
+         (alpha (coerce-to-ctype alpha :ctype ctype))
+         (beta (coerce-to-ctype beta :ctype ctype)))
+    (assert (= n (mat-size b)))
+    (assert (= n (mat-size c)))
+    (if (use-cuda-p)
+        (multiple-value-bind (block-dim grid-dim) (choose-1d-block-and-grid n 4)
+          (cuda-geem! alpha a b beta c n
+                      :grid-dim grid-dim :block-dim block-dim))
+        (lisp-geem! alpha a (mat-displacement a)
+                    b (mat-displacement b)
+                    beta c (mat-displacement c) n)))
+  c)
 
 (define-cuda-kernel (cuda-less-than!)
     (void ((x :mat :input) (y :mat :io) (n int)))

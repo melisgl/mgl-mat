@@ -633,6 +633,12 @@ Level 3 BLAS operations
     Add the scalar ALPHA to each element of X destructively modifying
     X. Return X.
 
+- [function] .*! X Y
+
+- [function] GEEM! ALPHA A B BETA C
+
+    Like GEMM!, but multiplication is elementwise.
+
 - [function] .<! X Y
 
     For each element of X and Y set Y to 1 if the element in Y is
