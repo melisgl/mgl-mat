@@ -4,16 +4,22 @@
 (in-package :mgl-mat)
 
 (defun blas-function-name (name ctype)
-    (let ((*package* (find-package :mgl-mat)))
-      (read-from-string (format nil "blas-~a~a" (ctype-blas-prefix ctype)
-                                name))))
+  (let ((*package* (find-package :mgl-mat)))
+    (read-from-string (format nil "blas-~A~A" (ctype-blas-prefix ctype)
+                              name))))
+
+(defmacro blas-function-name* (name ctype)
+  `(ecase ,ctype
+     ,@(loop for ctype in *supported-ctypes*
+             collect `((,ctype)
+                       ',(blas-function-name name ctype)))))
 
 (defmacro call-blas-function (name (&rest params))
   (let* ((*mat-param-type* '(:pointer :float))
          (mat-params (remove-if-not #'mat-param-p params)))
     (alexandria:with-unique-names (ctype)
       `(let ((,ctype (common-mat-ctype ,@(mapcar #'param-name mat-params))))
-         (funcall (blas-function-name ',name ,ctype)
+         (funcall (blas-function-name* ,name ,ctype)
                   ,@(mapcar (lambda (param)
                               (let ((name (param-name param)))
                                 (if (and (not (mat-param-p param))

@@ -82,16 +82,22 @@
 ;;;; internal.
 
 (defun cublas-function-name (name ctype)
-    (let ((*package* (find-package :mgl-mat)))
-      (read-from-string (format nil "cublas-~a~a" (ctype-blas-prefix ctype)
-                                name))))
+  (let ((*package* (find-package :mgl-mat)))
+    (read-from-string (format nil "cublas-~A~A" (ctype-blas-prefix ctype)
+                              name))))
+
+(defmacro cublas-function-name* (name ctype)
+  `(ecase ,ctype
+     ,@(loop for ctype in *supported-ctypes*
+             collect `((,ctype)
+                       ',(cublas-function-name name ctype)))))
 
 (defmacro call-cublas-function (name (&rest params) handle)
   (let* ((*mat-param-type* 'cl-cuda::cu-device-ptr)
          (mat-params (remove-if-not #'mat-param-p params)))
     (alexandria:with-unique-names (ctype)
       `(let ((,ctype (common-mat-ctype ,@(mapcar #'param-name mat-params))))
-         (funcall (cublas-function-name ',name ,ctype)
+         (funcall (cublas-function-name* ,name ,ctype)
                   ,@(mapcar (lambda (param)
                               (let ((name (param-name param)))
                                 (if (equal (param-type param)
