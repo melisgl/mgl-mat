@@ -1323,7 +1323,8 @@
 
 (defsection @mat-mappings (:title "Mappings")
   (map-concat function)
-  (map-rows function))
+  (map-rows function)
+  (map-mats-into function))
 
 (defun map-concat (fn mats mat &key key)
   "Call FN with each element of MATS and MAT temporarily reshaped to
@@ -1361,6 +1362,37 @@
             do (displace! mat (+ displacement (* row n-columns) from-column))
                (funcall fn (if key (funcall key m) m) mat))))
   mat)
+
+(defun map-mats-into (result-mat fn &rest mats)
+  "Like CL:MAP-INTO but for MAT objects. Destructively modifies
+  RESULT-MAT to contain the results of applying FN to each element in
+  the argument MATS in turn."
+  (let ((n (mat-size result-mat)))
+    (assert (every (lambda (mat) (= n (mat-size mat)))
+                   mats))
+    (with-facets ((r (result-mat 'array :direction :io)))
+      (let ((mats-and-arrays (list (cons result-mat r))))
+        (labels ((foo (mats)
+                   (if (endp mats)
+                       (let ((arrays (mapcar #'cdr (reverse mats-and-arrays))))
+                         (destructuring-bind (result-array &rest arrays) arrays
+                           (dotimes (i n)
+                             (setf (row-major-aref result-array i)
+                                   (apply fn (mapcar (lambda (array)
+                                                       (row-major-aref array i))
+                                                     arrays))))))
+                       (let* ((mat (first mats))
+                              (mat-and-array
+                                (find mat mats-and-arrays :key #'car)))
+                         (if mat-and-array
+                             (progn
+                               (push mat-and-array mats-and-arrays)
+                               (foo (rest mats)))
+                             (with-facets ((a (mat 'array :direction :input)))
+                               (push (cons mat a) mats-and-arrays)
+                               (foo (rest mats))))))))
+          (foo mats)))))
+  result-mat)
 
 
 (defsection @mat-random (:title "Random numbers")

@@ -1048,6 +1048,14 @@ Finally, some neural network operations.
     sequence functions. It is not an error if there are fewer `MATS` than
     rows in `MAT`.
 
+<a name='x-28MGL-MAT-3AMAP-MATS-INTO-20FUNCTION-29'></a>
+
+- [function] **MAP-MATS-INTO** *RESULT-MAT FN &REST MATS*
+
+    Like `CL:MAP-INTO` but for [`MAT`][773f] objects. Destructively modifies
+    `RESULT-MAT` to contain the results of applying `FN` to each element in
+    the argument `MATS` in turn.
+
 <a name='x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29'></a>
 
 ## 14 Random numbers
