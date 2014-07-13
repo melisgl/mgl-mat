@@ -1005,9 +1005,9 @@
     (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
             (+ i stride)))
         ((>= i n))
-      (set (aref y i)
-           (+ (* beta (aref y i))
-              (let ((xe (aref x i)))
+      (let ((xe (aref x i)))
+        (set (aref y i)
+             (+ (* beta (aref y i))
                 (if (= 0.0 xe)
                     0.0
                     (if (< 0.0 xe)
