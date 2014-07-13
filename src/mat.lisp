@@ -864,6 +864,7 @@
   (.*! function)
   (geem! function)
   (.<! function)
+  (add-sign! function)
   (fill! function)
   (sum! function)
   "Finally, some neural network operations."
@@ -982,6 +983,53 @@
         (cuda-less-than! x y n :grid-dim (list (ceiling n 256) 1 1)
                          :block-dim (list 256 1 1))
         (lisp-less-than! x (mat-displacement x) y (mat-displacement y) n))))
+
+(define-lisp-kernel (lisp-add-sign!)
+    ((alpha single-float) (x :mat :input) (start-x index)
+     (beta single-float) (y :mat :io) (start-y index) (n index))
+  (loop for xi of-type index upfrom start-x below (+ start-x n)
+        for yi of-type index upfrom start-y
+        do (setf (aref y yi)
+                 (+ (* beta (aref y yi))
+                    (let ((xe (aref x xi)))
+                      (cond ((= 0.0 xe)
+                             0.0)
+                            ((< 0.0 xe)
+                             alpha)
+                            (t
+                             (- alpha))))))))
+
+(define-cuda-kernel (cuda-add-sign!)
+    (void ((alpha float) (x :mat :input) (beta float) (y :mat :io) (n int)))
+  (let ((stride (* block-dim-x grid-dim-x)))
+    (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+            (+ i stride)))
+        ((>= i n))
+      (set (aref y i)
+           (+ (* beta (aref y i))
+              (let ((xe (aref x i)))
+                (if (= 0.0 xe)
+                    0.0
+                    (if (< 0.0 xe)
+                        alpha
+                        (- alpha)))))))))
+
+(defun add-sign! (alpha a beta b)
+  "Add the elementwise sign (-1, 0 or 1 for negative, zero and
+  positive numbers respectively) of A times ALPHA to BETA * B. Return
+  B."
+  (let* ((n (mat-size a))
+         (ctype (mat-ctype a))
+         (alpha (coerce-to-ctype alpha :ctype ctype))
+         (beta (coerce-to-ctype beta :ctype ctype)))
+    (assert (= n (mat-size b)))
+    (if (use-cuda-p)
+        (multiple-value-bind (block-dim grid-dim) (choose-1d-block-and-grid n 4)
+          (cuda-add-sign! alpha a beta b n
+                          :grid-dim grid-dim :block-dim block-dim))
+        (lisp-add-sign! alpha a (mat-displacement a)
+                        beta b (mat-displacement b) n)))
+  b)
 
 (define-cuda-kernel (cuda-fill!)
     (void ((alpha float) (x :mat :output) (n int)))
