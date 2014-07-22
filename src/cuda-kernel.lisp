@@ -23,6 +23,10 @@
          (ecase ctype
            ((:float) 'cl-cuda::curand-uniform-float-xorwow)
            ((:double) 'cl-cuda::curand-uniform-double-xorwow)))
+        ((eq object 'cl-cuda::curand-normal-float-xorwow)
+         (ecase ctype
+           ((:float) 'cl-cuda::curand-normal-float-xorwow)
+           ((:double) 'cl-cuda::curand-normal-double-xorwow)))
         ((typep object 'single-float)
          (ecase ctype
            ((:float) object)

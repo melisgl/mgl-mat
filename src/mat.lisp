@@ -1510,17 +1510,24 @@
 (defun gaussian-random! (mat &key (mean 0) (stddev 1))
   "Fill MAT with independent normally distributed random numbers with
   MEAN and STDDEV."
+  
   (let* ((ctype (mat-ctype mat))
          (mean (coerce-to-ctype mean :ctype ctype))
          (stddev (coerce-to-ctype stddev :ctype ctype)))
-    ;; FIXME: cuda implementation missing. It is also slow.
-    (let* ((start (mat-displacement mat))
-           (end (+ start (mat-size mat))))
-      (with-facets ((a (mat 'backing-array :direction :output)))
-        (loop for i upfrom start below end
-              do (setf (aref a i)
-                       (+ mean (* stddev (coerce-to-ctype (gaussian-random-1)
-                                                          :ctype ctype))))))))
+    (cond ((use-cuda-p)
+           (curand-normal *curand-state* mat)
+           (unless (= stddev 1)
+             (scal! stddev mat))
+           (unless (= mean 0)
+             (.+! mean mat)))
+          (t
+           (let* ((start (mat-displacement mat))
+                  (end (+ start (mat-size mat))))
+             (with-facets ((a (mat 'backing-array :direction :output)))
+               (loop for i upfrom start below end
+                     do (setf (aref a i)
+                              (+ mean (* stddev (coerce-to-ctype (gaussian-random-1)
+                                                                 :ctype ctype))))))))))
   mat)
 
 (defgeneric copy-random-state (state))

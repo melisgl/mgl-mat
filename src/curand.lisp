@@ -19,6 +19,8 @@
        (destroy-random-state *curand-state*))))
 
 (defgeneric curand-uniform (state mat))
+
+(defgeneric curand-normal (state mat))
 
 
 ;;;; XORWOW
@@ -78,6 +80,26 @@
         (choose-1d-block-and-grid (min n n-states) 4)
       (curand-uniform-xorwow (offset-pointer (states state)) mat n n-states
                              :grid-dim grid-dim :block-dim block-dim))))
+
+(define-cuda-kernel (curand-normal-xorwow)
+    (void ((states curand-state-xorwow*) (x :mat :output) (n int)
+           (n-states int)))
+  (let ((idx (+ (* block-dim-x block-idx-x) thread-idx-x)))
+    (when (< idx n-states)
+      (let ((state (aref states idx))
+            (stride (* block-dim-x grid-dim-x)))
+        (do ((i idx (+ i stride)))
+            ((>= i n))
+          (set (aref x i) (curand-normal-float-xorwow (pointer state))))
+        (set (aref states idx) state)))))
+
+(defmethod curand-normal ((state curand-xorwow-state) mat)
+  (let ((n (mat-size mat))
+        (n-states (n-states state)))
+    (multiple-value-bind (block-dim grid-dim)
+        (choose-1d-block-and-grid (min n n-states) 4)
+      (curand-normal-xorwow (offset-pointer (states state)) mat n n-states
+                              :grid-dim grid-dim :block-dim block-dim))))
 
 (defkernel copy-xorwow-states
     (void ((from curand-state-xorwow*) (n int) (to curand-state-xorwow*)))
