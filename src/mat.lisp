@@ -915,8 +915,27 @@
         (lisp-.+! alpha x (mat-displacement x) n)))
   x)
 
+(define-cuda-kernel (cuda-mult)
+    (void ((x :mat :input) (y :mat :io) (n int)))
+  (let ((stride (* block-dim-x grid-dim-x)))
+    (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+            (+ i stride)))
+        ((>= i n))
+      (set (aref y i) (* (aref x i) (aref y i))))))
+
+(define-lisp-kernel (lisp-.*!)
+    ((x :mat :input) (start-x index) (y :mat :io) (start-y index) (n index))
+  (loop for xi of-type index upfrom start-x below (+ start-x n)
+        for yi of-type index upfrom start-y
+        do (setf (aref y yi) (* (aref x yi) (aref y yi)))))
+
 (defun .*! (x y)
-  (geem! 1 x y 0 y))
+  (assert (= (mat-size x) (mat-size y)))
+  (let ((n (mat-size x)))
+    (if (use-cuda-p)
+        (cuda-mult x y n :grid-dim (list (ceiling n 256) 1 1)
+                   :block-dim (list 256 1 1))
+        (lisp-.*! x (mat-displacement x) y (mat-displacement y) n))))
 
 (define-cuda-kernel (cuda-geem!)
     (void ((alpha float) (a :mat :input) (b :mat :input)
