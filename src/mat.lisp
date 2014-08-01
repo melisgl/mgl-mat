@@ -907,7 +907,8 @@
 (defun .+! (alpha x)
   "Add the scalar ALPHA to each element of X destructively modifying
   X. Return X."
-  (let ((n (mat-size x)))
+  (let ((n (mat-size x))
+        (alpha (coerce-to-ctype alpha :ctype (mat-ctype x))))
     (if (use-cuda-p)
         (multiple-value-bind (block-dim grid-dim) (choose-1d-block-and-grid n 4)
           (cuda-.+! alpha x n :grid-dim grid-dim :block-dim block-dim))
