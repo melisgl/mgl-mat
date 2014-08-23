@@ -363,6 +363,22 @@
       (setq stop-gc-thread t)
       (bordeaux-threads:join-thread gc-thread))))
 
+(defun test-scale-rows! ()
+  (do-configurations (scale-rows!)
+    (let ((x (make-mat 8)))
+      (reshape-and-displace! x '(3 2) 1)
+      (replace! x '((1 2) (3 4) (5 6)))
+      (let ((y (make-mat 9 :initial-element 7)))
+        (reshape-and-displace! y '(3 2) 2)
+        (scale-rows! (make-mat 3 :initial-contents '(-1 2 -3)) x y)
+        (print y)
+        (with-facets ((array (y 'backing-array :direction :input)))
+          (print array)
+          (dotimes (i 9)
+            (assert (= (aref array i)
+                       (coerce-to-ctype
+                        (elt '(7 7 -1 -2 6 8 -15 -18 7) i))))))))))
+
 (defun test ()
   (test-initial-element)
   (test-mref)
@@ -377,7 +393,8 @@
   (test-convolve!)
   (test-max-pool!)
   (test-uniform-random!)
-  (test-pool))
+  (test-pool)
+  (test-scale-rows!))
 
 #|
 

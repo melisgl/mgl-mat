@@ -867,6 +867,7 @@
   (add-sign! function)
   (fill! function)
   (sum! function)
+  (scale-rows! function)
   "Finally, some neural network operations."
   (convolve! function)
   (derive-convolve! function)
@@ -1117,6 +1118,47 @@
                        :m n-rows :n 1 :ldc 1))))
         (error "Not implemented."))
     y))
+
+(define-lisp-kernel (lisp-scale-rows!)
+    ((scales :mat :input) (start-scales index)
+     (x :mat :input) (start-x index)
+     (y :mat :output) (start-y index)
+     (n-rows index) (n-columns index))
+  (loop for row of-type index below n-rows do
+    (let ((scale (aref scales (+ start-scales row)))
+          (row-offset (the! index (* row n-columns))))
+      (declare (type index row-offset))
+      (loop for xi of-type index upfrom (+ start-x row-offset)
+              below (+ start-x row-offset n-columns)
+            for yi of-type index upfrom (+ start-y row-offset)
+            do (setf (aref y yi) (* scale (aref x xi)))))))
+
+(define-cuda-kernel (cuda-scale-rows!)
+    (void ((scales :mat :input) (x :mat :input) (y :mat :output)
+           (n-rows int) (n-columns int)))
+  (let ((stride (* block-dim-x grid-dim-x))
+        (n (* n-rows n-columns)))
+    (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+            (+ i stride)))
+        ((>= i n))
+      (set (aref y i)
+           (* (aref scales (/ i n-columns))
+              (aref x i))))))
+
+(defun scale-rows! (scales a b)
+  (destructuring-bind (n-rows n-columns) (mat-dimensions a)
+    (assert (equal (mat-dimensions a) (mat-dimensions b)))
+    (assert (= n-rows (mat-size scales)))
+    (if (use-cuda-p)
+        (multiple-value-bind (block-dim grid-dim)
+            (choose-1d-block-and-grid (mat-size a) 4)
+          (cuda-scale-rows! scales a b n-rows n-columns
+                            :grid-dim grid-dim :block-dim block-dim))
+        (lisp-scale-rows! scales (mat-displacement scales)
+                          a (mat-displacement a)
+                          b (mat-displacement b)
+                          n-rows n-columns)))
+  b)
 
 
 (defsection @mat-blas (:title "BLAS")
