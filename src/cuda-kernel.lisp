@@ -19,14 +19,14 @@
          (ecase ctype
            ((:float) 'float*)
            ((:double) 'double*)))
-        ((eq object 'cl-cuda::curand-uniform-float-xorwow)
+        ((eq object 'cl-cuda:curand-uniform-float-xorwow)
          (ecase ctype
-           ((:float) 'cl-cuda::curand-uniform-float-xorwow)
-           ((:double) 'cl-cuda::curand-uniform-double-xorwow)))
-        ((eq object 'cl-cuda::curand-normal-float-xorwow)
+           ((:float) 'cl-cuda:curand-uniform-float-xorwow)
+           ((:double) 'cl-cuda:curand-uniform-double-xorwow)))
+        ((eq object 'cl-cuda:curand-normal-float-xorwow)
          (ecase ctype
-           ((:float) 'cl-cuda::curand-normal-float-xorwow)
-           ((:double) 'cl-cuda::curand-normal-double-xorwow)))
+           ((:float) 'cl-cuda:curand-normal-float-xorwow)
+           ((:double) 'cl-cuda:curand-normal-double-xorwow)))
         ((typep object 'single-float)
          (ecase ctype
            ((:float) object)
@@ -75,9 +75,9 @@
 
   The signature looks pretty much like in CL-CUDA:DEFKERNEL, but
   parameters can take the form of `(<NAME> :MAT <DIRECTION>)` too, in
-  which case the appropriate CL-CUDA::CU-DEVICE-PTR is passed to the
-  kernel. `<DIRECTION>` is passed on to the WITH-FACET that's used to
-  acquire the cuda array.
+  which case the appropriate CL-CUDA.DRIVER-API:CU-DEVICE-PTR is
+  passed to the kernel. `<DIRECTION>` is passed on to the WITH-FACET
+  that's used to acquire the cuda array.
 
   Both the signature and the body are written as if for single floats,
   but one function is defined for each ctype in CTYPES by transforming

@@ -47,7 +47,7 @@
          (states (alloc-cuda-array
                   (* n-states
                      (cffi:foreign-type-size
-                      '(:struct curand-state-xorwow))))))
+                      '(:struct cl-cuda.lang.data::curand-state-xorwow))))))
     (curand-init-xorwow-simple seed (offset-pointer states) n-states
                                :grid-dim (list (ceiling n-states 256) 1 1)
                                :block-dim (list 256 1 1))

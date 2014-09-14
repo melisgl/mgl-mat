@@ -91,8 +91,8 @@
 
 (define-facet-name cuda-array ()
   "The facet is CUDA-ARRAY which is an OFFSET-POINTER wrapping a
-  CL-CUDA::CU-DEVICE-PTR, allocated with CU-MEM-ALLOC and freed
-  automatically.
+  CL-CUDA.DRIVER-API:CU-DEVICE-PTR, allocated with CU-MEM-ALLOC and
+  freed automatically.
 
   Facets bound by with WITH-FACETS are to be treated as dynamic
   extent: it is not allowed to keep a reference to them beyond the
@@ -641,7 +641,7 @@
 (cffi:defcfun memcpy :void
   (dest :pointer)
   (src :pointer)
-  (n cl-cuda::size-t))
+  (n cl-cuda.driver-api:size-t))
 
 ;;; array -> *
 (defmethod copy-facet* ((mat mat) (from-name (eql 'array)) array
@@ -691,17 +691,17 @@
 (defmethod copy-facet* ((mat mat) (from-name (eql 'foreign-array)) foreign-array
                         (to-name (eql 'cuda-array)) cuda-array)
   (incf *n-memcpy-host-to-device*)
-  (cl-cuda::cu-memcpy-host-to-device (base-pointer cuda-array)
-                                     (base-pointer foreign-array)
-                                     (mat-n-bytes mat)))
+  (cl-cuda.driver-api::cu-memcpy-host-to-device (base-pointer cuda-array)
+                                                (base-pointer foreign-array)
+                                                (mat-n-bytes mat)))
 
 ;;; cuda-array -> foreign-array
 (defmethod copy-facet* ((mat mat) (from-name (eql 'cuda-array)) cuda-array
                         (to-name (eql 'foreign-array)) foreign-array)
   (incf *n-memcpy-device-to-host*)
-  (cl-cuda::cu-memcpy-device-to-host (base-pointer foreign-array)
-                                     (base-pointer cuda-array)
-                                     (mat-n-bytes mat)))
+  (cl-cuda.driver-api::cu-memcpy-device-to-host (base-pointer foreign-array)
+                                                (base-pointer cuda-array)
+                                                (mat-n-bytes mat)))
 
 ;;; backing-array -> cuda-array
 (defmethod copy-facet* ((mat mat) (from-name (eql 'backing-array)) array
@@ -711,18 +711,20 @@
   ;; (break)
   (cond ((use-pinning-p)
          (lla::with-pinned-array (ptr array)
-           (cl-cuda::cu-memcpy-host-to-device (base-pointer cuda-array) ptr
-                                              (mat-n-bytes mat))))
+           (cl-cuda.driver-api::cu-memcpy-host-to-device
+            (base-pointer cuda-array) ptr
+            (mat-n-bytes mat))))
         ((static-backing-array-p mat)
-         (cl-cuda::cu-memcpy-host-to-device
+         (cl-cuda.driver-api::cu-memcpy-host-to-device
           (base-pointer cuda-array)
           (static-vectors:static-vector-pointer array)
           (mat-n-bytes mat)))
         (t
          (with-facet (foreign-array (mat 'foreign-array :direction :input))
-           (cl-cuda::cu-memcpy-host-to-device (base-pointer cuda-array)
-                                              (base-pointer foreign-array)
-                                              (mat-n-bytes mat))))))
+           (cl-cuda.driver-api::cu-memcpy-host-to-device
+            (base-pointer cuda-array)
+            (base-pointer foreign-array)
+            (mat-n-bytes mat))))))
 
 ;;; cuda-array -> backing-array
 (defmethod copy-facet* ((mat mat) (from-name (eql 'cuda-array)) cuda-array
@@ -734,10 +736,11 @@
     (break))
   (cond ((use-pinning-p)
          (lla::with-pinned-array (ptr array)
-           (cl-cuda::cu-memcpy-device-to-host ptr (base-pointer cuda-array)
-                                              (mat-n-bytes mat))))
+           (cl-cuda.driver-api::cu-memcpy-device-to-host
+            ptr (base-pointer cuda-array)
+            (mat-n-bytes mat))))
         ((static-backing-array-p mat)
-         (cl-cuda::cu-memcpy-device-to-host
+         (cl-cuda.driver-api::cu-memcpy-device-to-host
           (static-vectors:static-vector-pointer array)
           (base-pointer cuda-array)
           (mat-n-bytes mat)))

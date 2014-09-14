@@ -10,10 +10,10 @@
      ,@body))
 
 (defmacro do-cuda (() &body body)
-  `(loop for enabled in (if (and *cuda-enabled* (cl-cuda:cuda-available-p))
+  `(loop for enabled in (if (and *cuda-enabled* (cuda-available-p))
                             '(nil t)
                             '(nil))
-         do (with-cuda (:enabled enabled) ,@body)))
+         do (with-cuda* (:enabled enabled) ,@body)))
 
 (defmacro do-configurations ((name &key (ctypes ''(:float :double))) &body body)
   `(progn
@@ -351,7 +351,7 @@
                          (loop until stop-gc-thread do
                            (tg:gc :full t)
                            (sleep 0.2))))))
-      (with-cuda ()
+      (with-cuda* ()
         ;; Allocate 8MiB worth of double floats 1000 times.
         ;; Garbage should be collected.
         (loop for i below 1000 do
@@ -371,9 +371,7 @@
       (let ((y (make-mat 9 :initial-element 7)))
         (reshape-and-displace! y '(3 2) 2)
         (scale-rows! (make-mat 3 :initial-contents '(-1 2 -3)) x y)
-        (print y)
         (with-facets ((array (y 'backing-array :direction :input)))
-          (print array)
           (dotimes (i 9)
             (assert (= (aref array i)
                        (coerce-to-ctype

@@ -1,7 +1,8 @@
 (in-package :mgl-mat)
 
 (defsection @mat-cuda (:title "CUDA")
-  (with-cuda macro)
+  (cuda-available-p function)
+  (with-cuda* macro)
   (call-with-cuda function)
   (*cuda-enabled* variable)
   (use-cuda-p function)
@@ -42,7 +43,7 @@ off cuda initialization entirely.")
 initialized. MAT operations use this to decide whether to go for the
 cuda implementation or BLAS/Lisp. It's provided for implementing new
 operations."
-  (and *cuda-enabled* (cuda-initialized-p)))
+  (and *cuda-enabled* *cuda-context*))
 
 ;;; This is effectively a constant across all cuda cards.
 (defvar *cuda-warp-size* 32)
@@ -242,18 +243,19 @@ each element of a THICKNESS*HEIGHT*WIDTH 3d array looks like this:
                               :report "Retry the allocation."))
                           (setq remaining-recovery-fns recovery-fns)))
                    (throw 'again nil)))))
-          (cl-cuda::cu-mem-alloc device-ptr-ptr n-bytes)
+          (cl-cuda.driver-api:cu-mem-alloc device-ptr-ptr n-bytes)
           (return))))))
 
 (defun alloc-cuda-array (n-bytes)
   (assert *cuda-pool* () "No cuda memory pool. Use WITH-CUDA.")
   (maybe-free-pointers *cuda-pool*)
-  (cffi:with-foreign-object (device-ptr-ptr 'cl-cuda::cu-device-ptr)
+  (cffi:with-foreign-object (device-ptr-ptr 'cl-cuda.driver-api:cu-device-ptr)
     (alloc-cuda-array-with-recovery device-ptr-ptr n-bytes
                                     (list #'try-to-free-cuda-memory-1
                                           #'try-to-free-cuda-memory-2
                                           #'try-to-free-cuda-memory-3))
-    (let* ((pointer (cffi:mem-ref device-ptr-ptr 'cl-cuda::cu-device-ptr))
+    (let* ((pointer (cffi:mem-ref device-ptr-ptr
+                                  'cl-cuda.driver-api:cu-device-ptr))
            (cuda-array (make-instance 'cuda-array :base-pointer pointer
                                       :pool *cuda-pool*)))
       cuda-array)))
@@ -264,7 +266,7 @@ each element of a THICKNESS*HEIGHT*WIDTH 3d array looks like this:
            (let ((base-pointer (base-pointer cuda-array)))
              (assert base-pointer () "Double free detected on cuda array.")
              (setf (slot-value cuda-array 'base-pointer) nil)
-             (cl-cuda::cu-mem-free base-pointer)))
+             (cl-cuda.driver-api:cu-mem-free base-pointer)))
           (t
            (add-array-to-be-freed (cuda-array-pool cuda-array) cuda-array)))
     t))

@@ -28,18 +28,18 @@
                        (random-seed *cuda-default-random-seed*)
                        (n-random-states *cuda-default-n-random-states*)
                        (override-arch-p t))
-  "Like WITH-CUDA, but takes a no argument function instead of the
+  "Like WITH-CUDA*, but takes a no argument function instead of the
 macro's BODY."
-  (cond ((cl-cuda:cuda-initialized-p)
+  (cond ((boundp '*cuda-context*)
          (with-facet-barrier ('mat '(array) '(cuda-array))
            (funcall fn)))
         ((and *cuda-enabled* (cuda-available-p))
-         (let ((cl-cuda::*show-messages* nil)
+         (let ((*show-messages* nil)
                (*n-memcpy-host-to-device* 0)
                (*n-memcpy-device-to-host* 0))
-           (cl-cuda:with-cuda-context (device-id)
+           (with-cuda (device-id)
              (multiple-value-bind (major minor)
-                 (cl-cuda:device-compute-capability)
+                 (cl-cuda:device-compute-capability device-id)
                (let ((cl-cuda:*nvcc-options*
                        (if override-arch-p
                            (cons (format nil "-arch=sm_~D~D" major minor)
@@ -57,12 +57,21 @@ macro's BODY."
         (t
          (funcall fn))))
 
-(defmacro with-cuda ((&key (enabled '*cuda-enabled*)
-                      (device-id *cuda-default-device-id*)
-                      (random-seed *cuda-default-random-seed*)
-                      (n-random-states *cuda-default-n-random-states*)
-                      (override-arch-p t))
-                     &body body)
+(defun cuda-available-p (&key (device-id 0))
+  "Check a cuda context is already in initialized in the current
+  thread or a device with DEVICE-ID is available."
+  (let ((*show-messages* nil))
+    (or (boundp '*cuda-context*)
+        (ignore-errors
+         (init-cuda)
+         (get-cuda-device device-id)))))
+
+(defmacro with-cuda* ((&key (enabled '*cuda-enabled*)
+                       (device-id *cuda-default-device-id*)
+                       (random-seed *cuda-default-random-seed*)
+                       (n-random-states *cuda-default-n-random-states*)
+                       (override-arch-p t))
+                      &body body)
   "Initializes cuda with with all bells and whistles before BODY and
   deinitializes it after. Simply wrapping WITH-CUDA around a piece
   code is enough to make use of the first available cuda device or

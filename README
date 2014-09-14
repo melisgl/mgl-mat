@@ -62,8 +62,8 @@ WITH-FACETS with one of the following [FACET-NAME][]s:
 - [facet-name] CUDA-ARRAY
 
     The facet is CUDA-ARRAY which is an OFFSET-POINTER wrapping a
-    CL-CUDA::CU-DEVICE-PTR, allocated with CU-MEM-ALLOC and freed
-    automatically.
+    CL-CUDA.DRIVER-API:CU-DEVICE-PTR, allocated with CU-MEM-ALLOC and
+    freed automatically.
     
     Facets bound by with WITH-FACETS are to be treated as dynamic
     extent: it is not allowed to keep a reference to them beyond the
@@ -363,7 +363,12 @@ foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
 
 ## CUDA
 
-- [macro] WITH-CUDA (&KEY (ENABLED '*CUDA-ENABLED*) (DEVICE-ID *CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED *CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES *CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T)) &BODY BODY
+- [function] CUDA-AVAILABLE-P &KEY (DEVICE-ID 0)
+
+    Check a cuda context is already in initialized in the current
+    thread or a device with DEVICE-ID is available.
+
+- [macro] WITH-CUDA* (&KEY (ENABLED '*CUDA-ENABLED*) (DEVICE-ID *CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED *CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES *CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T)) &BODY BODY
 
     Initializes cuda with with all bells and whistles before BODY and
     deinitializes it after. Simply wrapping WITH-CUDA around a piece
@@ -644,6 +649,12 @@ Level 3 BLAS operations
     For each element of X and Y set Y to 1 if the element in Y is
     greater than the element in X, and to 0 otherwise.
 
+- [function] ADD-SIGN! ALPHA A BETA B
+
+    Add the elementwise sign (-1, 0 or 1 for negative, zero and
+    positive numbers respectively) of A times ALPHA to BETA \* B. Return
+    B.
+
 - [function] FILL! ALPHA X &KEY (N (MAT-SIZE X))
 
     Fill matrix X with ALPHA. Return X.
@@ -654,6 +665,8 @@ Level 3 BLAS operations
     destructively modifying Y. Return Y. On a 2d matrix (nothing else is
     supported currently), if AXIS is 0, then columns are summed, if AXIS
     is 1 then rows are summed.
+
+- [function] SCALE-ROWS! SCALES A B
 
 Finally, some neural network operations.
 
@@ -891,9 +904,9 @@ USE-CUDA-P. These are provided to help writing new operations.
     
     The signature looks pretty much like in CL-CUDA:DEFKERNEL, but
     parameters can take the form of `(<NAME> :MAT <DIRECTION>)` too, in
-    which case the appropriate CL-CUDA::CU-DEVICE-PTR is passed to the
-    kernel. `<DIRECTION>` is passed on to the WITH-FACET that's used to
-    acquire the cuda array.
+    which case the appropriate CL-CUDA.DRIVER-API:CU-DEVICE-PTR is
+    passed to the kernel. `<DIRECTION>` is passed on to the WITH-FACET
+    that's used to acquire the cuda array.
     
     Both the signature and the body are written as if for single floats,
     but one function is defined for each ctype in CTYPES by transforming

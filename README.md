@@ -108,8 +108,8 @@ representations of numeric arrays. These facets can be accessed with
 - [facet-name] **CUDA-ARRAY**
 
     The facet is [`CUDA-ARRAY`][84c3] which is an `OFFSET-POINTER` wrapping a
-    `CL-CUDA::CU-DEVICE-PTR`, allocated with CU-MEM-ALLOC and freed
-    automatically.
+    `CL-CUDA.DRIVER-API:CU-DEVICE-PTR`, allocated with CU-MEM-ALLOC and
+    freed automatically.
     
     Facets bound by with [`WITH-FACETS`][b61b] are to be treated as dynamic
     extent: it is not allowed to keep a reference to them beyond the
@@ -161,7 +161,7 @@ representations of numeric arrays. These facets can be accessed with
     accomplished by turning `:OUTPUT` into `:IO` automatically on such MATs.
     
     Most operations automatically use CUDA, if available and
-    initialized. See [`WITH-CUDA`][92c5] for detail.
+    initialized. See `WITH-CUDA` for detail.
 
 <a name='x-28MGL-MAT-3AMAT-20CLASS-29'></a>
 
@@ -485,12 +485,19 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 ## 9 CUDA
 
-<a name='x-28MGL-MAT-3AWITH-CUDA-20MGL-PAX-3AMACRO-29'></a>
+<a name='x-28MGL-MAT-3ACUDA-AVAILABLE-P-20FUNCTION-29'></a>
 
-- [macro] **WITH-CUDA** *(&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T)) &BODY BODY*
+- [function] **CUDA-AVAILABLE-P** *&KEY (DEVICE-ID 0)*
+
+    Check a cuda context is already in initialized in the current
+    thread or a device with `DEVICE-ID` is available.
+
+<a name='x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29'></a>
+
+- [macro] **WITH-CUDA\*** *(&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T)) &BODY BODY*
 
     Initializes cuda with with all bells and whistles before `BODY` and
-    deinitializes it after. Simply wrapping [`WITH-CUDA`][92c5] around a piece
+    deinitializes it after. Simply wrapping `WITH-CUDA` around a piece
     code is enough to make use of the first available cuda device or
     fall back on blas and lisp kernels if there is none.
     
@@ -512,7 +519,7 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 - [function] **CALL-WITH-CUDA** *FN &KEY ((:ENABLED \*CUDA-ENABLED\*) \*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T)*
 
-    Like [`WITH-CUDA`][92c5], but takes a no argument function instead of the
+    Like `WITH-CUDA`, but takes a no argument function instead of the
     macro's `BODY`.
 
 <a name='x-28MGL-MAT-3A-2ACUDA-ENABLED-2A-20VARIABLE-29'></a>
@@ -520,8 +527,8 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 - [variable] **\*CUDA-ENABLED\*** *T*
 
     Set or bind this to false to disable all use of cuda. If this is
-    done from within [`WITH-CUDA`][92c5], then cuda becomes temporarily disabled. If
-    this is done from outside [`WITH-CUDA`][92c5], then it changes the default
+    done from within `WITH-CUDA`, then cuda becomes temporarily disabled. If
+    this is done from outside `WITH-CUDA`, then it changes the default
     values of the `ENABLED` argument of any future WITH-CUDAs which turns
     off cuda initialization entirely.
 
@@ -539,14 +546,14 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 - [variable] **\*N-MEMCPY-HOST-TO-DEVICE\*** *0*
 
     Incremented each time a host to device copy is performed. Bound to
-    0 by [`WITH-CUDA`][92c5]. Useful for tracking down performance problems.
+    0 by `WITH-CUDA`. Useful for tracking down performance problems.
 
 <a name='x-28MGL-MAT-3A-2AN-MEMCPY-DEVICE-TO-HOST-2A-20VARIABLE-29'></a>
 
 - [variable] **\*N-MEMCPY-DEVICE-TO-HOST\*** *0*
 
     Incremented each time a device to host copy is performed. Bound to
-    0 by [`WITH-CUDA`][92c5]. Useful for tracking down performance problems.
+    0 by `WITH-CUDA`. Useful for tracking down performance problems.
 
 <a name='x-28MGL-MAT-3ACHOOSE-1D-BLOCK-AND-GRID-20FUNCTION-29'></a>
 
@@ -645,25 +652,25 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 - [variable] **\*CUDA-DEFAULT-DEVICE-ID\*** *0*
 
-    The default value of [`WITH-CUDA`][92c5]'s `:DEVICE-ID` argument.
+    The default value of `WITH-CUDA`'s `:DEVICE-ID` argument.
 
 <a name='x-28MGL-MAT-3A-2ACUDA-DEFAULT-RANDOM-SEED-2A-20VARIABLE-29'></a>
 
 - [variable] **\*CUDA-DEFAULT-RANDOM-SEED\*** *1234*
 
-    The default value of [`WITH-CUDA`][92c5]'s `:RANDOM-SEED` argument.
+    The default value of `WITH-CUDA`'s `:RANDOM-SEED` argument.
 
 <a name='x-28MGL-MAT-3A-2ACUDA-DEFAULT-N-RANDOM-STATES-2A-20VARIABLE-29'></a>
 
 - [variable] **\*CUDA-DEFAULT-N-RANDOM-STATES\*** *4096*
 
-    The default value of [`WITH-CUDA`][92c5]'s `:N-RANDOM-STATES` argument.
+    The default value of `WITH-CUDA`'s `:N-RANDOM-STATES` argument.
 
 <a name='x-28MGL-MAT-3A-40MAT-CUBLAS-20MGL-PAX-3ASECTION-29'></a>
 
 ### 9.1 CUBLAS
 
-[`WITH-CUDA`][92c5] should take of everything. No need to use these at all
+`WITH-CUDA` should take of everything. No need to use these at all
 unless you have a very good reason to bypass it.
 
 <a name='x-28MGL-MAT-3ACUBLAS-ERROR-20CONDITION-29'></a>
@@ -753,7 +760,7 @@ Level 1 BLAS operations
 
     Copy `X` into `Y`. Return `Y`.
 
-<a name='x-28CL-CUDA-3ADOT-20FUNCTION-29'></a>
+<a name='x-28CL-CUDA-2ELANG-2EBUILT-IN-3ADOT-20FUNCTION-29'></a>
 
 - [function] **DOT** *X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)*
 
@@ -854,6 +861,14 @@ Level 3 BLAS operations
     For each element of `X` and `Y` set `Y` to 1 if the element in `Y` is
     greater than the element in `X`, and to 0 otherwise.
 
+<a name='x-28MGL-MAT-3AADD-SIGN-21-20FUNCTION-29'></a>
+
+- [function] **ADD-SIGN!** *ALPHA A BETA B*
+
+    Add the elementwise sign (-1, 0 or 1 for negative, zero and
+    positive numbers respectively) of `A` times `ALPHA` to `BETA` \* `B`. Return
+    `B`.
+
 <a name='x-28MGL-MAT-3AFILL-21-20FUNCTION-29'></a>
 
 - [function] **FILL!** *ALPHA X &KEY (N (MAT-SIZE X))*
@@ -868,6 +883,10 @@ Level 3 BLAS operations
     destructively modifying `Y`. Return `Y`. On a 2d matrix (nothing else is
     supported currently), if `AXIS` is 0, then columns are summed, if `AXIS`
     is 1 then rows are summed.
+
+<a name='x-28MGL-MAT-3ASCALE-ROWS-21-20FUNCTION-29'></a>
+
+- [function] **SCALE-ROWS!** *SCALES A B*
 
 Finally, some neural network operations.
 
@@ -1173,9 +1192,9 @@ have a cuda and a lisp implementations and decide which to use with
     
     The signature looks pretty much like in `CL-CUDA:DEFKERNEL`, but
     parameters can take the form of `(<NAME> :MAT <DIRECTION>)` too, in
-    which case the appropriate `CL-CUDA::CU-DEVICE-PTR` is passed to the
-    kernel. `<DIRECTION>` is passed on to the [`WITH-FACET`][f66e] that's used to
-    acquire the cuda array.
+    which case the appropriate `CL-CUDA.DRIVER-API:CU-DEVICE-PTR` is
+    passed to the kernel. `<DIRECTION>` is passed on to the [`WITH-FACET`][f66e]
+    that's used to acquire the cuda array.
     
     Both the signature and the body are written as if for single floats,
     but one function is defined for each ctype in `CTYPES` by transforming
@@ -1616,7 +1635,6 @@ Also see [Destroying cubes][2fa1].
   [8719]: #x-28MGL-CUBE-3A-2ALET-OUTPUT-THROUGH-P-2A-20VARIABLE-29 "(MGL-CUBE:*LET-OUTPUT-THROUGH-P* VARIABLE)"
   [8866]: #x-28MGL-MAT-3A-40MAT-SHAPING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-SHAPING MGL-PAX:SECTION)"
   [8b4f]: #x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)"
-  [92c5]: #x-28MGL-MAT-3AWITH-CUDA-20MGL-PAX-3AMACRO-29 "(MGL-MAT:WITH-CUDA MGL-PAX:MACRO)"
   [9984]: #x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-NON-DESTRUCTIVE-API MGL-PAX:SECTION)"
   [99b9]: #x-28MGL-CUBE-3AWITH-FACET-BARRIER-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:WITH-FACET-BARRIER MGL-PAX:MACRO)"
   [9e0b]: #x-28MGL-CUBE-3AVIEW-UP-TO-DATE-P-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:VIEW-UP-TO-DATE-P MGL-PAX:STRUCTURE-ACCESSOR)"

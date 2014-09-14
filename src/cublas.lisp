@@ -93,7 +93,7 @@
                        ',(cublas-function-name name ctype)))))
 
 (defmacro call-cublas-function (name (&rest params) handle)
-  (let* ((*mat-param-type* 'cl-cuda::cu-device-ptr)
+  (let* ((*mat-param-type* 'cl-cuda.driver-api:cu-device-ptr)
          (mat-params (remove-if-not #'mat-param-p params)))
     (alexandria:with-unique-names (ctype)
       `(let ((,ctype (common-mat-ctype ,@(mapcar #'param-name mat-params))))
@@ -158,7 +158,7 @@
 
 (defmacro define-cublas-function ((name &key (ctypes '(:float :double)))
                                   (&rest params))
-  (let* ((*mat-param-type* 'cl-cuda::cu-device-ptr)
+  (let* ((*mat-param-type* 'cl-cuda.driver-api:cu-device-ptr)
          (in-params (remove-if #'non-mat-output-param-p params))
          (lisp-parameters
            (append (mapcar #'param-name in-params)
