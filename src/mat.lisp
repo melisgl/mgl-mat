@@ -47,9 +47,9 @@
   elements are not affected.")
 
 (defsection @mat-installation (:title "Installation")
-  "All dependencies are in quicklisp except for cl-cuda whose official
-  repository has not incorporated my changes yet, so you'll need [my
-  fork](https://github.com/melisgl/cl-cuda) for the time being.")
+  "All dependencies are in quicklisp except for cl-cuda and some of
+  its dependencies: cl-pattern and cl-reexport which you need to get
+  from github.")
 
 (defsection @mat-basics (:title "Basics")
   "A MAT is a CUBE (see @CUBE-MANUAL) whose facets are different
