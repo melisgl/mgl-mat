@@ -34,9 +34,9 @@ elements are not affected.
 
 ### Installation
 
-All dependencies are in quicklisp except for cl-cuda whose official
-repository has not incorporated my changes yet, so you'll need [my
-fork](https://github.com/melisgl/cl-cuda) for the time being.
+All dependencies are in quicklisp except for cl-cuda and some of
+its dependencies: cl-pattern and cl-reexport which you need to get
+from github.
 
 ## Basics
 
@@ -391,7 +391,7 @@ foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
 
 - [function] CALL-WITH-CUDA FN &KEY ((:ENABLED *CUDA-ENABLED*) *CUDA-ENABLED*) (DEVICE-ID *CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED *CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES *CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T)
 
-    Like WITH-CUDA, but takes a no argument function instead of the
+    Like WITH-CUDA\*, but takes a no argument function instead of the
     macro's BODY.
 
 - [variable] *CUDA-ENABLED* T

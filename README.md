@@ -70,9 +70,9 @@ elements are not affected.
 
 ### 2.3 Installation
 
-All dependencies are in quicklisp except for cl-cuda whose official
-repository has not incorporated my changes yet, so you'll need [my
-fork](https://github.com/melisgl/cl-cuda) for the time being.
+All dependencies are in quicklisp except for cl-cuda and some of
+its dependencies: cl-pattern and cl-reexport which you need to get
+from github.
 
 <a name='x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29'></a>
 
@@ -519,7 +519,7 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 - [function] **CALL-WITH-CUDA** *FN &KEY ((:ENABLED \*CUDA-ENABLED\*) \*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T)*
 
-    Like `WITH-CUDA`, but takes a no argument function instead of the
+    Like [`WITH-CUDA*`][c00b], but takes a no argument function instead of the
     macro's `BODY`.
 
 <a name='x-28MGL-MAT-3A-2ACUDA-ENABLED-2A-20VARIABLE-29'></a>
@@ -1649,6 +1649,7 @@ Also see [Destroying cubes][2fa1].
   [b9c1]: #x-28MGL-CUBE-3ACHECK-NO-WATCHERS-20FUNCTION-29 "(MGL-CUBE:CHECK-NO-WATCHERS FUNCTION)"
   [ba88]: #x-28ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(ARRAY MGL-CUBE:FACET-NAME)"
   [bdd6]: #x-28MGL-CUBE-3ADESTROY-FACET-20FUNCTION-29 "(MGL-CUBE:DESTROY-FACET FUNCTION)"
+  [c00b]: #x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29 "(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"
   [c07a]: #x-28MGL-MAT-3AREPLACE-21-20FUNCTION-29 "(MGL-MAT:REPLACE! FUNCTION)"
   [c246]: #x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20MGL-PAX-3AMACRO-29 "(MGL-MAT:WITH-SHAPE-AND-DISPLACEMENT MGL-PAX:MACRO)"
   [c62e]: #x-28MGL-CUBE-3AVIEWS-20FUNCTION-29 "(MGL-CUBE:VIEWS FUNCTION)"

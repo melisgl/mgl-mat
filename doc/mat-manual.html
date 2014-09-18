@@ -88,9 +88,9 @@ elements are not affected.</p>
 
 <h3><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INTRODUCTION MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-BASICS MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INSTALLATION MGL-PAX:SECTION)">&#8634;</a></span>2.3 Installation</h3>
 
-<p>All dependencies are in quicklisp except for cl-cuda whose official
-repository has not incorporated my changes yet, so you'll need <a href="https://github.com/melisgl/cl-cuda" >my
-fork</a> for the time being.</p>
+<p>All dependencies are in quicklisp except for cl-cuda and some of
+its dependencies: cl-pattern and cl-reexport which you need to get
+from github.</p>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29'></a></p>
 
@@ -608,7 +608,7 @@ bound to a <a href="#x-28MGL-MAT-3ACURAND-XORWOW-STATE-20CLASS-29" title="(MGL-M
 <ul>
 <li><p>[function] <strong>CALL-WITH-CUDA</strong> <em>FN &amp;KEY ((:ENABLED *CUDA-ENABLED*) *CUDA-ENABLED*) (DEVICE-ID *CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED *CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES *CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T)</em></p>
 
-<p>Like <code>WITH-CUDA</code>, but takes a no argument function instead of the
+<p>Like <a href="#x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29" title="(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"><code>WITH-CUDA*</code></a>, but takes a no argument function instead of the
 macro's <code>BODY</code>.</p></li>
 </ul>
 
