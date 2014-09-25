@@ -12,6 +12,7 @@
   :description "MAT is library for working with multi-dimensional
   arrays which supports efficient interfacing to foreign and CUDA
   code. BLAS and CUBLAS bindings are available."
+  :in-order-to ((asdf:test-op (asdf:test-op "mgl-mat-test")))
   :depends-on (#:alexandria #:bordeaux-threads #:cffi #:cffi-grovel #:cl-cuda
                             #:ieee-floats #:lla #:mgl-pax #:static-vectors
                             #:trivial-garbage)
@@ -39,7 +40,3 @@
                          (c (eql (asdf:find-system '#:mgl-mat))))
   (asdf:oos 'asdf:test-op '#:mgl-mat-test)
   (funcall (intern (symbol-name '#:test) (find-package '#:mgl-mat))))
-
-(defmethod asdf:operation-done-p ((o asdf:test-op)
-                                  (c (eql (asdf:find-system '#:mgl-mat))))
-  (values nil))
