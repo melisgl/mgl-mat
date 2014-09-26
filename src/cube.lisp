@@ -31,16 +31,17 @@
 (defmacro compare-and-swap (place old-value new-value)
   #+sbcl
   (alexandria:with-unique-names (old-val-var)
-    ` (let ((,old-val-var ,old-value))
-        (eq ,old-val-var (sb-ext:compare-and-swap ,place ,old-val-var
-                                                  ,new-value))))
+    `(let ((,old-val-var ,old-value))
+       (eq ,old-val-var (sb-ext:compare-and-swap ,place ,old-val-var
+                                                 ,new-value))))
   #+ccl
   `(ccl::conditional-store ,place ,old-value ,new-value)
   #+lispworks
   `(system:compare-and-swap ,place ,old-value ,new-value)
   #+allegro
   `(excl:atomic-conditional-setf ,place ,new-value ,old-value)
-  #-(or allegro lispworks ccl sbcl) `(error "Not supported."))
+  #-(or allegro lispworks ccl sbcl)
+  (error "Not supported."))
 
 
 (defsection @cube-basics (:title "Basics")
@@ -74,9 +75,9 @@
 (defmacro with-facet ((facet (cube facet-name &key (direction :io) type))
                       &body body)
   "Bind the variable FACET to the facet with FACET-NAME of CUBE. FACET
-is to be treated as dynamic extent: it is not allowed to keep a
-reference to it. For the description of the DIRECTION parameter, see
-the type DIRECTION."
+  is to be treated as dynamic extent: it is not allowed to keep a
+  reference to it. For the description of the DIRECTION parameter, see
+  the type DIRECTION."
   `(call-with-facet* ,cube ,facet-name ,direction
                      (lambda (,facet)
                        ,@(when type `((declare (type ,type ,facet))))
@@ -213,8 +214,8 @@ the type DIRECTION."
 
 (defmethod call-with-facet* (cube facet-name direction fn)
   "The default implementation of CALL-WITH-FACET* is defined in terms
-of the WATCH-FACET and the UNWATCH-FACET generic functions. These can
-be considered part of the @FACET-EXTENSION-API."
+  of the WATCH-FACET and the UNWATCH-FACET generic functions. These
+  can be considered part of the @FACET-EXTENSION-API."
   ;; If WATCH-FACET fails, don't unwatch it.
   (let ((facet (watch-facet cube facet-name direction)))
     (unwind-protect
@@ -277,7 +278,7 @@ be considered part of the @FACET-EXTENSION-API."
 
 (defun check-no-writers (cube message-format &rest message-args)
   "Signal an error if CUBE has views being written (i.e. direction
-is :IO or :OUTPUT."
+  is :IO or :OUTPUT."
   (assert (notany #'has-writers-p (views cube)) ()
           "~A because ~
            ~S has active writers. If you are sure that this is a false ~
@@ -287,7 +288,7 @@ is :IO or :OUTPUT."
 
 (defun check-no-watchers (cube message-format &rest message-args)
   "Signal an error if CUBE has active views regardless of the
-direction."
+  direction."
   (assert (notany #'has-watchers-p (views cube)) ()
           "~A because ~
            ~S has active views. If you are sure that this is a false ~
@@ -333,7 +334,7 @@ direction."
 
 (defun find-view (cube facet-name)
   "Return the view of CUBE for the facet with FACET-NAME or NIL if no
-such view exists."
+  such view exists."
   (find facet-name (views cube) :key #'view-facet-name))
 
 (defmethod set-up-to-date-p* (cube facet-name view value)
@@ -352,7 +353,7 @@ such view exists."
 
 (defun destroy-facet (cube facet-name)
   "Free resources associated with the facet with FACET-NAME and remove
-it from VIEWS of CUBE."
+  it from VIEWS of CUBE."
   (let ((view (remove-view cube facet-name)))
     (when (and view
                (get-permission-to-destroy (view-permission-to-destroy view)))
