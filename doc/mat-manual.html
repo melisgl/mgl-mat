@@ -16,7 +16,7 @@
 <li><a href="#x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INTRODUCTION MGL-PAX:SECTION)">2 Introduction</a>
 
 <ul>
-<li><a href="#x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-IS-IT MGL-PAX:SECTION)">2.1 What's MAT?</a></li>
+<li><a href="#x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-IS-IT MGL-PAX:SECTION)">2.1 What's MGL-MAT?</a></li>
 <li><a href="#x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)">2.2 What kind of matrices are supported?</a></li>
 <li><a href="#x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INSTALLATION MGL-PAX:SECTION)">2.3 Installation</a></li>
 </ul></li>
@@ -64,10 +64,10 @@
 
 <p><a name='x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h3><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INTRODUCTION MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INTRODUCTION MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-IS-IT MGL-PAX:SECTION)">&#8634;</a></span>2.1 What's MAT?</h3>
+<h3><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INTRODUCTION MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-INTRODUCTION MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-WHAT-IS-IT MGL-PAX:SECTION)">&#8634;</a></span>2.1 What's MGL-MAT?</h3>
 
-<p><a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> is library for working with multi-dimensional arrays which
-supports efficient interfacing to foreign and CUDA code with
+<p>MGL-MAT is library for working with multi-dimensional arrays
+which supports efficient interfacing to foreign and CUDA code with
 automatic translations between cuda, foreign and lisp storage. BLAS
 and CUBLAS bindings are available.</p>
 
@@ -180,7 +180,7 @@ those elements are always kept intact and copied around. This is
 accomplished by turning <code>:OUTPUT</code> into <code>:IO</code> automatically on such MATs.</p>
 
 <p>Most operations automatically use CUDA, if available and
-initialized. See <code>WITH-CUDA</code> for detail.</p></li>
+initialized. See <a href="#x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29" title="(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"><code>WITH-CUDA*</code></a> for detail.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3AMAT-20CLASS-29'></a></p>
@@ -584,7 +584,7 @@ thread or a device with <code>DEVICE-ID</code> is available.</p></li>
 <li><p>[macro] <strong>WITH-CUDA*</strong> <em>(&amp;KEY (ENABLED '*CUDA-ENABLED*) (DEVICE-ID *CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED *CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES *CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T)) &amp;BODY BODY</em></p>
 
 <p>Initializes cuda with with all bells and whistles before <code>BODY</code> and
-deinitializes it after. Simply wrapping <code>WITH-CUDA</code> around a piece
+deinitializes it after. Simply wrapping <a href="#x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29" title="(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"><code>WITH-CUDA*</code></a> around a piece
 code is enough to make use of the first available cuda device or
 fall back on blas and lisp kernels if there is none.</p>
 
@@ -618,10 +618,10 @@ macro's <code>BODY</code>.</p></li>
 <li><p>[variable] <strong>*CUDA-ENABLED*</strong> <em>T</em></p>
 
 <p>Set or bind this to false to disable all use of cuda. If this is
-done from within <code>WITH-CUDA</code>, then cuda becomes temporarily disabled. If
-this is done from outside <code>WITH-CUDA</code>, then it changes the default
-values of the <code>ENABLED</code> argument of any future WITH-CUDAs which turns
-off cuda initialization entirely.</p></li>
+done from within <code>WITH-CUDA</code><em>, then cuda becomes temporarily disabled.
+If this is done from outside <code>WITH-CUDA</code></em>, then it changes the default
+values of the <code>ENABLED</code> argument of any future <a href="#x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29" title="(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"><code>WITH-CUDA*</code></a>s which
+turns off cuda initialization entirely.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29'></a></p>
@@ -641,7 +641,7 @@ operations.</p></li>
 <li><p>[variable] <strong>*N-MEMCPY-HOST-TO-DEVICE*</strong> <em>0</em></p>
 
 <p>Incremented each time a host to device copy is performed. Bound to
-0 by <code>WITH-CUDA</code>. Useful for tracking down performance problems.</p></li>
+0 by <a href="#x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29" title="(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"><code>WITH-CUDA*</code></a>. Useful for tracking down performance problems.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3A-2AN-MEMCPY-DEVICE-TO-HOST-2A-20VARIABLE-29'></a></p>
@@ -650,7 +650,7 @@ operations.</p></li>
 <li><p>[variable] <strong>*N-MEMCPY-DEVICE-TO-HOST*</strong> <em>0</em></p>
 
 <p>Incremented each time a device to host copy is performed. Bound to
-0 by <code>WITH-CUDA</code>. Useful for tracking down performance problems.</p></li>
+0 by <a href="#x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29" title="(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"><code>WITH-CUDA*</code></a>. Useful for tracking down performance problems.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3ACHOOSE-1D-BLOCK-AND-GRID-20FUNCTION-29'></a></p>
@@ -759,7 +759,7 @@ each element of a <code>THICKNESS</code><em><code>HEIGHT</code></em><code>WIDTH<
 <ul>
 <li><p>[variable] <strong>*CUDA-DEFAULT-DEVICE-ID*</strong> <em>0</em></p>
 
-<p>The default value of <code>WITH-CUDA</code>'s <code>:DEVICE-ID</code> argument.</p></li>
+<p>The default value of <a href="#x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29" title="(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"><code>WITH-CUDA*</code></a>'s <code>:DEVICE-ID</code> argument.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3A-2ACUDA-DEFAULT-RANDOM-SEED-2A-20VARIABLE-29'></a></p>
@@ -767,7 +767,7 @@ each element of a <code>THICKNESS</code><em><code>HEIGHT</code></em><code>WIDTH<
 <ul>
 <li><p>[variable] <strong>*CUDA-DEFAULT-RANDOM-SEED*</strong> <em>1234</em></p>
 
-<p>The default value of <code>WITH-CUDA</code>'s <code>:RANDOM-SEED</code> argument.</p></li>
+<p>The default value of <a href="#x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29" title="(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"><code>WITH-CUDA*</code></a>'s <code>:RANDOM-SEED</code> argument.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3A-2ACUDA-DEFAULT-N-RANDOM-STATES-2A-20VARIABLE-29'></a></p>
@@ -775,14 +775,14 @@ each element of a <code>THICKNESS</code><em><code>HEIGHT</code></em><code>WIDTH<
 <ul>
 <li><p>[variable] <strong>*CUDA-DEFAULT-N-RANDOM-STATES*</strong> <em>4096</em></p>
 
-<p>The default value of <code>WITH-CUDA</code>'s <code>:N-RANDOM-STATES</code> argument.</p></li>
+<p>The default value of <a href="#x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29" title="(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"><code>WITH-CUDA*</code></a>'s <code>:N-RANDOM-STATES</code> argument.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-CUBLAS-20MGL-PAX-3ASECTION-29'></a></p>
 
 <h3><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-CUDA-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-CUDA MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-CUDA-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-CUDA MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-CURAND MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-CUBLAS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-CUBLAS MGL-PAX:SECTION)">&#8634;</a></span>9.1 CUBLAS</h3>
 
-<p><code>WITH-CUDA</code> should take of everything. No need to use these at all
+<p><a href="#x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29" title="(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"><code>WITH-CUDA*</code></a> should take of everything. No need to use these at all
 unless you have a very good reason to bypass it.</p>
 
 <p><a name='x-28MGL-MAT-3ACUBLAS-ERROR-20CONDITION-29'></a></p>

@@ -13,7 +13,7 @@
 (in-package :mgl-mat)
 
 (defsection @mat-cublas (:title "CUBLAS")
-  "WITH-CUDA should take of everything. No need to use these at all
+  "WITH-CUDA* should take of everything. No need to use these at all
   unless you have a very good reason to bypass it."
   (cublas-error condition)
   (cublas-error-function-name (reader cublas-error))

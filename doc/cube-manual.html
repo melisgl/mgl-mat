@@ -197,7 +197,7 @@ is what <a href="#x-28MGL-CUBE-3ASELECT-COPY-SOURCE-FOR-FACET-2A-20GENERIC-FUNCT
 <p>Ensure that the facet with <code>FACET-NAME</code> exists.
 Depending on <code>DIRECTION</code> and up-to-dateness, maybe copy data. Finally,
 call <code>FN</code> with the facet. The default implementation acquires the
-facet from <a href="#x-28MGL-CUBE-3AWATCH-FACET-20GENERIC-FUNCTION-29" title="(MGL-CUBE:WATCH-FACET GENERIC-FUNCTION)"><code>WATCH-FACET</code></a> calls <code>FN</code> with it and finally calls
+facet with <a href="#x-28MGL-CUBE-3AWATCH-FACET-20GENERIC-FUNCTION-29" title="(MGL-CUBE:WATCH-FACET GENERIC-FUNCTION)"><code>WATCH-FACET</code></a>, calls <code>FN</code> with it and finally calls
 <a href="#x-28MGL-CUBE-3AUNWATCH-FACET-20GENERIC-FUNCTION-29" title="(MGL-CUBE:UNWATCH-FACET GENERIC-FUNCTION)"><code>UNWATCH-FACET</code></a>. However, specializations are allowed to create only
 temporary, dynamic extent views without ever calling <a href="#x-28MGL-CUBE-3AWATCH-FACET-20GENERIC-FUNCTION-29" title="(MGL-CUBE:WATCH-FACET GENERIC-FUNCTION)"><code>WATCH-FACET</code></a> and
 <a href="#x-28MGL-CUBE-3AUNWATCH-FACET-20GENERIC-FUNCTION-29" title="(MGL-CUBE:UNWATCH-FACET GENERIC-FUNCTION)"><code>UNWATCH-FACET</code></a>.</p></li>

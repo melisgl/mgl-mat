@@ -6,7 +6,7 @@
 
 - [1 mgl-mat ASDF System Details][85d5]
 - [2 Introduction][b0b5]
-    - [2.1 What's MAT?][01b0]
+    - [2.1 What's MGL-MAT?][01b0]
     - [2.2 What kind of matrices are supported?][dd58]
     - [2.3 Installation][d56c]
 - [3 Basics][f966]
@@ -46,10 +46,10 @@
 
 <a name='x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29'></a>
 
-### 2.1 What's MAT?
+### 2.1 What's MGL-MAT?
 
-[`MAT`][773f] is library for working with multi-dimensional arrays which
-supports efficient interfacing to foreign and CUDA code with
+MGL-MAT is library for working with multi-dimensional arrays
+which supports efficient interfacing to foreign and CUDA code with
 automatic translations between cuda, foreign and lisp storage. BLAS
 and CUBLAS bindings are available.
 
@@ -161,7 +161,7 @@ representations of numeric arrays. These facets can be accessed with
     accomplished by turning `:OUTPUT` into `:IO` automatically on such MATs.
     
     Most operations automatically use CUDA, if available and
-    initialized. See `WITH-CUDA` for detail.
+    initialized. See [`WITH-CUDA*`][c00b] for detail.
 
 <a name='x-28MGL-MAT-3AMAT-20CLASS-29'></a>
 
@@ -497,7 +497,7 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 - [macro] **WITH-CUDA\*** *(&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T)) &BODY BODY*
 
     Initializes cuda with with all bells and whistles before `BODY` and
-    deinitializes it after. Simply wrapping `WITH-CUDA` around a piece
+    deinitializes it after. Simply wrapping [`WITH-CUDA*`][c00b] around a piece
     code is enough to make use of the first available cuda device or
     fall back on blas and lisp kernels if there is none.
     
@@ -527,10 +527,10 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 - [variable] **\*CUDA-ENABLED\*** *T*
 
     Set or bind this to false to disable all use of cuda. If this is
-    done from within `WITH-CUDA`, then cuda becomes temporarily disabled. If
-    this is done from outside `WITH-CUDA`, then it changes the default
-    values of the `ENABLED` argument of any future WITH-CUDAs which turns
-    off cuda initialization entirely.
+    done from within `WITH-CUDA`*, then cuda becomes temporarily disabled.
+    If this is done from outside `WITH-CUDA`*, then it changes the default
+    values of the `ENABLED` argument of any future [`WITH-CUDA*`][c00b]s which
+    turns off cuda initialization entirely.
 
 <a name='x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29'></a>
 
@@ -546,14 +546,14 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 - [variable] **\*N-MEMCPY-HOST-TO-DEVICE\*** *0*
 
     Incremented each time a host to device copy is performed. Bound to
-    0 by `WITH-CUDA`. Useful for tracking down performance problems.
+    0 by [`WITH-CUDA*`][c00b]. Useful for tracking down performance problems.
 
 <a name='x-28MGL-MAT-3A-2AN-MEMCPY-DEVICE-TO-HOST-2A-20VARIABLE-29'></a>
 
 - [variable] **\*N-MEMCPY-DEVICE-TO-HOST\*** *0*
 
     Incremented each time a device to host copy is performed. Bound to
-    0 by `WITH-CUDA`. Useful for tracking down performance problems.
+    0 by [`WITH-CUDA*`][c00b]. Useful for tracking down performance problems.
 
 <a name='x-28MGL-MAT-3ACHOOSE-1D-BLOCK-AND-GRID-20FUNCTION-29'></a>
 
@@ -652,25 +652,25 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 - [variable] **\*CUDA-DEFAULT-DEVICE-ID\*** *0*
 
-    The default value of `WITH-CUDA`'s `:DEVICE-ID` argument.
+    The default value of [`WITH-CUDA*`][c00b]'s `:DEVICE-ID` argument.
 
 <a name='x-28MGL-MAT-3A-2ACUDA-DEFAULT-RANDOM-SEED-2A-20VARIABLE-29'></a>
 
 - [variable] **\*CUDA-DEFAULT-RANDOM-SEED\*** *1234*
 
-    The default value of `WITH-CUDA`'s `:RANDOM-SEED` argument.
+    The default value of [`WITH-CUDA*`][c00b]'s `:RANDOM-SEED` argument.
 
 <a name='x-28MGL-MAT-3A-2ACUDA-DEFAULT-N-RANDOM-STATES-2A-20VARIABLE-29'></a>
 
 - [variable] **\*CUDA-DEFAULT-N-RANDOM-STATES\*** *4096*
 
-    The default value of `WITH-CUDA`'s `:N-RANDOM-STATES` argument.
+    The default value of [`WITH-CUDA*`][c00b]'s `:N-RANDOM-STATES` argument.
 
 <a name='x-28MGL-MAT-3A-40MAT-CUBLAS-20MGL-PAX-3ASECTION-29'></a>
 
 ### 9.1 CUBLAS
 
-`WITH-CUDA` should take of everything. No need to use these at all
+[`WITH-CUDA*`][c00b] should take of everything. No need to use these at all
 unless you have a very good reason to bypass it.
 
 <a name='x-28MGL-MAT-3ACUBLAS-ERROR-20CONDITION-29'></a>
@@ -1381,7 +1381,7 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
     Ensure that the facet with `FACET-NAME` exists.
     Depending on `DIRECTION` and up-to-dateness, maybe copy data. Finally,
     call `FN` with the facet. The default implementation acquires the
-    facet from [`WATCH-FACET`][a238] calls `FN` with it and finally calls
+    facet with [`WATCH-FACET`][a238], calls `FN` with it and finally calls
     [`UNWATCH-FACET`][ee90]. However, specializations are allowed to create only
     temporary, dynamic extent views without ever calling [`WATCH-FACET`][a238] and
     [`UNWATCH-FACET`][ee90].

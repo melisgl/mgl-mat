@@ -33,10 +33,10 @@
 
 (defvar *cuda-enabled* t
   "Set or bind this to false to disable all use of cuda. If this is
-done from within WITH-CUDA, then cuda becomes temporarily disabled. If
-this is done from outside WITH-CUDA, then it changes the default
-values of the ENABLED argument of any future WITH-CUDAs which turns
-off cuda initialization entirely.")
+done from within WITH-CUDA*, then cuda becomes temporarily disabled.
+If this is done from outside WITH-CUDA*, then it changes the default
+values of the ENABLED argument of any future [WITH-CUDA*][]s which
+turns off cuda initialization entirely.")
 
 (defun use-cuda-p ()
   "Return true if cuda is enabled (*CUDA-ENABLED*) and it's
@@ -48,7 +48,7 @@ operations."
 ;;; This is effectively a constant across all cuda cards.
 (defvar *cuda-warp-size* 32)
 
-;;; FIXME: This should be bound by WITH-CUDA to the actual value.
+;;; FIXME: This should be bound by WITH-CUDA* to the actual value.
 (defvar *cuda-n-streaming-multiprocessors* 14)
 
 ;;; A higher value means more thread start overhead, a low value means
@@ -247,7 +247,7 @@ each element of a THICKNESS*HEIGHT*WIDTH 3d array looks like this:
           (return))))))
 
 (defun alloc-cuda-array (n-bytes)
-  (assert *cuda-pool* () "No cuda memory pool. Use WITH-CUDA.")
+  (assert *cuda-pool* () "No cuda memory pool. Use WITH-CUDA*.")
   (maybe-free-pointers *cuda-pool*)
   (cffi:with-foreign-object (device-ptr-ptr 'cl-cuda.driver-api:cu-device-ptr)
     (alloc-cuda-array-with-recovery device-ptr-ptr n-bytes

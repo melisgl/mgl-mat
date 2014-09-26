@@ -1,21 +1,21 @@
 (in-package :mgl-mat)
 
 (defvar *cuda-default-device-id* 0
-  "The default value of WITH-CUDA's :DEVICE-ID argument.")
+  "The default value of WITH-CUDA*'s :DEVICE-ID argument.")
 
 (defvar *cuda-default-random-seed* 1234
-  "The default value of WITH-CUDA's :RANDOM-SEED argument.")
+  "The default value of WITH-CUDA*'s :RANDOM-SEED argument.")
 
 (defvar *cuda-default-n-random-states* 4096
-  "The default value of WITH-CUDA's :N-RANDOM-STATES argument.")
+  "The default value of WITH-CUDA*'s :N-RANDOM-STATES argument.")
 
 (defvar *n-memcpy-host-to-device* 0
   "Incremented each time a host to device copy is performed. Bound to
-0 by WITH-CUDA. Useful for tracking down performance problems.")
+0 by WITH-CUDA*. Useful for tracking down performance problems.")
 
 (defvar *n-memcpy-device-to-host* 0
   "Incremented each time a device to host copy is performed. Bound to
-0 by WITH-CUDA. Useful for tracking down performance problems.")
+0 by WITH-CUDA*. Useful for tracking down performance problems.")
 
 (defun remove-arch-nvcc-option (options)
   (remove-if (lambda (option)
@@ -73,7 +73,7 @@ macro's BODY."
                        (override-arch-p t))
                       &body body)
   "Initializes cuda with with all bells and whistles before BODY and
-  deinitializes it after. Simply wrapping WITH-CUDA around a piece
+  deinitializes it after. Simply wrapping WITH-CUDA* around a piece
   code is enough to make use of the first available cuda device or
   fall back on blas and lisp kernels if there is none.
 

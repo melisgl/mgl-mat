@@ -29,9 +29,9 @@
   (@mat-what-kind-of-matrices section)
   (@mat-installation section))
 
-(defsection @mat-what-is-it (:title "What's MAT?")
-  "MAT is library for working with multi-dimensional arrays which
-  supports efficient interfacing to foreign and CUDA code with
+(defsection @mat-what-is-it (:title "What's MGL-MAT?")
+  "\\MGL-MAT is library for working with multi-dimensional arrays
+  which supports efficient interfacing to foreign and CUDA code with
   automatic translations between cuda, foreign and lisp storage. BLAS
   and CUBLAS bindings are available.")
 
@@ -144,7 +144,7 @@
   accomplished by turning :OUTPUT into :IO automatically on such MATs.
 
   Most operations automatically use CUDA, if available and
-  initialized. See WITH-CUDA for detail.")
+  initialized. See WITH-CUDA* for detail.")
 
 (defclass mat (cube)
   ((ctype
