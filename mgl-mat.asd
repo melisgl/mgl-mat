@@ -38,5 +38,5 @@
 
 (defmethod asdf:perform ((o asdf:test-op)
                          (c (eql (asdf:find-system '#:mgl-mat))))
-  (asdf:oos 'asdf:test-op '#:mgl-mat-test)
+  (asdf:oos 'asdf:load-op '#:mgl-mat-test)
   (funcall (intern (symbol-name '#:test) (find-package '#:mgl-mat))))
