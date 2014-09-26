@@ -668,17 +668,17 @@ means that the kernel must be able handle any number of elements in
 each thread. For example, a strided kernel that adds a constant to
 each element of a length <code>N</code> vector looks like this:</p>
 
-<p>(let ((stride (* block-dim-x grid-dim-x)))
-    (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
-            (+ i stride)))
-        ((&gt;= i n))
-      (set (aref x i) (+ (aref x i) alpha))))</p>
+<pre><code><span class="code"><span class="paren1">(<span class="code"><i><span class="symbol">let</span></i> <span class="paren2">(<span class="code"><span class="paren3">(<span class="code">stride <span class="paren4">(<span class="code">* block-dim-x grid-dim-x</span>)</span></span>)</span></span>)</span>
+  <span class="paren2">(<span class="code">do <span class="paren3">(<span class="code"><span class="paren4">(<span class="code">i <span class="paren5">(<span class="code">+ <span class="paren6">(<span class="code">* block-dim-x block-idx-x</span>)</span> thread-idx-x</span>)</span>
+          <span class="paren5">(<span class="code">+ i stride</span>)</span></span>)</span></span>)</span>
+      <span class="paren3">(<span class="code"><span class="paren4">(<span class="code">&gt;= i n</span>)</span></span>)</span>
+    <span class="paren3">(<span class="code">set <span class="paren4">(<span class="code">aref x i</span>)</span> <span class="paren4">(<span class="code">+ <span class="paren5">(<span class="code">aref x i</span>)</span> alpha</span>)</span></span>)</span></span>)</span></span>)</span></span></code></pre>
 
-<p>It is often the most efficient to have <code>MAX-N-WARPS-PER-BLOCK</code> is around
-4. Note that the maximum number of threads per block is limited by
-hardware (512 for compute capability &lt; 2.0, 1024 for later versions),
-so <code>*CUDA-MAX-N-BLOCKS*</code> times <code>MAX-N-WARPS-PER-BLOCK</code> must not exceed
-that limit.</p></li>
+<p>It is often the most efficient to have <code>MAX-N-WARPS-PER-BLOCK</code> is
+around 4. Note that the maximum number of threads per block is
+limited by hardware (512 for compute capability &lt; 2.0, 1024 for
+later versions), so <code>*CUDA-MAX-N-BLOCKS*</code> times <code>MAX-N-WARPS-PER-BLOCK</code>
+must not exceed that limit.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3ACHOOSE-2D-BLOCK-AND-GRID-20FUNCTION-29'></a></p>
@@ -688,28 +688,29 @@ that limit.</p></li>
 
 <p>Return two values, one suitable as the <code>:BLOCK-DIM</code>, the other as
 the <code>:GRID-DIM</code> argument for a cuda kernel call where both are
-two-dimensional (only the first two elements may be different from 1).</p>
+two-dimensional (only the first two elements may be different from
+1).</p>
 
 <p>The number of threads in a block is a multiple of <code>*CUDA-WARP-SIZE*</code>.
 The number of blocks is between 1 and and <code>*CUDA-MAX-N-BLOCKS*</code>.
 Currently - but this may change - the <code>BLOCK-DIM-X</code> is always
 <code>*CUDA-WARP-SIZE*</code> and <code>GRID-DIM-X</code> is always 1.</p>
 
-<p>This means that the kernel must be able handle any number of elements
-in each thread. For example, a strided kernel that adds a constant to
-each element of a HEIGHT*WIDTH matrix looks like this:</p>
+<p>This means that the kernel must be able handle any number of
+elements in each thread. For example, a strided kernel that adds a
+constant to each element of a HEIGHT*WIDTH matrix looks like this:</p>
 
-<p>(let ((id-x (+ (* block-dim-x block-idx-x) thread-idx-x))
-        (id-y (+ (* block-dim-y block-idx-y) thread-idx-y))
-        (stride-x (* block-dim-x grid-dim-x))
-        (stride-y (* block-dim-y grid-dim-y)))
-    (do ((row id-y (+ row stride-y)))
-        ((&gt;= row height))
-      (let ((i (* row width)))
-        (do ((column id-x (+ column stride-x)))
-            ((&gt;= column width))
-          (set (aref x i) (+ (aref x i) alpha))
-          (incf i stride-x)))))</p></li>
+<pre><code><span class="code"><span class="paren1">(<span class="code"><i><span class="symbol">let</span></i> <span class="paren2">(<span class="code"><span class="paren3">(<span class="code">id-x <span class="paren4">(<span class="code">+ <span class="paren5">(<span class="code">* block-dim-x block-idx-x</span>)</span> thread-idx-x</span>)</span></span>)</span>
+      <span class="paren3">(<span class="code">id-y <span class="paren4">(<span class="code">+ <span class="paren5">(<span class="code">* block-dim-y block-idx-y</span>)</span> thread-idx-y</span>)</span></span>)</span>
+      <span class="paren3">(<span class="code">stride-x <span class="paren4">(<span class="code">* block-dim-x grid-dim-x</span>)</span></span>)</span>
+      <span class="paren3">(<span class="code">stride-y <span class="paren4">(<span class="code">* block-dim-y grid-dim-y</span>)</span></span>)</span></span>)</span>
+  <span class="paren2">(<span class="code">do <span class="paren3">(<span class="code"><span class="paren4">(<span class="code">row id-y <span class="paren5">(<span class="code">+ row stride-y</span>)</span></span>)</span></span>)</span>
+      <span class="paren3">(<span class="code"><span class="paren4">(<span class="code">&gt;= row height</span>)</span></span>)</span>
+    <span class="paren3">(<span class="code"><i><span class="symbol">let</span></i> <span class="paren4">(<span class="code"><span class="paren5">(<span class="code">i <span class="paren6">(<span class="code">* row width</span>)</span></span>)</span></span>)</span>
+      <span class="paren4">(<span class="code">do <span class="paren5">(<span class="code"><span class="paren6">(<span class="code">column id-x <span class="paren1">(<span class="code">+ column stride-x</span>)</span></span>)</span></span>)</span>
+          <span class="paren5">(<span class="code"><span class="paren6">(<span class="code">&gt;= column width</span>)</span></span>)</span>
+        <span class="paren5">(<span class="code">set <span class="paren6">(<span class="code">aref x i</span>)</span> <span class="paren6">(<span class="code">+ <span class="paren1">(<span class="code">aref x i</span>)</span> alpha</span>)</span></span>)</span>
+        <span class="paren5">(<span class="code">incf i stride-x</span>)</span></span>)</span></span>)</span></span>)</span></span>)</span></span></code></pre></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3ACHOOSE-3D-BLOCK-AND-GRID-20FUNCTION-29'></a></p>
@@ -719,33 +720,35 @@ each element of a HEIGHT*WIDTH matrix looks like this:</p>
 
 <p>Return two values, one suitable as the <code>:BLOCK-DIM</code>, the other as
 the <code>:GRID-DIM</code> argument for a cuda kernel call where both are
-two-dimensional (only the first two elements may be different from 1).</p>
+two-dimensional (only the first two elements may be different from
+1).</p>
 
 <p>The number of threads in a block is a multiple of <code>*CUDA-WARP-SIZE*</code>.
 The number of blocks is between 1 and and <code>*CUDA-MAX-N-BLOCKS*</code>.
 Currently - but this may change - the <code>BLOCK-DIM-X</code> is always
 <code>*CUDA-WARP-SIZE*</code> and <code>GRID-DIM-X</code> is always 1.</p>
 
-<p>This means that the kernel must be able handle any number of elements
-in each thread. For example, a strided kernel that adds a constant to
-each element of a <code>THICKNESS</code><em><code>HEIGHT</code></em><code>WIDTH</code> 3d array looks like this:</p>
+<p>This means that the kernel must be able handle any number of
+elements in each thread. For example, a strided kernel that adds a
+constant to each element of a <code>THICKNESS</code><em><code>HEIGHT</code></em><code>WIDTH</code> 3d array looks
+like this:</p>
 
-<p>(let ((id-x (+ (* block-dim-x block-idx-x) thread-idx-x))
-        (id-y (+ (* block-dim-y block-idx-y) thread-idx-y))
-        (id-z (+ (* block-dim-z block-idx-z) thread-idx-z))
-        (stride-x (* block-dim-x grid-dim-x))
-        (stride-y (* block-dim-y grid-dim-y))
-        (stride-z (* block-dim-z grid-dim-z)))
-    (do ((plane id-z (+ plane stride-z)))
-        ((&gt;= plane thickness))
-      (do ((row id-y (+ row stride-y)))
-          ((&gt;= row height))
-        (let ((i (* (+ (* plane height) row)
-                    width)))
-          (do ((column id-x (+ column stride-x)))
-              ((&gt;= column width))
-            (set (aref x i) (+ (aref x i) alpha))
-            (incf i stride-x))))))</p></li>
+<pre><code><span class="code"><span class="paren1">(<span class="code"><i><span class="symbol">let</span></i> <span class="paren2">(<span class="code"><span class="paren3">(<span class="code">id-x <span class="paren4">(<span class="code">+ <span class="paren5">(<span class="code">* block-dim-x block-idx-x</span>)</span> thread-idx-x</span>)</span></span>)</span>
+      <span class="paren3">(<span class="code">id-y <span class="paren4">(<span class="code">+ <span class="paren5">(<span class="code">* block-dim-y block-idx-y</span>)</span> thread-idx-y</span>)</span></span>)</span>
+      <span class="paren3">(<span class="code">id-z <span class="paren4">(<span class="code">+ <span class="paren5">(<span class="code">* block-dim-z block-idx-z</span>)</span> thread-idx-z</span>)</span></span>)</span>
+      <span class="paren3">(<span class="code">stride-x <span class="paren4">(<span class="code">* block-dim-x grid-dim-x</span>)</span></span>)</span>
+      <span class="paren3">(<span class="code">stride-y <span class="paren4">(<span class="code">* block-dim-y grid-dim-y</span>)</span></span>)</span>
+      <span class="paren3">(<span class="code">stride-z <span class="paren4">(<span class="code">* block-dim-z grid-dim-z</span>)</span></span>)</span></span>)</span>
+  <span class="paren2">(<span class="code">do <span class="paren3">(<span class="code"><span class="paren4">(<span class="code">plane id-z <span class="paren5">(<span class="code">+ plane stride-z</span>)</span></span>)</span></span>)</span>
+      <span class="paren3">(<span class="code"><span class="paren4">(<span class="code">&gt;= plane thickness</span>)</span></span>)</span>
+    <span class="paren3">(<span class="code">do <span class="paren4">(<span class="code"><span class="paren5">(<span class="code">row id-y <span class="paren6">(<span class="code">+ row stride-y</span>)</span></span>)</span></span>)</span>
+        <span class="paren4">(<span class="code"><span class="paren5">(<span class="code">&gt;= row height</span>)</span></span>)</span>
+      <span class="paren4">(<span class="code"><i><span class="symbol">let</span></i> <span class="paren5">(<span class="code"><span class="paren6">(<span class="code">i <span class="paren1">(<span class="code">* <span class="paren2">(<span class="code">+ <span class="paren3">(<span class="code">* plane height</span>)</span> row</span>)</span>
+                  width</span>)</span></span>)</span></span>)</span>
+        <span class="paren5">(<span class="code">do <span class="paren6">(<span class="code"><span class="paren1">(<span class="code">column id-x <span class="paren2">(<span class="code">+ column stride-x</span>)</span></span>)</span></span>)</span>
+            <span class="paren6">(<span class="code"><span class="paren1">(<span class="code">&gt;= column width</span>)</span></span>)</span>
+          <span class="paren6">(<span class="code">set <span class="paren1">(<span class="code">aref x i</span>)</span> <span class="paren1">(<span class="code">+ <span class="paren2">(<span class="code">aref x i</span>)</span> alpha</span>)</span></span>)</span>
+          <span class="paren6">(<span class="code">incf i stride-x</span>)</span></span>)</span></span>)</span></span>)</span></span>)</span></span>)</span></span></code></pre></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3ACUDA-OUT-OF-MEMORY-20CONDITION-29'></a></p>

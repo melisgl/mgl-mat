@@ -569,17 +569,19 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
     each thread. For example, a strided kernel that adds a constant to
     each element of a length `N` vector looks like this:
     
-    (let ((stride (\* block-dim-x grid-dim-x)))
-        (do ((i (+ (\* block-dim-x block-idx-x) thread-idx-x)
-                (+ i stride)))
-            ((>= i n))
-          (set (aref x i) (+ (aref x i) alpha))))
+    ```
+    (let ((stride (* block-dim-x grid-dim-x)))
+      (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+              (+ i stride)))
+          ((>= i n))
+        (set (aref x i) (+ (aref x i) alpha))))
+    ```
     
-    It is often the most efficient to have `MAX-N-WARPS-PER-BLOCK` is around
-    4. Note that the maximum number of threads per block is limited by
-    hardware (512 for compute capability < 2.0, 1024 for later versions),
-    so `*CUDA-MAX-N-BLOCKS*` times `MAX-N-WARPS-PER-BLOCK` must not exceed
-    that limit.
+    It is often the most efficient to have `MAX-N-WARPS-PER-BLOCK` is
+    around 4. Note that the maximum number of threads per block is
+    limited by hardware (512 for compute capability < 2.0, 1024 for
+    later versions), so `*CUDA-MAX-N-BLOCKS*` times `MAX-N-WARPS-PER-BLOCK`
+    must not exceed that limit.
 
 <a name='x-28MGL-MAT-3ACHOOSE-2D-BLOCK-AND-GRID-20FUNCTION-29'></a>
 
@@ -587,28 +589,32 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
     Return two values, one suitable as the `:BLOCK-DIM`, the other as
     the `:GRID-DIM` argument for a cuda kernel call where both are
-    two-dimensional (only the first two elements may be different from 1).
+    two-dimensional (only the first two elements may be different from
+    1).
     
     The number of threads in a block is a multiple of `*CUDA-WARP-SIZE*`.
     The number of blocks is between 1 and and `*CUDA-MAX-N-BLOCKS*`.
     Currently - but this may change - the `BLOCK-DIM-X` is always
     `*CUDA-WARP-SIZE*` and `GRID-DIM-X` is always 1.
     
-    This means that the kernel must be able handle any number of elements
-    in each thread. For example, a strided kernel that adds a constant to
-    each element of a HEIGHT\*WIDTH matrix looks like this:
+    This means that the kernel must be able handle any number of
+    elements in each thread. For example, a strided kernel that adds a
+    constant to each element of a HEIGHT\*WIDTH matrix looks like this:
     
-      (let ((id-x (+ (\* block-dim-x block-idx-x) thread-idx-x))
-            (id-y (+ (\* block-dim-y block-idx-y) thread-idx-y))
-            (stride-x (\* block-dim-x grid-dim-x))
-            (stride-y (\* block-dim-y grid-dim-y)))
-        (do ((row id-y (+ row stride-y)))
-            ((>= row height))
-          (let ((i (\* row width)))
-            (do ((column id-x (+ column stride-x)))
-                ((>= column width))
-              (set (aref x i) (+ (aref x i) alpha))
-              (incf i stride-x)))))
+    ```
+    (let ((id-x (+ (* block-dim-x block-idx-x) thread-idx-x))
+          (id-y (+ (* block-dim-y block-idx-y) thread-idx-y))
+          (stride-x (* block-dim-x grid-dim-x))
+          (stride-y (* block-dim-y grid-dim-y)))
+      (do ((row id-y (+ row stride-y)))
+          ((>= row height))
+        (let ((i (* row width)))
+          (do ((column id-x (+ column stride-x)))
+              ((>= column width))
+            (set (aref x i) (+ (aref x i) alpha))
+            (incf i stride-x)))))
+    ```
+
 
 <a name='x-28MGL-MAT-3ACHOOSE-3D-BLOCK-AND-GRID-20FUNCTION-29'></a>
 
@@ -616,33 +622,38 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
     Return two values, one suitable as the `:BLOCK-DIM`, the other as
     the `:GRID-DIM` argument for a cuda kernel call where both are
-    two-dimensional (only the first two elements may be different from 1).
+    two-dimensional (only the first two elements may be different from
+    1).
     
     The number of threads in a block is a multiple of `*CUDA-WARP-SIZE*`.
     The number of blocks is between 1 and and `*CUDA-MAX-N-BLOCKS*`.
     Currently - but this may change - the `BLOCK-DIM-X` is always
     `*CUDA-WARP-SIZE*` and `GRID-DIM-X` is always 1.
     
-    This means that the kernel must be able handle any number of elements
-    in each thread. For example, a strided kernel that adds a constant to
-    each element of a `THICKNESS`*`HEIGHT`*`WIDTH` 3d array looks like this:
+    This means that the kernel must be able handle any number of
+    elements in each thread. For example, a strided kernel that adds a
+    constant to each element of a `THICKNESS`*`HEIGHT`*`WIDTH` 3d array looks
+    like this:
     
-      (let ((id-x (+ (\* block-dim-x block-idx-x) thread-idx-x))
-            (id-y (+ (\* block-dim-y block-idx-y) thread-idx-y))
-            (id-z (+ (\* block-dim-z block-idx-z) thread-idx-z))
-            (stride-x (\* block-dim-x grid-dim-x))
-            (stride-y (\* block-dim-y grid-dim-y))
-            (stride-z (\* block-dim-z grid-dim-z)))
-        (do ((plane id-z (+ plane stride-z)))
-            ((>= plane thickness))
-          (do ((row id-y (+ row stride-y)))
-              ((>= row height))
-            (let ((i (\* (+ (\* plane height) row)
-                        width)))
-              (do ((column id-x (+ column stride-x)))
-                  ((>= column width))
-                (set (aref x i) (+ (aref x i) alpha))
-                (incf i stride-x))))))
+    ```
+    (let ((id-x (+ (* block-dim-x block-idx-x) thread-idx-x))
+          (id-y (+ (* block-dim-y block-idx-y) thread-idx-y))
+          (id-z (+ (* block-dim-z block-idx-z) thread-idx-z))
+          (stride-x (* block-dim-x grid-dim-x))
+          (stride-y (* block-dim-y grid-dim-y))
+          (stride-z (* block-dim-z grid-dim-z)))
+      (do ((plane id-z (+ plane stride-z)))
+          ((>= plane thickness))
+        (do ((row id-y (+ row stride-y)))
+            ((>= row height))
+          (let ((i (* (+ (* plane height) row)
+                      width)))
+            (do ((column id-x (+ column stride-x)))
+                ((>= column width))
+              (set (aref x i) (+ (aref x i) alpha))
+              (incf i stride-x))))))
+    ```
+
 
 <a name='x-28MGL-MAT-3ACUDA-OUT-OF-MEMORY-20CONDITION-29'></a>
 

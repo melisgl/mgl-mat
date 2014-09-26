@@ -60,7 +60,8 @@
   (let* ((thread-cache
            (bordeaux-threads:with-lock-held (*thread-cache-lock*)
              (or (gethash (bordeaux-threads:current-thread) *thread-caches*)
-                 (setf (gethash (bordeaux-threads:current-thread) *thread-caches*)
+                 (setf (gethash (bordeaux-threads:current-thread)
+                                *thread-caches*)
                        (tg:make-weak-hash-table :weakness :key)))))
          (place-cache
            (or (gethash place-key thread-cache)

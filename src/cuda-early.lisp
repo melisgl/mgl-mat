@@ -33,16 +33,16 @@
 
 (defvar *cuda-enabled* t
   "Set or bind this to false to disable all use of cuda. If this is
-done from within WITH-CUDA*, then cuda becomes temporarily disabled.
-If this is done from outside WITH-CUDA*, then it changes the default
-values of the ENABLED argument of any future [WITH-CUDA*][]s which
-turns off cuda initialization entirely.")
+  done from within WITH-CUDA*, then cuda becomes temporarily disabled.
+  If this is done from outside WITH-CUDA*, then it changes the default
+  values of the ENABLED argument of any future [WITH-CUDA*][]s which
+  turns off cuda initialization entirely.")
 
 (defun use-cuda-p ()
   "Return true if cuda is enabled (*CUDA-ENABLED*) and it's
-initialized. MAT operations use this to decide whether to go for the
-cuda implementation or BLAS/Lisp. It's provided for implementing new
-operations."
+  initialized. MAT operations use this to decide whether to go for the
+  cuda implementation or BLAS/Lisp. It's provided for implementing new
+  operations."
   (and *cuda-enabled* *cuda-context*))
 
 ;;; This is effectively a constant across all cuda cards.
@@ -58,26 +58,28 @@ operations."
 
 (defun choose-1d-block-and-grid (n max-n-warps-per-block)
   "Return two values, one suitable as the :BLOCK-DIM, the other as
-the :GRID-DIM argument for a cuda kernel call where both are
-one-dimensional (only the first element may be different from 1).
+  the :GRID-DIM argument for a cuda kernel call where both are
+  one-dimensional (only the first element may be different from 1).
 
-The number of threads in a block is a multiple of *CUDA-WARP-SIZE*.
-The number of blocks is between 1 and and *CUDA-MAX-N-BLOCKS*. This
-means that the kernel must be able handle any number of elements in
-each thread. For example, a strided kernel that adds a constant to
-each element of a length N vector looks like this:
+  The number of threads in a block is a multiple of *CUDA-WARP-SIZE*.
+  The number of blocks is between 1 and and *CUDA-MAX-N-BLOCKS*. This
+  means that the kernel must be able handle any number of elements in
+  each thread. For example, a strided kernel that adds a constant to
+  each element of a length N vector looks like this:
 
+  ```
   (let ((stride (* block-dim-x grid-dim-x)))
     (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
             (+ i stride)))
         ((>= i n))
       (set (aref x i) (+ (aref x i) alpha))))
+  ```
 
-It is often the most efficient to have MAX-N-WARPS-PER-BLOCK is around
-4. Note that the maximum number of threads per block is limited by
-hardware (512 for compute capability < 2.0, 1024 for later versions),
-so *CUDA-MAX-N-BLOCKS* times MAX-N-WARPS-PER-BLOCK must not exceed
-that limit."
+  It is often the most efficient to have MAX-N-WARPS-PER-BLOCK is
+  around 4. Note that the maximum number of threads per block is
+  limited by hardware (512 for compute capability < 2.0, 1024 for
+  later versions), so *CUDA-MAX-N-BLOCKS* times MAX-N-WARPS-PER-BLOCK
+  must not exceed that limit."
   (let* ((n-warps (ceiling n *cuda-warp-size*))
          (n-warps-per-block (clip n-warps :min 1 :max max-n-warps-per-block))
          (n-threads-per-block (* *cuda-warp-size* n-warps-per-block))
@@ -88,18 +90,20 @@ that limit."
 
 (defun choose-2d-block-and-grid (dimensions max-n-warps-per-block)
   "Return two values, one suitable as the :BLOCK-DIM, the other as
-the :GRID-DIM argument for a cuda kernel call where both are
-two-dimensional (only the first two elements may be different from 1).
+  the :GRID-DIM argument for a cuda kernel call where both are
+  two-dimensional (only the first two elements may be different from
+  1).
 
-The number of threads in a block is a multiple of *CUDA-WARP-SIZE*.
-The number of blocks is between 1 and and *CUDA-MAX-N-BLOCKS*.
-Currently - but this may change - the BLOCK-DIM-X is always
-*CUDA-WARP-SIZE* and GRID-DIM-X is always 1.
+  The number of threads in a block is a multiple of *CUDA-WARP-SIZE*.
+  The number of blocks is between 1 and and *CUDA-MAX-N-BLOCKS*.
+  Currently - but this may change - the BLOCK-DIM-X is always
+  *CUDA-WARP-SIZE* and GRID-DIM-X is always 1.
 
-This means that the kernel must be able handle any number of elements
-in each thread. For example, a strided kernel that adds a constant to
-each element of a HEIGHT*WIDTH matrix looks like this:
+  This means that the kernel must be able handle any number of
+  elements in each thread. For example, a strided kernel that adds a
+  constant to each element of a HEIGHT*WIDTH matrix looks like this:
 
+  ```
   (let ((id-x (+ (* block-dim-x block-idx-x) thread-idx-x))
         (id-y (+ (* block-dim-y block-idx-y) thread-idx-y))
         (stride-x (* block-dim-x grid-dim-x))
@@ -110,7 +114,8 @@ each element of a HEIGHT*WIDTH matrix looks like this:
         (do ((column id-x (+ column stride-x)))
             ((>= column width))
           (set (aref x i) (+ (aref x i) alpha))
-          (incf i stride-x)))))"
+          (incf i stride-x)))))
+  ```"
   (destructuring-bind (height width) dimensions
     (let* ((n-warps (ceiling (* height (round-up width *cuda-warp-size*))
                              *cuda-warp-size*))
@@ -122,18 +127,21 @@ each element of a HEIGHT*WIDTH matrix looks like this:
 
 (defun choose-3d-block-and-grid (dimensions max-n-warps-per-block)
   "Return two values, one suitable as the :BLOCK-DIM, the other as
-the :GRID-DIM argument for a cuda kernel call where both are
-two-dimensional (only the first two elements may be different from 1).
+  the :GRID-DIM argument for a cuda kernel call where both are
+  two-dimensional (only the first two elements may be different from
+  1).
 
-The number of threads in a block is a multiple of *CUDA-WARP-SIZE*.
-The number of blocks is between 1 and and *CUDA-MAX-N-BLOCKS*.
-Currently - but this may change - the BLOCK-DIM-X is always
-*CUDA-WARP-SIZE* and GRID-DIM-X is always 1.
+  The number of threads in a block is a multiple of *CUDA-WARP-SIZE*.
+  The number of blocks is between 1 and and *CUDA-MAX-N-BLOCKS*.
+  Currently - but this may change - the BLOCK-DIM-X is always
+  *CUDA-WARP-SIZE* and GRID-DIM-X is always 1.
 
-This means that the kernel must be able handle any number of elements
-in each thread. For example, a strided kernel that adds a constant to
-each element of a THICKNESS*HEIGHT*WIDTH 3d array looks like this:
+  This means that the kernel must be able handle any number of
+  elements in each thread. For example, a strided kernel that adds a
+  constant to each element of a THICKNESS*HEIGHT*WIDTH 3d array looks
+  like this:
 
+  ```
   (let ((id-x (+ (* block-dim-x block-idx-x) thread-idx-x))
         (id-y (+ (* block-dim-y block-idx-y) thread-idx-y))
         (id-z (+ (* block-dim-z block-idx-z) thread-idx-z))
@@ -149,9 +157,11 @@ each element of a THICKNESS*HEIGHT*WIDTH 3d array looks like this:
           (do ((column id-x (+ column stride-x)))
               ((>= column width))
             (set (aref x i) (+ (aref x i) alpha))
-            (incf i stride-x))))))"
+            (incf i stride-x))))))
+  ```"
   (destructuring-bind (thickness height width) dimensions
-    (let* ((n-warps (ceiling (* thickness height (round-up width *cuda-warp-size*))
+    (let* ((n-warps (ceiling (* thickness height
+                                (round-up width *cuda-warp-size*))
                              *cuda-warp-size*))
            (n-warps-per-block (clip n-warps :min 1 :max max-n-warps-per-block))
            (n-blocks (clip (floor n-warps n-warps-per-block)
