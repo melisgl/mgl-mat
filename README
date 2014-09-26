@@ -1091,8 +1091,8 @@ Also see @DEFAULT-CALL-WITH-FACET\*.
 - [method] CALL-WITH-FACET* CUBE FACET-NAME DIRECTION FN
 
     The default implementation of CALL-WITH-FACET\* is defined in terms
-    of the WATCH-FACET and the UNWATCH-FACET generic functions. These can
-    be considered part of the @FACET-EXTENSION-API.
+    of the WATCH-FACET and the UNWATCH-FACET generic functions. These
+    can be considered part of the @FACET-EXTENSION-API.
 
 - [generic-function] WATCH-FACET CUBE FACET-NAME DIRECTION
 

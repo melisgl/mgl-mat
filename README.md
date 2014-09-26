@@ -1425,8 +1425,8 @@ Also see [The default implementation of CALL-WITH-FACET\*][b64e].
 - [method] **CALL-WITH-FACET\*** *CUBE FACET-NAME DIRECTION FN*
 
     The default implementation of [`CALL-WITH-FACET*`][46c5] is defined in terms
-    of the [`WATCH-FACET`][a238] and the [`UNWATCH-FACET`][ee90] generic functions. These can
-    be considered part of the [Facet extension API][eb06].
+    of the [`WATCH-FACET`][a238] and the [`UNWATCH-FACET`][ee90] generic functions. These
+    can be considered part of the [Facet extension API][eb06].
 
 <a name='x-28MGL-CUBE-3AWATCH-FACET-20GENERIC-FUNCTION-29'></a>
 

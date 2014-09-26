@@ -42,6 +42,22 @@
   `(excl:atomic-conditional-setf ,place ,new-value ,old-value)
   #-(or allegro lispworks ccl sbcl)
   (error "Not supported."))
+
+(defmacro without-interrupts (&body body)
+  #+sbcl
+  `(sb-sys:without-interrupts ,@body)
+  #+cmucl
+  `(system:without-interrupts ,@body)
+  #+allegro
+  `(excl:with-delayed-interrupts ,@body)
+  #+scl
+  `(sys:without-interrupts ,@body)
+  #+ccl
+  `(ccl:without-interrupts ,@body)
+  #+lispworks
+  `(mp:without-interrupts ,@body)
+  #-(or sbcl cmucl allegro scl scl ccl lispworks)
+  `(progn ,@body))
 
 
 (defsection @cube-basics (:title "Basics")
@@ -196,7 +212,7 @@
   (:documentation "Ensure that the facet with FACET-NAME exists.
   Depending on DIRECTION and up-to-dateness, maybe copy data. Finally,
   call FN with the facet. The default implementation acquires the
-  facet from WATCH-FACET calls FN with it and finally calls
+  facet with WATCH-FACET, calls FN with it and finally calls
   UNWATCH-FACET. However, specializations are allowed to create only
   temporary, dynamic extent views without ever calling WATCH-FACET and
   UNWATCH-FACET."))
@@ -216,11 +232,13 @@
   "The default implementation of CALL-WITH-FACET* is defined in terms
   of the WATCH-FACET and the UNWATCH-FACET generic functions. These
   can be considered part of the @FACET-EXTENSION-API."
-  ;; If WATCH-FACET fails, don't unwatch it.
-  (let ((facet (watch-facet cube facet-name direction)))
+  ;; If WATCH-FACET fails, don't unwatch it. Also, disable interrupts
+  ;; in an effort to prevent async unwinds (C-c and similar) from
+  ;; leaving inconsistent state around.
+  (let ((facet (without-interrupts (watch-facet cube facet-name direction))))
     (unwind-protect
          (funcall fn facet)
-      (unwatch-facet cube facet-name))))
+      (without-interrupts (unwatch-facet cube facet-name)))))
 
 (defgeneric watch-facet (cube facet-name direction)
   (:method ((cube cube) facet-name direction)
