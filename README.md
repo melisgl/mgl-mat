@@ -1308,10 +1308,15 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
       is copied to it from one of the up-to-date facets (see
       [`SELECT-COPY-SOURCE-FOR-FACET*`][6056]).
     
-     Any number of [`WITH-FACET`][f66e]'s with direction `:INPUT` may be active at
-     the same time, but `:IO` and `:OUTPUT` cannot coexists with any other
-     [`WITH-FACET`][f66e] regardless of the direction. See [`CHECK-NO-WRITERS`][edce] and
-     [`CHECK-NO-WATCHERS`][b9c1] called by [The default implementation of CALL-WITH-FACET\*][b64e].
+    Any number of [`WITH-FACET`][f66e]s with direction `:INPUT` may be active at
+    the same time, but `:IO` and `:OUTPUT` cannot coexists with any other
+    [`WITH-FACET`][f66e] regardless of the direction. An exception is made for
+    nested [`WITH-FACET`][f66e]s for the same facet: an enclosing [`WITH-FACET`][f66e]
+    never conflicts with an inner [`WITH-FACET`][f66e], but [`WITH-FACET`][f66e]s for
+    another facet or for the same facet but from another thread do.
+    
+    See [`CHECK-NO-WRITERS`][edce] and [`CHECK-NO-WATCHERS`][b9c1] called by
+    [The default implementation of CALL-WITH-FACET\*][b64e].
 
 <a name='x-28MGL-CUBE-3AWITH-FACETS-20MGL-PAX-3AMACRO-29'></a>
 
@@ -1476,17 +1481,17 @@ Also see [The default implementation of CALL-WITH-FACET\*][b64e].
 
 <a name='x-28MGL-CUBE-3ACHECK-NO-WRITERS-20FUNCTION-29'></a>
 
-- [function] **CHECK-NO-WRITERS** *CUBE MESSAGE-FORMAT &REST MESSAGE-ARGS*
+- [function] **CHECK-NO-WRITERS** *CUBE FACET-NAME MESSAGE-FORMAT &REST MESSAGE-ARGS*
 
-    Signal an error if `CUBE` has views being written (i.e. direction
-    is `:IO` or `:OUTPUT`.
+    Signal an error if `CUBE` has facets (with names other than
+    `FACET-NAME`) being written (i.e. direction is `:IO` or `:OUTPUT`).
 
 <a name='x-28MGL-CUBE-3ACHECK-NO-WATCHERS-20FUNCTION-29'></a>
 
-- [function] **CHECK-NO-WATCHERS** *CUBE MESSAGE-FORMAT &REST MESSAGE-ARGS*
+- [function] **CHECK-NO-WATCHERS** *CUBE FACET-NAME MESSAGE-FORMAT &REST MESSAGE-ARGS*
 
-    Signal an error if `CUBE` has active views regardless of the
-    direction.
+    Signal an error if `CUBE` has facets (with names other than
+    `FACET-NAME`) being regardless of the direction.
 
 <a name='x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29'></a>
 

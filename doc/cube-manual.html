@@ -104,10 +104,15 @@ the type <code>DIRECTION</code>.</p></li>
   <a href="#x-28MGL-CUBE-3ASELECT-COPY-SOURCE-FOR-FACET-2A-20GENERIC-FUNCTION-29" title="(MGL-CUBE:SELECT-COPY-SOURCE-FOR-FACET* GENERIC-FUNCTION)"><code>SELECT-COPY-SOURCE-FOR-FACET*</code></a>).</p></li>
 </ul>
 
-<p>Any number of <a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a>'s with direction <code>:INPUT</code> may be active at
- the same time, but <code>:IO</code> and <code>:OUTPUT</code> cannot coexists with any other
- <a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a> regardless of the direction. See <a href="#x-28MGL-CUBE-3ACHECK-NO-WRITERS-20FUNCTION-29" title="(MGL-CUBE:CHECK-NO-WRITERS FUNCTION)"><code>CHECK-NO-WRITERS</code></a> and
- <a href="#x-28MGL-CUBE-3ACHECK-NO-WATCHERS-20FUNCTION-29" title="(MGL-CUBE:CHECK-NO-WATCHERS FUNCTION)"><code>CHECK-NO-WATCHERS</code></a> called by <a href="#x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DEFAULT-CALL-WITH-FACET* MGL-PAX:SECTION)">The default implementation of CALL-WITH-FACET*</a>.</p></li>
+<p>Any number of <a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a>s with direction <code>:INPUT</code> may be active at
+the same time, but <code>:IO</code> and <code>:OUTPUT</code> cannot coexists with any other
+<a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a> regardless of the direction. An exception is made for
+nested <a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a>s for the same facet: an enclosing <a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a>
+never conflicts with an inner <a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a>, but <a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a>s for
+another facet or for the same facet but from another thread do.</p>
+
+<p>See <a href="#x-28MGL-CUBE-3ACHECK-NO-WRITERS-20FUNCTION-29" title="(MGL-CUBE:CHECK-NO-WRITERS FUNCTION)"><code>CHECK-NO-WRITERS</code></a> and <a href="#x-28MGL-CUBE-3ACHECK-NO-WATCHERS-20FUNCTION-29" title="(MGL-CUBE:CHECK-NO-WATCHERS FUNCTION)"><code>CHECK-NO-WATCHERS</code></a> called by
+<a href="#x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DEFAULT-CALL-WITH-FACET* MGL-PAX:SECTION)">The default implementation of CALL-WITH-FACET*</a>.</p></li>
 </ul>
 
 <p><a name='x-28MGL-CUBE-3AWITH-FACETS-20MGL-PAX-3AMACRO-29'></a></p>
@@ -297,19 +302,19 @@ debugging purposes.</p></li>
 <p><a name='x-28MGL-CUBE-3ACHECK-NO-WRITERS-20FUNCTION-29'></a></p>
 
 <ul>
-<li><p>[function] <strong>CHECK-NO-WRITERS</strong> <em>CUBE MESSAGE-FORMAT &amp;REST MESSAGE-ARGS</em></p>
+<li><p>[function] <strong>CHECK-NO-WRITERS</strong> <em>CUBE FACET-NAME MESSAGE-FORMAT &amp;REST MESSAGE-ARGS</em></p>
 
-<p>Signal an error if <code>CUBE</code> has views being written (i.e. direction
-is <code>:IO</code> or <code>:OUTPUT</code>.</p></li>
+<p>Signal an error if <code>CUBE</code> has facets (with names other than
+<code>FACET-NAME</code>) being written (i.e. direction is <code>:IO</code> or <code>:OUTPUT</code>).</p></li>
 </ul>
 
 <p><a name='x-28MGL-CUBE-3ACHECK-NO-WATCHERS-20FUNCTION-29'></a></p>
 
 <ul>
-<li><p>[function] <strong>CHECK-NO-WATCHERS</strong> <em>CUBE MESSAGE-FORMAT &amp;REST MESSAGE-ARGS</em></p>
+<li><p>[function] <strong>CHECK-NO-WATCHERS</strong> <em>CUBE FACET-NAME MESSAGE-FORMAT &amp;REST MESSAGE-ARGS</em></p>
 
-<p>Signal an error if <code>CUBE</code> has active views regardless of the
-direction.</p></li>
+<p>Signal an error if <code>CUBE</code> has facets (with names other than
+<code>FACET-NAME</code>) being regardless of the direction.</p></li>
 </ul>
 
 <p><a name='x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29'></a></p>

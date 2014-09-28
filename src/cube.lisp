@@ -119,10 +119,15 @@
     is copied to it from one of the up-to-date facets (see
     SELECT-COPY-SOURCE-FOR-FACET*).
 
-   Any number of WITH-FACET's with direction :INPUT may be active at
-   the same time, but :IO and :OUTPUT cannot coexists with any other
-   WITH-FACET regardless of the direction. See CHECK-NO-WRITERS and
-   CHECK-NO-WATCHERS called by @DEFAULT-CALL-WITH-FACET*."
+  Any number of [WITH-FACET][]s with direction :INPUT may be active at
+  the same time, but :IO and :OUTPUT cannot coexists with any other
+  WITH-FACET regardless of the direction. An exception is made for
+  nested [WITH-FACET][]s for the same facet: an enclosing WITH-FACET
+  never conflicts with an inner WITH-FACET, but [WITH-FACET][]s for
+  another facet or for the same facet but from another thread do.
+
+  See CHECK-NO-WRITERS and CHECK-NO-WATCHERS called by
+  @DEFAULT-CALL-WITH-FACET*."
   '(member :input :output :io))
 
 (defun expand-with-facets (facet-binding-specs body)
@@ -256,6 +261,7 @@
           (set-up-to-date-p* cube (view-facet-name view) view nil)))
       (set-up-to-date-p* cube facet-name view t)
       (incf (view-n-watchers view))
+      (push (bordeaux-threads:current-thread) (view-watcher-threads view))
       (view-facet view)))
   (:documentation "This is what the default CALL-WITH-FACET* method,
   in terms of which WITH-FACET is implemented, calls first. The
@@ -276,6 +282,10 @@
   (:method ((cube cube) facet-name)
     (let ((view (find-view cube facet-name)))
       (decf (view-n-watchers view))
+      (setf (view-watcher-threads view)
+            (delete (bordeaux-threads:current-thread)
+                    (view-watcher-threads view)
+                    :count 1))
       (assert (<= 0 (view-n-watchers view)))))
   (:documentation "This is what the default CALL-WITH-FACET* method,
   in terms of which WITH-FACET is implemented, calls last. The default
@@ -294,25 +304,31 @@
   CHECK-NO-WATCHERS. This knob is intended to be bound locally for
   debugging purposes.")
 
-(defun check-no-writers (cube message-format &rest message-args)
-  "Signal an error if CUBE has views being written (i.e. direction
-  is :IO or :OUTPUT."
-  (assert (notany #'has-writers-p (views cube)) ()
-          "~A because ~
-           ~S has active writers. If you are sure that this is a false ~
-           alarm then consider binding MGL-CUBE:*LET-INPUT-THROUGH-P* to ~
-           true."
-          (format nil message-format message-args) cube))
+(defun check-no-writers (cube facet-name message-format &rest message-args)
+  "Signal an error if CUBE has facets (with names other than
+  FACET-NAME) being written (i.e. direction is :IO or :OUTPUT)."
+  (assert (every (lambda (view)
+                   (or (eq (view-facet-name view) facet-name)
+                       (not (has-writers-p view))))
+                 (views cube))
+          () "~A because ~
+          ~S has active writers. If you are sure that this is a false ~
+          alarm then consider binding MGL-CUBE:*LET-INPUT-THROUGH-P* to ~
+          true."
+          (apply #'format nil message-format message-args) cube))
 
-(defun check-no-watchers (cube message-format &rest message-args)
-  "Signal an error if CUBE has active views regardless of the
-  direction."
-  (assert (notany #'has-watchers-p (views cube)) ()
-          "~A because ~
+(defun check-no-watchers (cube facet-name message-format &rest message-args)
+  "Signal an error if CUBE has facets (with names other than
+  FACET-NAME) being regardless of the direction."
+  (assert (every (lambda (view)
+                   (or (eq (view-facet-name view) facet-name)
+                       (not (has-watchers-p view))))
+                 (views cube))
+          () "~A because ~
            ~S has active views. If you are sure that this is a false ~
            alarm then consider binding MGL-CUBE:*LET-OUTPUT-THROUGH-P* to ~
            true."
-          (format nil message-format message-args) cube))
+          (apply #'format nil message-format message-args) cube))
 
 
 (defsection @cube-views (:title "Views")
@@ -339,6 +355,7 @@
   facet-description
   up-to-date-p
   (n-watchers 0)
+  (watcher-threads ())
   (direction nil :type direction)
   ;; Destruction can be initiated by finalizers running in other
   ;; threads, and also by both a FACET-BARRIER and a finalizer on some
@@ -523,7 +540,7 @@ destroyed by a facet barrier."
 
 (defun remove-view (cube facet-name)
   (let ((view (find-view cube facet-name)))
-    (check-no-watchers cube "Cannot remove facet ~S" facet-name)
+    (check-no-watchers cube nil "Cannot remove facet ~S" facet-name)
     (setf (cdr (slot-value cube 'views))
           (remove facet-name (views cube) :key #'view-facet-name))
     (deregister-cube-facet cube facet-name)
@@ -537,21 +554,64 @@ destroyed by a facet barrier."
        (not (eq :input (view-direction view)))))
 
 (defun ensure-view (cube facet-name direction)
-  (if (eq direction :input)
-      (unless *let-output-through-p*
-        (check-no-writers cube "Cannot create view for ~S" direction))
-      (unless *let-input-through-p*
-        (check-no-watchers cube "Cannot create view for ~S" direction)))
   (let ((view (find-view cube facet-name)))
-    (cond (view
-           (setf (view-direction view) direction)
-           view)
-          (t
-           (multiple-value-bind (facet facet-description must-be-destroyed-p)
-               (make-facet* cube facet-name)
-             (when must-be-destroyed-p
-               (ensure-cube-finalized cube))
-             (add-view cube facet-name facet facet-description direction))))))
+    ;; First check that there are no conflicting views for other
+    ;; facets.
+    (if (eq direction :input)
+        (unless *let-input-through-p*
+          (check-no-writers cube facet-name
+                            "Cannot create view for ~S in direction ~S"
+                            facet-name direction))
+        (unless *let-output-through-p*
+          (check-no-watchers cube facet-name
+                             "Cannot create view for ~S in direction ~S"
+                             facet-name direction)))
+    (if (null view)
+        (multiple-value-bind (facet facet-description must-be-destroyed-p)
+            (make-facet* cube facet-name)
+          (when must-be-destroyed-p
+            (ensure-cube-finalized cube))
+          (add-view cube facet-name facet facet-description direction))
+        (let ((watchers (view-watcher-threads view))
+              (view-direction (view-direction view)))
+          (cond
+            ;; If there are no other watchers, we can just reuse VIEW
+            ;; since there are no conflicting views either.
+            ((endp watchers)
+             (setf (view-direction view) direction))
+            ;; There are watchers but they are :INPUT and we also want
+            ;; to create an :INPUT facet. Nothing to do.
+            ((and watchers (eq direction :input) (eq view-direction :input)))
+            ;; There are watchers, and at least one of DIRECTION and
+            ;; VIEW-DIRECTION is :IO or :OUTPUT so we have a
+            ;; reader/writer conflict. Still, let the view be shared
+            ;; if the only watcher is the current thread.
+            ((and (every (let ((current-thread
+                                 (bordeaux-threads:current-thread)))
+                           (lambda (watcher)
+                             (eq watcher current-thread)))
+                         watchers))
+             ;; Make sure VIEW-DIRECTION is not :INPUT (it doesn't
+             ;; matter whether it's :IO or :OUTPUT).
+             (setf (view-direction view) :io))
+            ;; There are no conflicting views, but there are watchers,
+            ;; VIEW-DIRECTION is not :INPUT, and other threads are
+            ;; watching VIEW.
+            ((eq direction :input)
+             (unless *let-input-through-p*
+               (error "Cannot create nested view for ~S in direction ~S ~
+                      because there are other threads writing the same ~
+                      facet." facet-name direction))
+             (setf (view-direction view) :io))
+            ;; There are no conflicting views, but there are watchers,
+            ;; VIEW-DIRECTION may be :INPUT, and other threads are
+            ;; watching VIEW.
+            (t
+             (unless *let-output-through-p*
+               (error "Cannot create nested view for ~S in direction ~S ~
+                      because there are other threads using the same ~
+                      facet." facet-name direction))))
+          view))))
 
 (defun find-up-to-date-view (cube)
   (find-if #'view-up-to-date-p (views cube)))

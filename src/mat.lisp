@@ -389,7 +389,7 @@
   ;; If an ARRAY facet is being viewed and it's EQ to the
   ;; BACKING-ARRAY (i.e. it's not displaced), then we change the
   ;; identity of the array which is surprising to say the least.
-  (check-no-watchers mat "Cannot reshape or displace the matrix")
+  (check-no-watchers mat nil "Cannot reshape or displace the matrix")
   (let* ((dimensions (alexandria:ensure-list dimensions))
          (size (reduce #'* dimensions)))
     (assert (<= (+ displacement size) (mat-max-size mat)))

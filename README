@@ -998,10 +998,15 @@ WITH-FACET.
       is copied to it from one of the up-to-date facets (see
       SELECT-COPY-SOURCE-FOR-FACET\*).
     
-     Any number of WITH-FACET's with direction :INPUT may be active at
-     the same time, but :IO and :OUTPUT cannot coexists with any other
-     WITH-FACET regardless of the direction. See CHECK-NO-WRITERS and
-     CHECK-NO-WATCHERS called by @DEFAULT-CALL-WITH-FACET\*.
+    Any number of [WITH-FACET][]s with direction :INPUT may be active at
+    the same time, but :IO and :OUTPUT cannot coexists with any other
+    WITH-FACET regardless of the direction. An exception is made for
+    nested [WITH-FACET][]s for the same facet: an enclosing WITH-FACET
+    never conflicts with an inner WITH-FACET, but [WITH-FACET][]s for
+    another facet or for the same facet but from another thread do.
+    
+    See CHECK-NO-WRITERS and CHECK-NO-WATCHERS called by
+    @DEFAULT-CALL-WITH-FACET\*.
 
 - [macro] WITH-FACETS (&REST FACET-BINDING-SPECS) &BODY BODY
 
@@ -1132,15 +1137,15 @@ Also see @DEFAULT-CALL-WITH-FACET\*.
     CHECK-NO-WATCHERS. This knob is intended to be bound locally for
     debugging purposes.
 
-- [function] CHECK-NO-WRITERS CUBE MESSAGE-FORMAT &REST MESSAGE-ARGS
+- [function] CHECK-NO-WRITERS CUBE FACET-NAME MESSAGE-FORMAT &REST MESSAGE-ARGS
 
-    Signal an error if CUBE has views being written (i.e. direction
-    is :IO or :OUTPUT.
+    Signal an error if CUBE has facets (with names other than
+    FACET-NAME) being written (i.e. direction is :IO or :OUTPUT).
 
-- [function] CHECK-NO-WATCHERS CUBE MESSAGE-FORMAT &REST MESSAGE-ARGS
+- [function] CHECK-NO-WATCHERS CUBE FACET-NAME MESSAGE-FORMAT &REST MESSAGE-ARGS
 
-    Signal an error if CUBE has active views regardless of the
-    direction.
+    Signal an error if CUBE has facets (with names other than
+    FACET-NAME) being regardless of the direction.
 
 ## Views
 

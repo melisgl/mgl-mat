@@ -29,9 +29,46 @@
 
 (defun ~= (x y)
   (< (abs (- x y)) 0.00001))
+
+(defmacro signals-error-p (&body body)
+  `(nth-value 1 (ignore-errors (values (progn ,@body)))))
 
 
 ;;;; Tests
+
+(defun test-facet-sharing ()
+  (let ((m (make-mat 0)))
+    (with-facet (a (m 'array :direction :input))
+      (declare (ignore a))
+      (let ((view (mgl-cube:find-view m 'array)))
+        (assert (= 1 (mgl-cube::view-n-watchers view)))
+        (check-viewed-by-only-current-thread view 1)
+        (with-facet (a (m 'array :direction :input))
+          (declare (ignore a))
+          (assert (= 2 (mgl-cube::view-n-watchers view)))
+          (check-viewed-by-only-current-thread view 2))
+        (with-facet (a (m 'array :direction :output))
+          (declare (ignore a))
+          (assert (= 2 (mgl-cube::view-n-watchers view)))
+          (check-viewed-by-only-current-thread view 2))
+        (with-facet (a (m 'array :direction :io))
+          (declare (ignore a))
+          (assert (= 2 (mgl-cube::view-n-watchers view)))
+          (check-viewed-by-only-current-thread view 2)))))
+  (when (and *cuda-enabled* (cuda-available-p))
+    (with-cuda* ()
+      (let ((m (make-mat 1)))
+        (fill! 2 m)
+        (with-facet (a (m 'cuda-array :direction :io))
+          (declare (ignore a))
+          (assert (signals-error-p
+                    (with-facet (a (m 'array :direction :input))
+                      (declare (ignore a))))))))))
+
+(defun check-viewed-by-only-current-thread (view n)
+  (assert (equal (mgl-cube::view-watcher-threads view)
+                 (loop repeat n
+                       collect (bordeaux-threads:current-thread)))))
 
 (defun test-initial-element ()
   (do-configurations (initial-element)
@@ -91,6 +128,11 @@
       (fill! 1 x)
       (fill! 1 y)
       (axpy! 2 x y)
+      (with-facets ((array (y 'backing-array :direction :input)))
+        (dotimes (i 6)
+          (assert (= (aref array i)
+                     (coerce-to-ctype (if (<= 2 i 4) 3 0))))))
+      (axpy! 2 x x)
       (with-facets ((array (y 'backing-array :direction :input)))
         (dotimes (i 6)
           (assert (= (aref array i)
@@ -378,6 +420,7 @@
                         (elt '(7 7 -1 -2 6 8 -15 -18 7) i))))))))))
 
 (defun test ()
+  (test-facet-sharing)
   (test-initial-element)
   (test-mref)
   (test-fill!)
@@ -396,7 +439,7 @@
 
 #|
 
-(test)
+(time (test))
 
 ;;; Test only without cuda even if it seems available.
 (let ((*cuda-enabled* nil))
