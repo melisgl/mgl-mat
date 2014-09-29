@@ -14,11 +14,12 @@
 <ul>
 <li><a href="#x-28MGL-CUBE-3A-40CUBE-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-INTRODUCTION MGL-PAX:SECTION)">1 Introduction</a></li>
 <li><a href="#x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-BASICS MGL-PAX:SECTION)">2 Basics</a></li>
-<li><a href="#x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-EXTENSION-API MGL-PAX:SECTION)">3 Facet extension API</a></li>
-<li><a href="#x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DEFAULT-CALL-WITH-FACET* MGL-PAX:SECTION)">4 The default implementation of CALL-WITH-FACET*</a></li>
-<li><a href="#x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-VIEWS MGL-PAX:SECTION)">5 Views</a></li>
-<li><a href="#x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DESTRUCTION-OF-CUBES MGL-PAX:SECTION)">6 Destroying cubes</a></li>
-<li><a href="#x-28MGL-CUBE-3A-40FACET-BARRIER-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-BARRIER MGL-PAX:SECTION)">7 Facet barriers</a></li>
+<li><a href="#x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-SYNCHRONIZATION MGL-PAX:SECTION)">3 Synchronization</a></li>
+<li><a href="#x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-EXTENSION-API MGL-PAX:SECTION)">4 Facet extension API</a></li>
+<li><a href="#x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DEFAULT-CALL-WITH-FACET* MGL-PAX:SECTION)">5 The default implementation of CALL-WITH-FACET*</a></li>
+<li><a href="#x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-VIEWS MGL-PAX:SECTION)">6 Views</a></li>
+<li><a href="#x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DESTRUCTION-OF-CUBES MGL-PAX:SECTION)">7 Destroying cubes</a></li>
+<li><a href="#x-28MGL-CUBE-3A-40FACET-BARRIER-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-BARRIER MGL-PAX:SECTION)">8 Facet barriers</a></li>
 </ul>
 
 <h6>[in package MGL-CUBE]</h6>
@@ -45,7 +46,7 @@ the <a href="#x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29" titl
 
 <p><a name='x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40CUBE-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-INTRODUCTION MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-EXTENSION-API MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-BASICS MGL-PAX:SECTION)">&#8634;</a></span>2 Basics</h2>
+<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40CUBE-INTRODUCTION-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-INTRODUCTION MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-SYNCHRONIZATION MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-BASICS MGL-PAX:SECTION)">&#8634;</a></span>2 Basics</h2>
 
 <p>Here we learn what a <a href="#x-28MGL-CUBE-3ACUBE-20CLASS-29" title="(MGL-CUBE:CUBE CLASS)"><code>CUBE</code></a> is and how to access the data in it with
 <a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a>.</p>
@@ -133,9 +134,65 @@ another facet or for the same facet but from another thread do.</p>
   ...</span>)</span>)</span></code></pre></li>
 </ul>
 
+<p><a name='x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29'></a></p>
+
+<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-BASICS MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-EXTENSION-API MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-SYNCHRONIZATION MGL-PAX:SECTION)">&#8634;</a></span>3 Synchronization</h2>
+
+<p>Cubes keep track of which facets are used, which are up-to-date to
+be able to perform automatic translation between facets. <a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a>
+and other operations access and make changes to this metadata so
+thread safety is a concern. In this section, we detail how to relax
+the default thread safety guarantees.</p>
+
+<p>A related concern is async signal safety which arises most often
+when C-c'ing or killing a thread or when the extremely nasty
+WITH-TIMEOUT macro is used. In a nutshell, changes to cube metadata
+are always made with interrupts disabled so things should be async
+signal safe.</p>
+
+<p><a name='x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29'></a></p>
+
+<ul>
+<li><p>[accessor] <strong>SYNCHRONIZATION</strong> <em>CUBE</em></p>
+
+<p>By default setup and teardown of facets by
+<a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a> is performed in a thread safe way. Corrupting internal
+data structures of cubes is not fun, but in the name of
+performance, synchronization can be turned off either dynamically
+or on a per instance basis.</p>
+
+<p>If <code>T</code>, then access to cube metadata is always synchronized. If <code>NIL</code>,
+then never. If <code>:MAYBE</code>, then whether access is synchronized is
+determined by <a href="#x-28MGL-CUBE-3A-2AMAYBE-SYNCHRONIZE-CUBE-2A-20VARIABLE-29" title="(MGL-CUBE:*MAYBE-SYNCHRONIZE-CUBE* VARIABLE)"><code>*MAYBE-SYNCHRONIZE-CUBE*</code></a> that's true by default.</p>
+
+<p>The default is the value of <a href="#x-28MGL-CUBE-3A-2ADEFAULT-SYNCHRONIZATION-2A-20VARIABLE-29" title="(MGL-CUBE:*DEFAULT-SYNCHRONIZATION* VARIABLE)"><code>*DEFAULT-SYNCHRONIZATION*</code></a>
+that's <code>:MAYBE</code> by default.</p>
+
+<p>Note that the body of a <a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a> is never synchronized with
+anyone, apart from the implicit reader/writer conflict (see
+<a href="#x-28MGL-CUBE-3ADIRECTION-20TYPE-29" title="(MGL-CUBE:DIRECTION TYPE)"><code>DIRECTION</code></a>).</p></li>
+</ul>
+
+<p><a name='x-28MGL-CUBE-3A-2ADEFAULT-SYNCHRONIZATION-2A-20VARIABLE-29'></a></p>
+
+<ul>
+<li><p>[variable] <strong>*DEFAULT-SYNCHRONIZATION*</strong> <em>:MAYBE</em></p>
+
+<p>The default value for <a href="#x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29" title="(MGL-CUBE:SYNCHRONIZATION (MGL-PAX:ACCESSOR MGL-CUBE:CUBE))"><code>SYNCHRONIZATION</code></a> of new cubes.</p></li>
+</ul>
+
+<p><a name='x-28MGL-CUBE-3A-2AMAYBE-SYNCHRONIZE-CUBE-2A-20VARIABLE-29'></a></p>
+
+<ul>
+<li><p>[variable] <strong>*MAYBE-SYNCHRONIZE-CUBE*</strong> <em>T</em></p>
+
+<p>Determines whether access the cube metadata is synchronized for
+cubes with <a href="#x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29" title="(MGL-CUBE:SYNCHRONIZATION (MGL-PAX:ACCESSOR MGL-CUBE:CUBE))"><code>SYNCHRONIZATION</code></a> <code>:MAYBE</code>.</p></li>
+</ul>
+
 <p><a name='x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-BASICS MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DEFAULT-CALL-WITH-FACET* MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-EXTENSION-API MGL-PAX:SECTION)">&#8634;</a></span>3 Facet extension API</h2>
+<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-SYNCHRONIZATION MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DEFAULT-CALL-WITH-FACET* MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-EXTENSION-API MGL-PAX:SECTION)">&#8634;</a></span>4 Facet extension API</h2>
 
 <p><a name='x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29'></a></p>
 
@@ -233,7 +290,7 @@ default method simply returns the first up-to-date view.</p></li>
 
 <p><a name='x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-EXTENSION-API MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-VIEWS MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DEFAULT-CALL-WITH-FACET* MGL-PAX:SECTION)">&#8634;</a></span>4 The default implementation of CALL-WITH-FACET*</h2>
+<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-EXTENSION-API MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-VIEWS MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DEFAULT-CALL-WITH-FACET* MGL-PAX:SECTION)">&#8634;</a></span>5 The default implementation of CALL-WITH-FACET*</h2>
 
 <p><a name='x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20-28METHOD-20NIL-20-28T-20T-20T-20T-29-29-29'></a></p>
 
@@ -319,7 +376,7 @@ debugging purposes.</p></li>
 
 <p><a name='x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DEFAULT-CALL-WITH-FACET* MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DESTRUCTION-OF-CUBES MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-VIEWS MGL-PAX:SECTION)">&#8634;</a></span>5 Views</h2>
+<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DEFAULT-CALL-WITH-FACET* MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DESTRUCTION-OF-CUBES MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-VIEWS MGL-PAX:SECTION)">&#8634;</a></span>6 Views</h2>
 
 <p>We learn what a <a href="#x-28MGL-CUBE-3AVIEW-20CLASS-29" title="(MGL-CUBE:VIEW CLASS)"><code>VIEW</code></a> is, how it's related to facets. See <a href="#x-28MGL-CUBE-3AVIEWS-20FUNCTION-29" title="(MGL-CUBE:VIEWS FUNCTION)"><code>VIEWS</code></a>,
 <a href="#x-28MGL-CUBE-3AFIND-VIEW-20FUNCTION-29" title="(MGL-CUBE:FIND-VIEW FUNCTION)"><code>FIND-VIEW</code></a>, and the default method of <a href="#x-28MGL-CUBE-3ASET-UP-TO-DATE-P-2A-20GENERIC-FUNCTION-29" title="(MGL-CUBE:SET-UP-TO-DATE-P* GENERIC-FUNCTION)"><code>SET-UP-TO-DATE-P*</code></a>. Views are
@@ -381,7 +438,7 @@ such view exists.</p></li>
 
 <p><a name='x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-VIEWS MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40FACET-BARRIER-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-BARRIER MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DESTRUCTION-OF-CUBES MGL-PAX:SECTION)">&#8634;</a></span>6 Destroying cubes</h2>
+<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-VIEWS MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40FACET-BARRIER-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-BARRIER MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DESTRUCTION-OF-CUBES MGL-PAX:SECTION)">&#8634;</a></span>7 Destroying cubes</h2>
 
 <p>Lifetime management of facets is manual (but facets of garbage
 cubes are freed automatically by a finalizer, see <a href="#x-28MGL-CUBE-3AMAKE-FACET-2A-20GENERIC-FUNCTION-29" title="(MGL-CUBE:MAKE-FACET* GENERIC-FUNCTION)"><code>MAKE-FACET*</code></a>). One
@@ -408,7 +465,7 @@ it from <a href="#x-28MGL-CUBE-3AVIEWS-20FUNCTION-29" title="(MGL-CUBE:VIEWS FUN
 
 <p><a name='x-28MGL-CUBE-3A-40FACET-BARRIER-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DESTRUCTION-OF-CUBES MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40FACET-BARRIER-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-BARRIER MGL-PAX:SECTION)">&#8634;</a></span>7 Facet barriers</h2>
+<h2><span class="navigation"> <a href="#x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DESTRUCTION-OF-CUBES MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-CUBE-3A-40FACET-BARRIER-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-BARRIER MGL-PAX:SECTION)">&#8634;</a></span>8 Facet barriers</h2>
 
 <p>A facility to control lifetime of facets tied to a dynamic extent.
 Also see <a href="#x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@DESTRUCTION-OF-CUBES MGL-PAX:SECTION)">Destroying cubes</a>.</p>

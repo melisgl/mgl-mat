@@ -227,21 +227,22 @@ representations of numeric arrays. These facets can be accessed with
 
 <a name='x-28MGL-MAT-3AMAKE-MAT-20FUNCTION-29'></a>
 
-- [function] **MAKE-MAT** *DIMENSIONS &REST ARGS &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS*
+- [function] **MAKE-MAT** *DIMENSIONS &REST ARGS &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS (SYNCHRONIZATION \*DEFAULT-SYNCHRONIZATION\*)*
 
     Return a new matrix. If `INITIAL-CONTENTS` is given then the matrix
     contents are copied with [`REPLACE!`][c07a]. See class [`MAT`][773f] for the description
     of the rest of the parameters. This is exactly what (`MAKE-INSTANCE`
     '[`MAT`][773f] ...) does except `DIMENSIONS` is not a keyword argument so
-    [`MAKE-MAT`][4cc3] looks more like `MAKE-ARRAY`.
+    [`MAKE-MAT`][4cc3] looks more like `MAKE-ARRAY`. Also see
+    [Synchronization][688d].
 
 <a name='x-28MGL-MAT-3AARRAY-TO-MAT-20FUNCTION-29'></a>
 
-- [function] **ARRAY-TO-MAT** *ARRAY &KEY CTYPE*
+- [function] **ARRAY-TO-MAT** *ARRAY &KEY CTYPE (SYNCHRONIZATION \*DEFAULT-SYNCHRONIZATION\*)*
 
     Create a [`MAT`][773f] that's equivalent to `ARRAY`. Displacement of the
     created array will be 0 and the size will be equal to
-    `ARRAY-TOTAL-SIZE`.
+    `ARRAY-TOTAL-SIZE`. Also see [Synchronization][688d].
 
 <a name='x-28MGL-MAT-3AMAT-TO-ARRAY-20FUNCTION-29'></a>
 
@@ -1225,11 +1226,12 @@ have a cuda and a lisp implementations and decide which to use with
 
 - [1 Introduction][0752]
 - [2 Basics][1164]
-- [3 Facet extension API][eb06]
-- [4 The default implementation of CALL-WITH-FACET*][b64e]
-- [5 Views][692d]
-- [6 Destroying cubes][2fa1]
-- [7 Facet barriers][8520]
+- [3 Synchronization][688d]
+- [4 Facet extension API][eb06]
+- [5 The default implementation of CALL-WITH-FACET*][b64e]
+- [6 Views][692d]
+- [7 Destroying cubes][2fa1]
+- [8 Facet barriers][8520]
 
 ###### \[in package MGL-CUBE\]
 <a name='x-28MGL-CUBE-3A-40CUBE-INTRODUCTION-20MGL-PAX-3ASECTION-29'></a>
@@ -1339,9 +1341,59 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
     ```
 
 
+<a name='x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29'></a>
+
+## 3 Synchronization
+
+Cubes keep track of which facets are used, which are up-to-date to
+be able to perform automatic translation between facets. [`WITH-FACET`][f66e]
+and other operations access and make changes to this metadata so
+thread safety is a concern. In this section, we detail how to relax
+the default thread safety guarantees.
+
+A related concern is async signal safety which arises most often
+when C-c'ing or killing a thread or when the extremely nasty
+WITH-TIMEOUT macro is used. In a nutshell, changes to cube metadata
+are always made with interrupts disabled so things should be async
+signal safe.
+
+<a name='x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29'></a>
+
+- [accessor] **SYNCHRONIZATION** *CUBE*
+
+    By default setup and teardown of facets by
+    [`WITH-FACET`][f66e] is performed in a thread safe way. Corrupting internal
+    data structures of cubes is not fun, but in the name of
+    performance, synchronization can be turned off either dynamically
+    or on a per instance basis.
+    
+    If `T`, then access to cube metadata is always synchronized. If `NIL`,
+    then never. If `:MAYBE`, then whether access is synchronized is
+    determined by [`*MAYBE-SYNCHRONIZE-CUBE*`][478c] that's true by default.
+    
+    The default is the value of [`*DEFAULT-SYNCHRONIZATION*`][19b9]
+    that's `:MAYBE` by default.
+    
+    Note that the body of a [`WITH-FACET`][f66e] is never synchronized with
+    anyone, apart from the implicit reader/writer conflict (see
+    [`DIRECTION`][298b]).
+
+<a name='x-28MGL-CUBE-3A-2ADEFAULT-SYNCHRONIZATION-2A-20VARIABLE-29'></a>
+
+- [variable] **\*DEFAULT-SYNCHRONIZATION\*** *:MAYBE*
+
+    The default value for [`SYNCHRONIZATION`][923f] of new cubes.
+
+<a name='x-28MGL-CUBE-3A-2AMAYBE-SYNCHRONIZE-CUBE-2A-20VARIABLE-29'></a>
+
+- [variable] **\*MAYBE-SYNCHRONIZE-CUBE\*** *T*
+
+    Determines whether access the cube metadata is synchronized for
+    cubes with [`SYNCHRONIZATION`][923f] `:MAYBE`.
+
 <a name='x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 3 Facet extension API
+## 4 Facet extension API
 
 <a name='x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29'></a>
 
@@ -1423,7 +1475,7 @@ Also see [The default implementation of CALL-WITH-FACET\*][b64e].
 
 <a name='x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29'></a>
 
-## 4 The default implementation of CALL-WITH-FACET*
+## 5 The default implementation of CALL-WITH-FACET*
 
 <a name='x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20-28METHOD-20NIL-20-28T-20T-20T-20T-29-29-29'></a>
 
@@ -1495,7 +1547,7 @@ Also see [The default implementation of CALL-WITH-FACET\*][b64e].
 
 <a name='x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29'></a>
 
-## 5 Views
+## 6 Views
 
 We learn what a [`VIEW`][776e] is, how it's related to facets. See [`VIEWS`][c62e],
 [`FIND-VIEW`][d95a], and the default method of [`SET-UP-TO-DATE-P*`][59d0]. Views are
@@ -1543,7 +1595,7 @@ only visible to those implementing the [Facet extension API][eb06].
 
 <a name='x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29'></a>
 
-## 6 Destroying cubes
+## 7 Destroying cubes
 
 Lifetime management of facets is manual (but facets of garbage
 cubes are freed automatically by a finalizer, see [`MAKE-FACET*`][2a64]). One
@@ -1566,7 +1618,7 @@ may destroy a single facet or all facets of a cube with
 
 <a name='x-28MGL-CUBE-3A-40FACET-BARRIER-20MGL-PAX-3ASECTION-29'></a>
 
-## 7 Facet barriers
+## 8 Facet barriers
 
 A facility to control lifetime of facets tied to a dynamic extent.
 Also see [Destroying cubes][2fa1].
@@ -1612,6 +1664,7 @@ Also see [Destroying cubes][2fa1].
   [1227]: #x-28MGL-MAT-3APINNING-SUPPORTED-P-20FUNCTION-29 "(MGL-MAT:PINNING-SUPPORTED-P FUNCTION)"
   [12c9]: #x-28MGL-MAT-3AFOREIGN-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:FOREIGN-ARRAY MGL-CUBE:FACET-NAME)"
   [16c3]: #x-28MGL-CUBE-3ADESTROY-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:DESTROY-FACET* GENERIC-FUNCTION)"
+  [19b9]: #x-28MGL-CUBE-3A-2ADEFAULT-SYNCHRONIZATION-2A-20VARIABLE-29 "(MGL-CUBE:*DEFAULT-SYNCHRONIZATION* VARIABLE)"
   [1caf]: #x-28MGL-MAT-3AMAT-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-SIZE (MGL-PAX:READER MGL-MAT:MAT))"
   [21a4]: #x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29 "(MGL-CUBE:FACET-NAME MGL-PAX:LOCATIVE)"
   [2629]: #x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)"
@@ -1624,6 +1677,7 @@ Also see [Destroying cubes][2fa1].
   [3cf7]: #x-28MGL-MAT-3AMAT-MAX-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-MAX-SIZE (MGL-PAX:READER MGL-MAT:MAT))"
   [4586]: #x-28MGL-MAT-3A-2ASUPPORTED-CTYPES-2A-20VARIABLE-29 "(MGL-MAT:*SUPPORTED-CTYPES* VARIABLE)"
   [46c5]: #x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:CALL-WITH-FACET* GENERIC-FUNCTION)"
+  [478c]: #x-28MGL-CUBE-3A-2AMAYBE-SYNCHRONIZE-CUBE-2A-20VARIABLE-29 "(MGL-CUBE:*MAYBE-SYNCHRONIZE-CUBE* VARIABLE)"
   [4802]: #x-28MGL-MAT-3ADISPLACE-21-20FUNCTION-29 "(MGL-MAT:DISPLACE! FUNCTION)"
   [4cc3]: #x-28MGL-MAT-3AMAKE-MAT-20FUNCTION-29 "(MGL-MAT:MAKE-MAT FUNCTION)"
   [4d1e]: #x-28MGL-MAT-3A-40MAT-FOREIGN-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-FOREIGN MGL-PAX:SECTION)"
@@ -1636,6 +1690,7 @@ Also see [Destroying cubes][2fa1].
   [5d9b]: #x-28MGL-MAT-3A-2AN-MEMCPY-DEVICE-TO-HOST-2A-20VARIABLE-29 "(MGL-MAT:*N-MEMCPY-DEVICE-TO-HOST* VARIABLE)"
   [5feb]: #x-28MGL-MAT-3A-2ACUDA-ENABLED-2A-20VARIABLE-29 "(MGL-MAT:*CUDA-ENABLED* VARIABLE)"
   [6056]: #x-28MGL-CUBE-3ASELECT-COPY-SOURCE-FOR-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:SELECT-COPY-SOURCE-FOR-FACET* GENERIC-FUNCTION)"
+  [688d]: #x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-SYNCHRONIZATION MGL-PAX:SECTION)"
   [692d]: #x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-VIEWS MGL-PAX:SECTION)"
   [6ccf]: #x-28MGL-MAT-3A-40MAT-PRINTING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-PRINTING MGL-PAX:SECTION)"
   [7043]: #x-28MGL-MAT-3AFOREIGN-ARRAY-20CLASS-29 "(MGL-MAT:FOREIGN-ARRAY CLASS)"
@@ -1651,6 +1706,7 @@ Also see [Destroying cubes][2fa1].
   [8719]: #x-28MGL-CUBE-3A-2ALET-OUTPUT-THROUGH-P-2A-20VARIABLE-29 "(MGL-CUBE:*LET-OUTPUT-THROUGH-P* VARIABLE)"
   [8866]: #x-28MGL-MAT-3A-40MAT-SHAPING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-SHAPING MGL-PAX:SECTION)"
   [8b4f]: #x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)"
+  [923f]: #x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29 "(MGL-CUBE:SYNCHRONIZATION (MGL-PAX:ACCESSOR MGL-CUBE:CUBE))"
   [9984]: #x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-NON-DESTRUCTIVE-API MGL-PAX:SECTION)"
   [99b9]: #x-28MGL-CUBE-3AWITH-FACET-BARRIER-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:WITH-FACET-BARRIER MGL-PAX:MACRO)"
   [9e0b]: #x-28MGL-CUBE-3AVIEW-UP-TO-DATE-P-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:VIEW-UP-TO-DATE-P MGL-PAX:STRUCTURE-ACCESSOR)"

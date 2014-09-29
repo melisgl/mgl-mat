@@ -264,23 +264,24 @@ is not</p></li>
 <p><a name='x-28MGL-MAT-3AMAKE-MAT-20FUNCTION-29'></a></p>
 
 <ul>
-<li><p>[function] <strong>MAKE-MAT</strong> <em>DIMENSIONS &amp;REST ARGS &amp;KEY (CTYPE *DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS</em></p>
+<li><p>[function] <strong>MAKE-MAT</strong> <em>DIMENSIONS &amp;REST ARGS &amp;KEY (CTYPE *DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS (SYNCHRONIZATION *DEFAULT-SYNCHRONIZATION*)</em></p>
 
 <p>Return a new matrix. If <code>INITIAL-CONTENTS</code> is given then the matrix
 contents are copied with <a href="#x-28MGL-MAT-3AREPLACE-21-20FUNCTION-29" title="(MGL-MAT:REPLACE! FUNCTION)"><code>REPLACE!</code></a>. See class <a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> for the description
 of the rest of the parameters. This is exactly what (<code>MAKE-INSTANCE</code>
 '<a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> ...) does except <code>DIMENSIONS</code> is not a keyword argument so
-<a href="#x-28MGL-MAT-3AMAKE-MAT-20FUNCTION-29" title="(MGL-MAT:MAKE-MAT FUNCTION)"><code>MAKE-MAT</code></a> looks more like <code>MAKE-ARRAY</code>.</p></li>
+<a href="#x-28MGL-MAT-3AMAKE-MAT-20FUNCTION-29" title="(MGL-MAT:MAKE-MAT FUNCTION)"><code>MAKE-MAT</code></a> looks more like <code>MAKE-ARRAY</code>. Also see
+<a href="cube-manual.html#x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-SYNCHRONIZATION MGL-PAX:SECTION)">Synchronization</a>.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3AARRAY-TO-MAT-20FUNCTION-29'></a></p>
 
 <ul>
-<li><p>[function] <strong>ARRAY-TO-MAT</strong> <em>ARRAY &amp;KEY CTYPE</em></p>
+<li><p>[function] <strong>ARRAY-TO-MAT</strong> <em>ARRAY &amp;KEY CTYPE (SYNCHRONIZATION *DEFAULT-SYNCHRONIZATION*)</em></p>
 
 <p>Create a <a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> that's equivalent to <code>ARRAY</code>. Displacement of the
 created array will be 0 and the size will be equal to
-<code>ARRAY-TOTAL-SIZE</code>.</p></li>
+<code>ARRAY-TOTAL-SIZE</code>. Also see <a href="cube-manual.html#x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-SYNCHRONIZATION MGL-PAX:SECTION)">Synchronization</a>.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3AMAT-TO-ARRAY-20FUNCTION-29'></a></p>

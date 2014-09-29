@@ -163,19 +163,20 @@ WITH-FACETS with one of the following [FACET-NAME][]s:
     cannot change. Also DISPLACEMENT + SIZE must not exceed it. This
     is not
 
-- [function] MAKE-MAT DIMENSIONS &REST ARGS &KEY (CTYPE *DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS
+- [function] MAKE-MAT DIMENSIONS &REST ARGS &KEY (CTYPE *DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS (SYNCHRONIZATION *DEFAULT-SYNCHRONIZATION*)
 
     Return a new matrix. If INITIAL-CONTENTS is given then the matrix
     contents are copied with REPLACE!. See class MAT for the description
     of the rest of the parameters. This is exactly what (MAKE-INSTANCE
     'MAT ...) does except DIMENSIONS is not a keyword argument so
-    MAKE-MAT looks more like MAKE-ARRAY.
+    MAKE-MAT looks more like MAKE-ARRAY. Also see
+    @CUBE-SYNCHRONIZATION.
 
-- [function] ARRAY-TO-MAT ARRAY &KEY CTYPE
+- [function] ARRAY-TO-MAT ARRAY &KEY CTYPE (SYNCHRONIZATION *DEFAULT-SYNCHRONIZATION*)
 
     Create a MAT that's equivalent to ARRAY. Displacement of the
     created array will be 0 and the size will be equal to
-    ARRAY-TOTAL-SIZE.
+    ARRAY-TOTAL-SIZE. Also see @CUBE-SYNCHRONIZATION.
 
 - [function] MAT-TO-ARRAY MAT
 
@@ -1026,6 +1027,48 @@ WITH-FACET.
       ...))
     ```
 
+
+## Synchronization
+
+Cubes keep track of which facets are used, which are up-to-date to
+be able to perform automatic translation between facets. WITH-FACET
+and other operations access and make changes to this metadata so
+thread safety is a concern. In this section, we detail how to relax
+the default thread safety guarantees.
+
+A related concern is async signal safety which arises most often
+when C-c'ing or killing a thread or when the extremely nasty
+WITH-TIMEOUT macro is used. In a nutshell, changes to cube metadata
+are always made with interrupts disabled so things should be async
+signal safe.
+
+- [accessor] SYNCHRONIZATION CUBE
+
+    By default setup and teardown of facets by
+    WITH-FACET is performed in a thread safe way. Corrupting internal
+    data structures of cubes is not fun, but in the name of
+    performance, synchronization can be turned off either dynamically
+    or on a per instance basis.
+    
+    If T, then access to cube metadata is always synchronized. If NIL,
+    then never. If :MAYBE, then whether access is synchronized is
+    determined by *MAYBE-SYNCHRONIZE-CUBE* that's true by default.
+    
+    The default is the value of *DEFAULT-SYNCHRONIZATION*
+    that's :MAYBE by default.
+    
+    Note that the body of a WITH-FACET is never synchronized with
+    anyone, apart from the implicit reader/writer conflict (see
+    DIRECTION).
+
+- [variable] *DEFAULT-SYNCHRONIZATION* :MAYBE
+
+    The default value for SYNCHRONIZATION of new cubes.
+
+- [variable] *MAYBE-SYNCHRONIZE-CUBE* T
+
+    Determines whether access the cube metadata is synchronized for
+    cubes with SYNCHRONIZATION :MAYBE.
 
 ## Facet extension API
 

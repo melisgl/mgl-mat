@@ -3,6 +3,7 @@
 (defsection @cube-manual (:title "Cube manual")
   (@cube-introduction section)
   (@cube-basics section)
+  (@cube-synchronization section)
   (@facet-extension-api section)
   (@default-call-with-facet* section)
   (@cube-views section)
@@ -68,8 +69,53 @@
   (direction type)
   (with-facets macro))
 
+(defsection @cube-synchronization (:title "Synchronization")
+  "Cubes keep track of which facets are used, which are up-to-date to
+  be able to perform automatic translation between facets. WITH-FACET
+  and other operations access and make changes to this metadata so
+  thread safety is a concern. In this section, we detail how to relax
+  the default thread safety guarantees.
+
+  A related concern is async signal safety which arises most often
+  when C-c'ing or killing a thread or when the extremely nasty
+  WITH-TIMEOUT macro is used. In a nutshell, changes to cube metadata
+  are always made with interrupts disabled so things should be async
+  signal safe."
+  (synchronization (accessor cube))
+  (*default-synchronization* variable)
+  (*maybe-synchronize-cube* variable))
+
+(defvar *default-synchronization* :maybe
+  "The default value for SYNCHRONIZATION of new cubes.")
+
+(defvar *maybe-synchronize-cube* t
+  "Determines whether access the cube metadata is synchronized for
+  cubes with SYNCHRONIZATION :MAYBE.")
+
 (defclass cube ()
-  (;; This is the list of VIEW objects of the cube with the twist that
+  ((synchronization
+    :initform *default-synchronization*
+    :type (member nil :maybe t)
+    :initarg :synchronization
+    :accessor synchronization
+    :documentation "By default setup and teardown of facets by
+    WITH-FACET is performed in a thread safe way. Corrupting internal
+    data structures of cubes is not fun, but in the name of
+    performance, synchronization can be turned off either dynamically
+    or on a per instance basis.
+
+    If T, then access to cube metadata is always synchronized. If NIL,
+    then never. If :MAYBE, then whether access is synchronized is
+    determined by *MAYBE-SYNCHRONIZE-CUBE* that's true by default.
+
+    The default is the value of *DEFAULT-SYNCHRONIZATION*
+    that's :MAYBE by default.
+
+    Note that the body of a WITH-FACET is never synchronized with
+    anyone, apart from the implicit reader/writer conflict (see
+    DIRECTION).")
+   (lock :initform (bordeaux-threads:make-recursive-lock) :accessor lock)
+   ;; This is the list of VIEW objects of the cube with the twist that
    ;; there is an extra cons at the beginning whose identity never
    ;; changes. Finalizers - which cannot hold a reference to the cube
    ;; itself - hang on to this cons.
@@ -87,6 +133,23 @@
   @FACET-EXTENSION-API.
 
   Also see @CUBE-VIEWS, @DESTRUCTION-OF-CUBES and @FACET-BARRIER."))
+
+(defmacro with-cube-locked ((cube) &body body)
+  (alexandria:once-only (cube)
+    `(without-interrupts
+       (flet ((foo ()
+                ,@body))
+         (declare (dynamic-extent #'foo))
+         (if (synchronize-cube-p cube)
+             (bordeaux-threads:with-recursive-lock-held ((lock ,cube))
+               (foo))
+             (foo))))))
+
+(defun synchronize-cube-p (cube)
+  (let ((synchronization (synchronization cube)))
+    (or (and (eq synchronization :maybe)
+             *maybe-synchronize-cube*)
+        (eq synchronization t))))
 
 (defmacro with-facet ((facet (cube facet-name &key (direction :io) type))
                       &body body)
@@ -240,10 +303,12 @@
   ;; If WATCH-FACET fails, don't unwatch it. Also, disable interrupts
   ;; in an effort to prevent async unwinds (C-c and similar) from
   ;; leaving inconsistent state around.
-  (let ((facet (without-interrupts (watch-facet cube facet-name direction))))
+  (let ((facet (with-cube-locked (cube)
+                 (watch-facet cube facet-name direction))))
     (unwind-protect
          (funcall fn facet)
-      (without-interrupts (unwatch-facet cube facet-name)))))
+      (with-cube-locked (cube)
+        (unwatch-facet cube facet-name)))))
 
 (defgeneric watch-facet (cube facet-name direction)
   (:method ((cube cube) facet-name direction)
@@ -539,12 +604,13 @@ destroyed by a facet barrier."
     view))
 
 (defun remove-view (cube facet-name)
-  (let ((view (find-view cube facet-name)))
-    (check-no-watchers cube nil "Cannot remove facet ~S" facet-name)
-    (setf (cdr (slot-value cube 'views))
-          (remove facet-name (views cube) :key #'view-facet-name))
-    (deregister-cube-facet cube facet-name)
-    view))
+  (with-cube-locked (cube)
+    (let ((view (find-view cube facet-name)))
+      (check-no-watchers cube nil "Cannot remove facet ~S" facet-name)
+      (setf (cdr (slot-value cube 'views))
+            (remove facet-name (views cube) :key #'view-facet-name))
+      (deregister-cube-facet cube facet-name)
+      view)))
 
 (defun has-watchers-p (view)
   (plusp (view-n-watchers view)))

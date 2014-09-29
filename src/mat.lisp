@@ -210,23 +210,27 @@
 
 (defun make-mat (dimensions &rest args &key (ctype *default-mat-ctype*)
                  (displacement 0) max-size (initial-element 0)
-                 initial-contents)
+                 initial-contents (synchronization *default-synchronization*))
   "Return a new matrix. If INITIAL-CONTENTS is given then the matrix
   contents are copied with REPLACE!. See class MAT for the description
   of the rest of the parameters. This is exactly what (MAKE-INSTANCE
   'MAT ...) does except DIMENSIONS is not a keyword argument so
-  MAKE-MAT looks more like MAKE-ARRAY."
+  MAKE-MAT looks more like MAKE-ARRAY. Also see
+  @CUBE-SYNCHRONIZATION."
   (declare (ignore displacement max-size initial-element initial-contents))
-  (apply #'make-instance 'mat :ctype ctype :dimensions dimensions args))
+  (apply #'make-instance 'mat :ctype ctype :dimensions dimensions
+         :synchronization synchronization args))
 
-(defun array-to-mat (array &key ctype)
+(defun array-to-mat (array &key ctype
+                     (synchronization *default-synchronization*))
   "Create a MAT that's equivalent to ARRAY. Displacement of the
   created array will be 0 and the size will be equal to
-  ARRAY-TOTAL-SIZE."
+  ARRAY-TOTAL-SIZE. Also see @CUBE-SYNCHRONIZATION."
   (let* ((ctype (or ctype (lisp->ctype (array-element-type array))))
          (mat (make-instance 'mat
                              :ctype ctype
-                             :dimensions (array-dimensions array))))
+                             :dimensions (array-dimensions array)
+                             :synchronization synchronization)))
     (with-facet (backing-array (mat 'backing-array :direction :output))
       (loop for i upfrom 0
             for j upfrom 0
