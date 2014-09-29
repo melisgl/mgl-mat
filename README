@@ -125,17 +125,17 @@ WITH-FACETS with one of the following [FACET-NAME][]s:
     different representations of the same data. See @MAT-BASICS for a
     tuturialish treatment.
 
-- [reader] MAT-CTYPE MAT
+- [reader] MAT-CTYPE MAT (:CTYPE <= *DEFAULT-MAT-CTYPE*)
 
     One of *SUPPORTED-CTYPES*. The matrix can hold
     only values of this type.
 
-- [reader] MAT-DISPLACEMENT MAT
+- [reader] MAT-DISPLACEMENT MAT (:DISPLACEMENT <= 0)
 
     A value in the [0,MAX-SIZE][] interval. This is like
     the DISPLACED-INDEX-OFFSET of a lisp array.
 
-- [reader] MAT-DIMENSIONS MAT
+- [reader] MAT-DIMENSIONS MAT (:DIMENSIONS)
 
     Like ARRAY-DIMENSIONS. It holds a list of
     dimensions, but it is allowed to pass in scalars too.
@@ -145,7 +145,7 @@ WITH-FACETS with one of the following [FACET-NAME][]s:
     Return the dimension along AXIS-NUMBER. Similar to
     ARRAY-DIMENSION.
 
-- [reader] MAT-INITIAL-ELEMENT MAT
+- [reader] MAT-INITIAL-ELEMENT MAT (:INITIAL-ELEMENT <= 0)
 
     If non-nil, then when a facet is created, it is
     filled with INITIAL-ELEMENT coerced to the appropriate numeric
@@ -157,7 +157,7 @@ WITH-FACETS with one of the following [FACET-NAME][]s:
     the array. This is always the product of the elements
     MAT-DIMENSIONS and is similar to ARRAY-TOTAL-SIZE.
 
-- [reader] MAT-MAX-SIZE MAT
+- [reader] MAT-MAX-SIZE MAT (:MAX-SIZE)
 
     The total size can be larger than MAT-SIZE, but
     cannot change. Also DISPLACEMENT + SIZE must not exceed it. This
@@ -535,9 +535,9 @@ unless you have a very good reason to bypass it.
 
 - [condition] CUBLAS-ERROR ERROR
 
-- [reader] CUBLAS-ERROR-FUNCTION-NAME CUBLAS-ERROR
+- [reader] CUBLAS-ERROR-FUNCTION-NAME CUBLAS-ERROR (:FUNCTION-NAME)
 
-- [reader] CUBLAS-ERROR-STATUS CUBLAS-ERROR
+- [reader] CUBLAS-ERROR-STATUS CUBLAS-ERROR (:STATUS)
 
 - [variable] *CUBLAS-HANDLE* "-unbound-"
 
@@ -559,9 +559,9 @@ This the low level CURAND API.
 
 - [class] CURAND-XORWOW-STATE
 
-- [reader] N-STATES CURAND-XORWOW-STATE
+- [reader] N-STATES CURAND-XORWOW-STATE (:N-STATES)
 
-- [reader] STATES CURAND-XORWOW-STATE
+- [reader] STATES CURAND-XORWOW-STATE (:STATES)
 
 ## BLAS
 
@@ -1042,7 +1042,7 @@ WITH-TIMEOUT macro is used. In a nutshell, changes to cube metadata
 are always made with interrupts disabled so things should be async
 signal safe.
 
-- [accessor] SYNCHRONIZATION CUBE
+- [accessor] SYNCHRONIZATION CUBE (:SYNCHRONIZATION <= *DEFAULT-SYNCHRONIZATION*)
 
     By default setup and teardown of facets by
     WITH-FACET is performed in a thread safe way. Corrupting internal

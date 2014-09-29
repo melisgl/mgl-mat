@@ -175,21 +175,21 @@ representations of numeric arrays. These facets can be accessed with
 
 <a name='x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a>
 
-- [reader] **MAT-CTYPE** *MAT*
+- [reader] **MAT-CTYPE** *MAT* *(:CTYPE <= \*DEFAULT-MAT-CTYPE\*)*
 
     One of [`*SUPPORTED-CTYPES*`][4586]. The matrix can hold
     only values of this type.
 
 <a name='x-28MGL-MAT-3AMAT-DISPLACEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a>
 
-- [reader] **MAT-DISPLACEMENT** *MAT*
+- [reader] **MAT-DISPLACEMENT** *MAT* *(:DISPLACEMENT <= 0)*
 
     A value in the [0,MAX-SIZE][] interval. This is like
     the DISPLACED-INDEX-OFFSET of a lisp array.
 
 <a name='x-28MGL-MAT-3AMAT-DIMENSIONS-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a>
 
-- [reader] **MAT-DIMENSIONS** *MAT*
+- [reader] **MAT-DIMENSIONS** *MAT* *(:DIMENSIONS)*
 
     Like `ARRAY-DIMENSIONS`. It holds a list of
     dimensions, but it is allowed to pass in scalars too.
@@ -203,7 +203,7 @@ representations of numeric arrays. These facets can be accessed with
 
 <a name='x-28MGL-MAT-3AMAT-INITIAL-ELEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a>
 
-- [reader] **MAT-INITIAL-ELEMENT** *MAT*
+- [reader] **MAT-INITIAL-ELEMENT** *MAT* *(:INITIAL-ELEMENT <= 0)*
 
     If non-nil, then when a facet is created, it is
     filled with `INITIAL-ELEMENT` coerced to the appropriate numeric
@@ -219,7 +219,7 @@ representations of numeric arrays. These facets can be accessed with
 
 <a name='x-28MGL-MAT-3AMAT-MAX-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a>
 
-- [reader] **MAT-MAX-SIZE** *MAT*
+- [reader] **MAT-MAX-SIZE** *MAT* *(:MAX-SIZE)*
 
     The total size can be larger than [`MAT-SIZE`][1caf], but
     cannot change. Also `DISPLACEMENT` + `SIZE` must not exceed it. This
@@ -691,11 +691,11 @@ unless you have a very good reason to bypass it.
 
 <a name='x-28MGL-MAT-3ACUBLAS-ERROR-FUNCTION-NAME-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACUBLAS-ERROR-29-29'></a>
 
-- [reader] **CUBLAS-ERROR-FUNCTION-NAME** *CUBLAS-ERROR*
+- [reader] **CUBLAS-ERROR-FUNCTION-NAME** *CUBLAS-ERROR* *(:FUNCTION-NAME)*
 
 <a name='x-28MGL-MAT-3ACUBLAS-ERROR-STATUS-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACUBLAS-ERROR-29-29'></a>
 
-- [reader] **CUBLAS-ERROR-STATUS** *CUBLAS-ERROR*
+- [reader] **CUBLAS-ERROR-STATUS** *CUBLAS-ERROR* *(:STATUS)*
 
 <a name='x-28MGL-MAT-3A-2ACUBLAS-HANDLE-2A-20VARIABLE-29'></a>
 
@@ -737,11 +737,11 @@ This the low level CURAND API.
 
 <a name='x-28MGL-MAT-3AN-STATES-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACURAND-XORWOW-STATE-29-29'></a>
 
-- [reader] **N-STATES** *CURAND-XORWOW-STATE*
+- [reader] **N-STATES** *CURAND-XORWOW-STATE* *(:N-STATES)*
 
 <a name='x-28MGL-MAT-3ASTATES-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACURAND-XORWOW-STATE-29-29'></a>
 
-- [reader] **STATES** *CURAND-XORWOW-STATE*
+- [reader] **STATES** *CURAND-XORWOW-STATE* *(:STATES)*
 
 <a name='x-28MGL-MAT-3A-40MAT-BLAS-20MGL-PAX-3ASECTION-29'></a>
 
@@ -1359,7 +1359,7 @@ signal safe.
 
 <a name='x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29'></a>
 
-- [accessor] **SYNCHRONIZATION** *CUBE*
+- [accessor] **SYNCHRONIZATION** *CUBE* *(:SYNCHRONIZATION <= \*DEFAULT-SYNCHRONIZATION\*)*
 
     By default setup and teardown of facets by
     [`WITH-FACET`][f66e] is performed in a thread safe way. Corrupting internal

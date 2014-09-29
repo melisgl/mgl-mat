@@ -198,7 +198,7 @@ tuturialish treatment.</p></li>
 <p><a name='x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a></p>
 
 <ul>
-<li><p>[reader] <strong>MAT-CTYPE</strong> <em>MAT</em></p>
+<li><p>[reader] <strong>MAT-CTYPE</strong> <em>MAT</em> <em>(:CTYPE &lt;= *DEFAULT-MAT-CTYPE*)</em></p>
 
 <p>One of <a href="#x-28MGL-MAT-3A-2ASUPPORTED-CTYPES-2A-20VARIABLE-29" title="(MGL-MAT:*SUPPORTED-CTYPES* VARIABLE)"><code>*SUPPORTED-CTYPES*</code></a>. The matrix can hold
 only values of this type.</p></li>
@@ -207,7 +207,7 @@ only values of this type.</p></li>
 <p><a name='x-28MGL-MAT-3AMAT-DISPLACEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a></p>
 
 <ul>
-<li><p>[reader] <strong>MAT-DISPLACEMENT</strong> <em>MAT</em></p>
+<li><p>[reader] <strong>MAT-DISPLACEMENT</strong> <em>MAT</em> <em>(:DISPLACEMENT &lt;= 0)</em></p>
 
 <p>A value in the [0,MAX-SIZE][] interval. This is like
 the DISPLACED-INDEX-OFFSET of a lisp array.</p></li>
@@ -216,7 +216,7 @@ the DISPLACED-INDEX-OFFSET of a lisp array.</p></li>
 <p><a name='x-28MGL-MAT-3AMAT-DIMENSIONS-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a></p>
 
 <ul>
-<li><p>[reader] <strong>MAT-DIMENSIONS</strong> <em>MAT</em></p>
+<li><p>[reader] <strong>MAT-DIMENSIONS</strong> <em>MAT</em> <em>(:DIMENSIONS)</em></p>
 
 <p>Like <code>ARRAY-DIMENSIONS</code>. It holds a list of
 dimensions, but it is allowed to pass in scalars too.</p></li>
@@ -234,7 +234,7 @@ dimensions, but it is allowed to pass in scalars too.</p></li>
 <p><a name='x-28MGL-MAT-3AMAT-INITIAL-ELEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a></p>
 
 <ul>
-<li><p>[reader] <strong>MAT-INITIAL-ELEMENT</strong> <em>MAT</em></p>
+<li><p>[reader] <strong>MAT-INITIAL-ELEMENT</strong> <em>MAT</em> <em>(:INITIAL-ELEMENT &lt;= 0)</em></p>
 
 <p>If non-nil, then when a facet is created, it is
 filled with <code>INITIAL-ELEMENT</code> coerced to the appropriate numeric
@@ -254,7 +254,7 @@ the array. This is always the product of the elements
 <p><a name='x-28MGL-MAT-3AMAT-MAX-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a></p>
 
 <ul>
-<li><p>[reader] <strong>MAT-MAX-SIZE</strong> <em>MAT</em></p>
+<li><p>[reader] <strong>MAT-MAX-SIZE</strong> <em>MAT</em> <em>(:MAX-SIZE)</em></p>
 
 <p>The total size can be larger than <a href="#x-28MGL-MAT-3AMAT-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29" title="(MGL-MAT:MAT-SIZE (MGL-PAX:READER MGL-MAT:MAT))"><code>MAT-SIZE</code></a>, but
 cannot change. Also <code>DISPLACEMENT</code> + <code>SIZE</code> must not exceed it. This
@@ -798,13 +798,13 @@ unless you have a very good reason to bypass it.</p>
 <p><a name='x-28MGL-MAT-3ACUBLAS-ERROR-FUNCTION-NAME-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACUBLAS-ERROR-29-29'></a></p>
 
 <ul>
-<li>[reader] <strong>CUBLAS-ERROR-FUNCTION-NAME</strong> <em>CUBLAS-ERROR</em></li>
+<li>[reader] <strong>CUBLAS-ERROR-FUNCTION-NAME</strong> <em>CUBLAS-ERROR</em> <em>(:FUNCTION-NAME)</em></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3ACUBLAS-ERROR-STATUS-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACUBLAS-ERROR-29-29'></a></p>
 
 <ul>
-<li>[reader] <strong>CUBLAS-ERROR-STATUS</strong> <em>CUBLAS-ERROR</em></li>
+<li>[reader] <strong>CUBLAS-ERROR-STATUS</strong> <em>CUBLAS-ERROR</em> <em>(:STATUS)</em></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3A-2ACUBLAS-HANDLE-2A-20VARIABLE-29'></a></p>
@@ -864,13 +864,13 @@ unless you have a very good reason to bypass it.</p>
 <p><a name='x-28MGL-MAT-3AN-STATES-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACURAND-XORWOW-STATE-29-29'></a></p>
 
 <ul>
-<li>[reader] <strong>N-STATES</strong> <em>CURAND-XORWOW-STATE</em></li>
+<li>[reader] <strong>N-STATES</strong> <em>CURAND-XORWOW-STATE</em> <em>(:N-STATES)</em></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3ASTATES-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACURAND-XORWOW-STATE-29-29'></a></p>
 
 <ul>
-<li>[reader] <strong>STATES</strong> <em>CURAND-XORWOW-STATE</em></li>
+<li>[reader] <strong>STATES</strong> <em>CURAND-XORWOW-STATE</em> <em>(:STATES)</em></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-BLAS-20MGL-PAX-3ASECTION-29'></a></p>
