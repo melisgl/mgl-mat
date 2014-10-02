@@ -43,7 +43,7 @@
   initialized. MAT operations use this to decide whether to go for the
   cuda implementation or BLAS/Lisp. It's provided for implementing new
   operations."
-  (and *cuda-enabled* *cuda-context*))
+  (and *cuda-enabled* (boundp '*cuda-context*)))
 
 ;;; This is effectively a constant across all cuda cards.
 (defvar *cuda-warp-size* 32)
