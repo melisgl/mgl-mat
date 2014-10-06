@@ -199,7 +199,7 @@ tuturialish treatment.</p></li>
 <p><a name='x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a></p>
 
 <ul>
-<li><p>[reader] <strong>MAT-CTYPE</strong> <em>MAT</em> <em>(:CTYPE &lt;= *DEFAULT-MAT-CTYPE*)</em></p>
+<li><p>[reader] <strong>MAT-CTYPE</strong> <em>MAT</em> <em>(:CTYPE = *DEFAULT-MAT-CTYPE*)</em></p>
 
 <p>One of <a href="#x-28MGL-MAT-3A-2ASUPPORTED-CTYPES-2A-20VARIABLE-29" title="(MGL-MAT:*SUPPORTED-CTYPES* VARIABLE)"><code>*SUPPORTED-CTYPES*</code></a>. The matrix can hold
 only values of this type.</p></li>
@@ -208,7 +208,7 @@ only values of this type.</p></li>
 <p><a name='x-28MGL-MAT-3AMAT-DISPLACEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a></p>
 
 <ul>
-<li><p>[reader] <strong>MAT-DISPLACEMENT</strong> <em>MAT</em> <em>(:DISPLACEMENT &lt;= 0)</em></p>
+<li><p>[reader] <strong>MAT-DISPLACEMENT</strong> <em>MAT</em> <em>(:DISPLACEMENT = 0)</em></p>
 
 <p>A value in the [0,MAX-SIZE][] interval. This is like
 the DISPLACED-INDEX-OFFSET of a lisp array.</p></li>
@@ -235,7 +235,7 @@ dimensions, but it is allowed to pass in scalars too.</p></li>
 <p><a name='x-28MGL-MAT-3AMAT-INITIAL-ELEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a></p>
 
 <ul>
-<li><p>[reader] <strong>MAT-INITIAL-ELEMENT</strong> <em>MAT</em> <em>(:INITIAL-ELEMENT &lt;= 0)</em></p>
+<li><p>[reader] <strong>MAT-INITIAL-ELEMENT</strong> <em>MAT</em> <em>(:INITIAL-ELEMENT = 0)</em></p>
 
 <p>If non-nil, then when a facet is created, it is
 filled with <code>INITIAL-ELEMENT</code> coerced to the appropriate numeric

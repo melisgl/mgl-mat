@@ -176,14 +176,14 @@ representations of numeric arrays. These facets can be accessed with
 
 <a name='x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a>
 
-- [reader] **MAT-CTYPE** *MAT* *(:CTYPE <= \*DEFAULT-MAT-CTYPE\*)*
+- [reader] **MAT-CTYPE** *MAT* *(:CTYPE = \*DEFAULT-MAT-CTYPE\*)*
 
     One of [`*SUPPORTED-CTYPES*`][4586]. The matrix can hold
     only values of this type.
 
 <a name='x-28MGL-MAT-3AMAT-DISPLACEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a>
 
-- [reader] **MAT-DISPLACEMENT** *MAT* *(:DISPLACEMENT <= 0)*
+- [reader] **MAT-DISPLACEMENT** *MAT* *(:DISPLACEMENT = 0)*
 
     A value in the [0,MAX-SIZE][] interval. This is like
     the DISPLACED-INDEX-OFFSET of a lisp array.
@@ -204,7 +204,7 @@ representations of numeric arrays. These facets can be accessed with
 
 <a name='x-28MGL-MAT-3AMAT-INITIAL-ELEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a>
 
-- [reader] **MAT-INITIAL-ELEMENT** *MAT* *(:INITIAL-ELEMENT <= 0)*
+- [reader] **MAT-INITIAL-ELEMENT** *MAT* *(:INITIAL-ELEMENT = 0)*
 
     If non-nil, then when a facet is created, it is
     filled with `INITIAL-ELEMENT` coerced to the appropriate numeric
@@ -904,7 +904,7 @@ Level 3 BLAS operations
 
 <a name='x-28MGL-MAT-3A-2E-3C-21-20FUNCTION-29'></a>
 
-- [function] **.<!** *X Y*
+- [function] **.\<!** *X Y*
 
     For each element of `X` and `Y` set `Y` to 1 if the element in `Y` is
     greater than the element in `X`, and to 0 otherwise.
@@ -1032,7 +1032,7 @@ Finally, some neural network operations.
 
 <a name='x-28MGL-MAT-3ASCALAR-AS-MAT-20FUNCTION-29'></a>
 
-- [function] **SCALAR-AS-MAT** *X &KEY (CTYPE (LISP->CTYPE (TYPE-OF X)))*
+- [function] **SCALAR-AS-MAT** *X &KEY (CTYPE (LISP-\>CTYPE (TYPE-OF X)))*
 
     Return a matrix of one dimension and one element: `X`. `CTYPE`, the
     type of the matrix, defaults to the ctype corresponding to the type
@@ -1395,7 +1395,7 @@ signal safe.
 
 <a name='x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29'></a>
 
-- [accessor] **SYNCHRONIZATION** *CUBE* *(:SYNCHRONIZATION <= \*DEFAULT-SYNCHRONIZATION\*)*
+- [accessor] **SYNCHRONIZATION** *CUBE* *(:SYNCHRONIZATION = \*DEFAULT-SYNCHRONIZATION\*)*
 
     By default setup and teardown of facets by
     [`WITH-FACET`][f66e] is performed in a thread safe way. Corrupting internal

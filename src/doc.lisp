@@ -72,8 +72,8 @@
 
 #|
 
-(update-readmes)
-
-(update-html)
+(progn
+ (update-readmes)
+ (update-html))
 
 |#
