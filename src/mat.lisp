@@ -225,8 +225,15 @@
                      (synchronization *default-synchronization*))
   "Create a MAT that's equivalent to ARRAY. Displacement of the
   created array will be 0 and the size will be equal to
-  ARRAY-TOTAL-SIZE. Also see @CUBE-SYNCHRONIZATION."
-  (let* ((ctype (or ctype (lisp->ctype (array-element-type array))))
+  ARRAY-TOTAL-SIZE. If CTYPE is non-nil, then it will be the ctype of
+  the new matrix. Else ARRAY's type is converted to a ctype. If there
+  is no corresponding ctype, then *DEFAULT-MAT-CTYPE* is used.
+  Elements of ARRAY are coerced to CTYPE.
+
+  Also see @CUBE-SYNCHRONIZATION."
+  (let* ((ctype (or ctype
+                    (lisp->ctype (array-element-type array))
+                    *default-mat-ctype*))
          (mat (make-instance 'mat
                              :ctype ctype
                              :dimensions (array-dimensions array)
@@ -235,7 +242,9 @@
       (loop for i upfrom 0
             for j upfrom 0
             repeat (mat-size mat)
-            do (setf (aref backing-array i) (row-major-aref array j))))
+            do (setf (aref backing-array i)
+                     (coerce-to-ctype (row-major-aref array j)
+                                      :ctype ctype))))
     mat))
 
 (defun mat-to-array (mat)
