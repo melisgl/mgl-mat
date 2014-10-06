@@ -13,18 +13,19 @@
 - [4 Element types][00a6]
 - [5 Printing][6ccf]
 - [6 Shaping][8866]
-- [7 Caching][e8e7]
-- [8 Foreign arrays][4d1e]
-- [9 CUDA][f291]
-    - [9.1 CUBLAS][afa0]
-    - [9.2 CURAND][caa5]
-- [10 BLAS][0386]
-- [11 Destructive API][e71c]
-- [12 Non-destructive API][9984]
-- [13 Mappings][7388]
-- [14 Random numbers][ef83]
-- [15 I/O][78d7]
-- [16 Extension API][8b4f]
+- [7 Assembling][8816]
+- [8 Caching][e8e7]
+- [9 Foreign arrays][4d1e]
+- [10 CUDA][f291]
+    - [10.1 CUBLAS][afa0]
+    - [10.2 CURAND][caa5]
+- [11 BLAS][0386]
+- [12 Destructive API][e71c]
+- [13 Non-destructive API][9984]
+- [14 Mappings][7388]
+- [15 Random numbers][ef83]
+- [16 I/O][78d7]
+- [17 Extension API][8b4f]
 
 ###### \[in package MGL-MAT\]
 <a name='x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29'></a>
@@ -242,7 +243,12 @@ representations of numeric arrays. These facets can be accessed with
 
     Create a [`MAT`][773f] that's equivalent to `ARRAY`. Displacement of the
     created array will be 0 and the size will be equal to
-    `ARRAY-TOTAL-SIZE`. Also see [Synchronization][688d].
+    `ARRAY-TOTAL-SIZE`. If `CTYPE` is non-nil, then it will be the ctype of
+    the new matrix. Else `ARRAY`'s type is converted to a ctype. If there
+    is no corresponding ctype, then [`*DEFAULT-MAT-CTYPE*`][02a7] is used.
+    Elements of `ARRAY` are coerced to `CTYPE`.
+    
+    Also see [Synchronization][688d].
 
 <a name='x-28MGL-MAT-3AMAT-TO-ARRAY-20FUNCTION-29'></a>
 
@@ -387,9 +393,39 @@ displacement is done by changing the offset. Clients need to observe
     copied over and the old matrix is destroyed with [`DESTROY-CUBE`][2cb4] if
     `DESTROY-OLD-P`.
 
+<a name='x-28MGL-MAT-3A-40MAT-ASSEMBLING-20MGL-PAX-3ASECTION-29'></a>
+
+## 7 Assembling
+
+The functions here assemble a single [`MAT`][773f] from a number of
+[`MAT`][773f]s.
+
+<a name='x-28MGL-MAT-3ASTACK-21-20FUNCTION-29'></a>
+
+- [function] **STACK!** *AXIS MATS MAT*
+
+    Stack `MATS` along `AXIS` into `MAT` and return `MAT`. If `AXIS` is 0, place
+    `MATS` into `MAT` below each other starting from the top. If `AXIS` is 1,
+    place `MATS` side by side starting from the left. Higher `AXIS` are also
+    supported. All dimensions except for `AXIS` must be the same for all
+    `MATS`.
+    
+        (stack 1 (list (make-mat '(3 2) :initial-element 0)
+                       (make-mat '(3 1) :initial-element 1)))
+        => #<MAT 3x3 B #2A((0.0d0 0.0d0 1.0d0)
+                           (0.0d0 0.0d0 1.0d0)
+                           (0.0d0 0.0d0 1.0d0))>
+
+
+<a name='x-28MGL-MAT-3ASTACK-20FUNCTION-29'></a>
+
+- [function] **STACK** *AXIS MATS &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*)*
+
+    Like [`STACK!`][552a] but return a new [`MAT`][773f] of `CTYPE`.
+
 <a name='x-28MGL-MAT-3A-40MAT-CACHING-20MGL-PAX-3ASECTION-29'></a>
 
-## 7 Caching
+## 8 Caching
 
 Allocating and initializing a [`MAT`][773f] object and its necessary facets
 can be expensive. The following macros remember the previous value
@@ -425,7 +461,7 @@ safe.
 
 <a name='x-28MGL-MAT-3A-40MAT-FOREIGN-20MGL-PAX-3ASECTION-29'></a>
 
-## 8 Foreign arrays
+## 9 Foreign arrays
 
 One facet of [`MAT`][773f] objects is [`FOREIGN-ARRAY`][12c9] which is
 backed by a memory area that can be pinned or is allocated in
@@ -484,7 +520,7 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a name='x-28MGL-MAT-3A-40MAT-CUDA-20MGL-PAX-3ASECTION-29'></a>
 
-## 9 CUDA
+## 10 CUDA
 
 <a name='x-28MGL-MAT-3ACUDA-AVAILABLE-P-20FUNCTION-29'></a>
 
@@ -680,7 +716,7 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a name='x-28MGL-MAT-3A-40MAT-CUBLAS-20MGL-PAX-3ASECTION-29'></a>
 
-### 9.1 CUBLAS
+### 10.1 CUBLAS
 
 [`WITH-CUDA*`][c00b] should take of everything. No need to use these at all
 unless you have a very good reason to bypass it.
@@ -719,7 +755,7 @@ unless you have a very good reason to bypass it.
 
 <a name='x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29'></a>
 
-### 9.2 CURAND
+### 10.2 CURAND
 
 This the low level CURAND API.
 
@@ -745,7 +781,7 @@ This the low level CURAND API.
 
 <a name='x-28MGL-MAT-3A-40MAT-BLAS-20MGL-PAX-3ASECTION-29'></a>
 
-## 10 BLAS
+## 11 BLAS
 
 Only some BLAS functions are implemented, but it should be easy to
 add more as needed. All of them default to using CUDA, if it is
@@ -828,7 +864,7 @@ Level 3 BLAS operations
 
 <a name='x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 11 Destructive API
+## 12 Destructive API
 
 <a name='x-28MGL-MAT-3A-2ESQUARE-21-20FUNCTION-29'></a>
 
@@ -967,7 +1003,7 @@ Finally, some neural network operations.
 
 <a name='x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 12 Non-destructive API
+## 13 Non-destructive API
 
 <a name='x-28MGL-MAT-3ACOPY-MAT-20FUNCTION-29'></a>
 
@@ -1057,7 +1093,7 @@ Finally, some neural network operations.
 
 <a name='x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29'></a>
 
-## 13 Mappings
+## 14 Mappings
 
 <a name='x-28MGL-MAT-3AMAP-CONCAT-20FUNCTION-29'></a>
 
@@ -1089,7 +1125,7 @@ Finally, some neural network operations.
 
 <a name='x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29'></a>
 
-## 14 Random numbers
+## 15 Random numbers
 
 This is rather experimental.
 
@@ -1120,7 +1156,7 @@ This is rather experimental.
 
 <a name='x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29'></a>
 
-## 15 I/O
+## 16 I/O
 
 <a name='x-28MGL-MAT-3AWRITE-MAT-20GENERIC-FUNCTION-29'></a>
 
@@ -1141,7 +1177,7 @@ This is rather experimental.
 
 <a name='x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 16 Extension API
+## 17 Extension API
 
 Macros for defining cuda and lisp kernels. Typically operations
 have a cuda and a lisp implementations and decide which to use with
@@ -1655,6 +1691,7 @@ Also see [Destroying cubes][2fa1].
 
   [00a6]: #x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-CTYPES MGL-PAX:SECTION)"
   [01b0]: #x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-WHAT-IS-IT MGL-PAX:SECTION)"
+  [02a7]: #x-28MGL-MAT-3A-2ADEFAULT-MAT-CTYPE-2A-20VARIABLE-29 "(MGL-MAT:*DEFAULT-MAT-CTYPE* VARIABLE)"
   [0386]: #x-28MGL-MAT-3A-40MAT-BLAS-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-BLAS MGL-PAX:SECTION)"
   [03fc]: #x-28MGL-CUBE-3A-2ALET-INPUT-THROUGH-P-2A-20VARIABLE-29 "(MGL-CUBE:*LET-INPUT-THROUGH-P* VARIABLE)"
   [0521]: #x-28MGL-MAT-3AMAT-DISPLACEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-DISPLACEMENT (MGL-PAX:READER MGL-MAT:MAT))"
@@ -1684,6 +1721,7 @@ Also see [Destroying cubes][2fa1].
   [5192]: #x-28MGL-CUBE-3ADEFINE-FACET-NAME-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:DEFINE-FACET-NAME MGL-PAX:MACRO)"
   [51e4]: #x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29 "(MGL-MAT:USE-CUDA-P FUNCTION)"
   [52cb]: #x-28MGL-MAT-3AADJUST-21-20FUNCTION-29 "(MGL-MAT:ADJUST! FUNCTION)"
+  [552a]: #x-28MGL-MAT-3ASTACK-21-20FUNCTION-29 "(MGL-MAT:STACK! FUNCTION)"
   [58bb]: #x-28MGL-MAT-3ARESHAPE-TO-ROW-MATRIX-21-20FUNCTION-29 "(MGL-MAT:RESHAPE-TO-ROW-MATRIX! FUNCTION)"
   [58e7]: #x-28MGL-MAT-3ARESHAPE-21-20FUNCTION-29 "(MGL-MAT:RESHAPE! FUNCTION)"
   [59d0]: #x-28MGL-CUBE-3ASET-UP-TO-DATE-P-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:SET-UP-TO-DATE-P* GENERIC-FUNCTION)"
@@ -1704,6 +1742,7 @@ Also see [Destroying cubes][2fa1].
   [85d5]: #x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29 "(\"mgl-mat\" ASDF/SYSTEM:SYSTEM)"
   [867d]: #x-28MGL-MAT-3ACTYPE-20TYPE-29 "(MGL-MAT:CTYPE TYPE)"
   [8719]: #x-28MGL-CUBE-3A-2ALET-OUTPUT-THROUGH-P-2A-20VARIABLE-29 "(MGL-CUBE:*LET-OUTPUT-THROUGH-P* VARIABLE)"
+  [8816]: #x-28MGL-MAT-3A-40MAT-ASSEMBLING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-ASSEMBLING MGL-PAX:SECTION)"
   [8866]: #x-28MGL-MAT-3A-40MAT-SHAPING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-SHAPING MGL-PAX:SECTION)"
   [8b4f]: #x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)"
   [923f]: #x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29 "(MGL-CUBE:SYNCHRONIZATION (MGL-PAX:ACCESSOR MGL-CUBE:CUBE))"

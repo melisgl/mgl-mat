@@ -176,7 +176,12 @@ WITH-FACETS with one of the following [FACET-NAME][]s:
 
     Create a MAT that's equivalent to ARRAY. Displacement of the
     created array will be 0 and the size will be equal to
-    ARRAY-TOTAL-SIZE. Also see @CUBE-SYNCHRONIZATION.
+    ARRAY-TOTAL-SIZE. If CTYPE is non-nil, then it will be the ctype of
+    the new matrix. Else ARRAY's type is converted to a ctype. If there
+    is no corresponding ctype, then *DEFAULT-MAT-CTYPE* is used.
+    Elements of ARRAY are coerced to CTYPE.
+    
+    Also see @CUBE-SYNCHRONIZATION.
 
 - [function] MAT-TO-ARRAY MAT
 
@@ -282,6 +287,30 @@ MAT-DIMENSIONS in any case.
     large enough. If a new matrix is created, the contents are not
     copied over and the old matrix is destroyed with DESTROY-CUBE if
     DESTROY-OLD-P.
+
+## Assembling
+
+The functions here assemble a single MAT from a number of
+[MAT][]s.
+
+- [function] STACK! AXIS MATS MAT
+
+    Stack MATS along AXIS into MAT and return MAT. If AXIS is 0, place
+    MATS into MAT below each other starting from the top. If AXIS is 1,
+    place MATS side by side starting from the left. Higher AXIS are also
+    supported. All dimensions except for AXIS must be the same for all
+    MATS.
+    
+        (stack 1 (list (make-mat '(3 2) :initial-element 0)
+                       (make-mat '(3 1) :initial-element 1)))
+        => #<MAT 3x3 B #2A((0.0d0 0.0d0 1.0d0)
+                           (0.0d0 0.0d0 1.0d0)
+                           (0.0d0 0.0d0 1.0d0))>
+
+
+- [function] STACK AXIS MATS &KEY (CTYPE *DEFAULT-MAT-CTYPE*)
+
+    Like STACK! but return a new MAT of CTYPE.
 
 ## Caching
 

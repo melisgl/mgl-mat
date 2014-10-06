@@ -13,6 +13,7 @@
   (@mat-ctypes section)
   (@mat-printing section)
   (@mat-shaping section)
+  (@mat-assembling section)
   (@mat-caching section)
   (@mat-foreign section)
   (@mat-cuda section)
@@ -489,6 +490,47 @@
                       :initial-element (mat-initial-element mat))
           (when destroy-old-p
             (destroy-cube mat))))))
+
+
+(defsection @mat-assembling (:title "Assembling")
+  "The functions here assemble a single MAT from a number of
+  [MAT][]s."
+  (stack! function)
+  (stack function))
+
+(defun stack! (axis mats mat)
+  "Stack MATS along AXIS into MAT and return MAT. If AXIS is 0, place
+  MATS into MAT below each other starting from the top. If AXIS is 1,
+  place MATS side by side starting from the left. Higher AXIS are also
+  supported. All dimensions except for AXIS must be the same for all
+  MATS.
+
+      (stack 1 (list (make-mat '(3 2) :initial-element 0)
+                     (make-mat '(3 1) :initial-element 1)))
+      => #<MAT 3x3 B #2A((0.0d0 0.0d0 1.0d0)
+                         (0.0d0 0.0d0 1.0d0)
+                         (0.0d0 0.0d0 1.0d0))>"
+  ;; FIXME: this implementation is consing a lot.
+  (labels ((foo (mats facets)
+             (if (endp mats)
+                 (apply #'aops:stack axis (reverse facets))
+                 (call-with-facet* (first mats) 'array :input
+                                   (lambda (facet)
+                                     (foo (rest mats)
+                                          (cons facet facets)))))))
+    (replace! mat (foo mats ()))))
+
+(defun stack (axis mats &key (ctype *default-mat-ctype*))
+  "Like STACK! but return a new MAT of CTYPE."
+  (labels ((foo (mats facets)
+             (if (endp mats)
+                 (apply #'aops:stack axis (reverse facets))
+                 (call-with-facet* (first mats) 'array :input
+                                   (lambda (facet)
+                                     (foo (rest mats)
+                                          (cons facet facets)))))))
+    
+    (array-to-mat (foo mats ()) :ctype ctype)))
 
 
 (defsection @mat-caching (:title "Caching")
@@ -1585,8 +1627,9 @@
              (with-facets ((a (mat 'backing-array :direction :output)))
                (loop for i upfrom start below end
                      do (setf (aref a i)
-                              (+ mean (* stddev (coerce-to-ctype (gaussian-random-1)
-                                                                 :ctype ctype))))))))))
+                              (+ mean (* stddev
+                                         (coerce-to-ctype (gaussian-random-1)
+                                                          :ctype ctype))))))))))
   mat)
 
 (defgeneric copy-random-state (state))
