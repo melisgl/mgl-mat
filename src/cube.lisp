@@ -135,15 +135,16 @@
   Also see @CUBE-VIEWS, @DESTRUCTION-OF-CUBES and @FACET-BARRIER."))
 
 (defmacro with-cube-locked ((cube) &body body)
-  (alexandria:once-only (cube)
+  (alexandria:with-gensyms (%cube)
     `(without-interrupts
-       (flet ((foo ()
-                ,@body))
-         (declare (dynamic-extent #'foo))
-         (if (synchronize-cube-p cube)
-             (bordeaux-threads:with-recursive-lock-held ((lock ,cube))
-               (foo))
-             (foo))))))
+       (let ((,%cube ,cube))
+         (flet ((foo ()
+                  ,@body))
+           (declare (dynamic-extent #'foo))
+           (if (synchronize-cube-p ,%cube)
+               (bordeaux-threads:with-recursive-lock-held ((lock ,%cube))
+                 (foo))
+               (foo)))))))
 
 (defun synchronize-cube-p (cube)
   (let ((synchronization (synchronization cube)))
@@ -303,12 +304,19 @@
   ;; If WATCH-FACET fails, don't unwatch it. Also, disable interrupts
   ;; in an effort to prevent async unwinds (C-c and similar) from
   ;; leaving inconsistent state around.
-  (let ((facet (with-cube-locked (cube)
-                 (watch-facet cube facet-name direction))))
+  (let ((facet nil))
     (unwind-protect
-         (funcall fn facet)
+         (progn
+           (with-cube-locked (cube)
+             (setq facet (watch-facet cube facet-name direction)))
+           (funcall fn facet))
+      ;; The first thing we do in the cleanup is a WITHOUT-INTERRUPTS
+      ;; which should minimize the chance for races and may be
+      ;; entirely free of races on a good, safepoint base
+      ;; implementation.
       (with-cube-locked (cube)
-        (unwatch-facet cube facet-name)))))
+        (when facet
+          (unwatch-facet cube facet-name))))))
 
 (defgeneric watch-facet (cube facet-name direction)
   (:method ((cube cube) facet-name direction)
