@@ -85,6 +85,12 @@
           (dotimes (i 6)
             (assert (= (aref array i) (coerce-to-ctype 1)))))))))
 
+(defun test-displacement ()
+  (let ((mat (make-mat 6 :initial-element 1)))
+    (reshape-and-displace! mat 3 0)
+    (with-facet (array (mat 'array :direction :input))
+      (assert (= (array-total-size array) 3)))))
+
 (defun test-mref ()
   (do-configurations (mref)
     (let ((mat (make-mat 6 :initial-element 1)))
@@ -423,6 +429,7 @@
   (test-facet-sharing)
   (test-initial-element)
   (test-mref)
+  (test-displacement)
   (test-fill!)
   (test-asum)
   (test-axpy!)

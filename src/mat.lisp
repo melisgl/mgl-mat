@@ -606,6 +606,7 @@
 (defun make-array-facet (mat)
   (with-facet (backing-array (mat 'backing-array :direction :input))
     (if (and (zerop (mat-displacement mat))
+             (= (mat-size mat) (mat-max-size mat))
              (= 1 (length (mat-dimensions mat))))
         backing-array
         (make-array (mat-dimensions mat)
