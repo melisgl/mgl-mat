@@ -1310,17 +1310,29 @@ the next element the displacement is increased so that there is no
 overlap. <code>MATS</code> is keyed by <code>KEY</code> just like the CL sequence functions.</p></li>
 </ul>
 
-<p><a name='x-28MGL-MAT-3AMAP-ROWS-20FUNCTION-29'></a></p>
+<p><a name='x-28MGL-MAT-3AMAP-DISPLACEMENTS-20FUNCTION-29'></a></p>
 
 <ul>
-<li><p>[function] <strong>MAP-ROWS</strong> <em>FN MATS MAT &amp;KEY KEY (FROM-ROW 0) (FROM-COLUMN 0)</em></p>
+<li><p>[function] <strong>MAP-DISPLACEMENTS</strong> <em>FN MAT DIMENSIONS &amp;KEY (DISPLACEMENT-START 0) DISPLACEMENT-STEP</em></p>
 
-<p>Call <code>FN</code> with each element of <code>MATS</code> and <code>MAT</code> temporarily reshaped to
-its first row, second row, etc and return <code>MAT</code>. Actually the first
-row is given by <code>FROM-ROW</code> and rows are not necessarily full rows if
-<code>FROM-COLUMN</code> is greater than 0. <code>MATS</code> is keyed by <code>KEY</code> just like in CL
-sequence functions. It is not an error if there are fewer <code>MATS</code> than
-rows in <code>MAT</code>.</p></li>
+<p>Call <code>FN</code> with <code>MAT</code> reshaped to <code>DIMENSIONS</code>, first displaced by
+<code>DISPLACEMENT-START</code> that's incremented by <code>DISPLACEMENT-STEP</code> each
+iteration while there are enough elements left for <code>DIMENSIONS</code> at the
+current displacement. Returns <code>MAT</code>.</p>
+
+<pre><code>(let ((mat (make-mat 14 :initial-contents '(-1 0 1 2 3
+                                               4 5 6 7
+                                               8 9 10 11 12))))
+  (reshape-and-displace! mat '(4 3) 1)
+  (map-displacements #'print mat 4))
+</code></pre>
+
+<p>The above prints:</p>
+
+<pre><code>#&lt;MAT 1+4+9 B #(0.0d0 1.0d0 2.0d0 3.0d0)&gt; 
+#&lt;MAT 5+4+5 B #(4.0d0 5.0d0 6.0d0 7.0d0)&gt; 
+#&lt;MAT 9+4+1 B #(8.0d0 9.0d0 10.0d0 11.0d0)&gt;
+</code></pre></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3AMAP-MATS-INTO-20FUNCTION-29'></a></p>

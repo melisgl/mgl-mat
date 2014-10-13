@@ -837,14 +837,25 @@ Finally, some neural network operations.
     the next element the displacement is increased so that there is no
     overlap. MATS is keyed by KEY just like the CL sequence functions.
 
-- [function] MAP-ROWS FN MATS MAT &KEY KEY (FROM-ROW 0) (FROM-COLUMN 0)
+- [function] MAP-DISPLACEMENTS FN MAT DIMENSIONS &KEY (DISPLACEMENT-START 0) DISPLACEMENT-STEP
 
-    Call FN with each element of MATS and MAT temporarily reshaped to
-    its first row, second row, etc and return MAT. Actually the first
-    row is given by FROM-ROW and rows are not necessarily full rows if
-    FROM-COLUMN is greater than 0. MATS is keyed by KEY just like in CL
-    sequence functions. It is not an error if there are fewer MATS than
-    rows in MAT.
+    Call FN with MAT reshaped to DIMENSIONS, first displaced by
+    DISPLACEMENT-START that's incremented by DISPLACEMENT-STEP each
+    iteration while there are enough elements left for DIMENSIONS at the
+    current displacement. Returns MAT.
+    
+        (let ((mat (make-mat 14 :initial-contents '(-1 0 1 2 3
+                                                       4 5 6 7
+                                                       8 9 10 11 12))))
+          (reshape-and-displace! mat '(4 3) 1)
+          (map-displacements #'print mat 4))
+    
+    The above prints:
+    
+        #<MAT 1+4+9 B #(0.0d0 1.0d0 2.0d0 3.0d0)> 
+        #<MAT 5+4+5 B #(4.0d0 5.0d0 6.0d0 7.0d0)> 
+        #<MAT 9+4+1 B #(8.0d0 9.0d0 10.0d0 11.0d0)>
+
 
 - [function] MAP-MATS-INTO RESULT-MAT FN &REST MATS
 

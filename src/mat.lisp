@@ -1473,7 +1473,7 @@
 
 (defsection @mat-mappings (:title "Mappings")
   (map-concat function)
-  (map-rows function)
+  (map-displacements function)
   (map-mats-into function))
 
 (defun map-concat (fn mats mat &key key)
@@ -1494,24 +1494,35 @@
            mats)))
   mat)
 
-(defun map-rows (fn mats mat &key key (from-row 0) (from-column 0))
-  "Call FN with each element of MATS and MAT temporarily reshaped to
-  its first row, second row, etc and return MAT. Actually the first
-  row is given by FROM-ROW and rows are not necessarily full rows if
-  FROM-COLUMN is greater than 0. MATS is keyed by KEY just like in CL
-  sequence functions. It is not an error if there are fewer MATS than
-  rows in MAT."
-  (let* ((n-columns (mat-dimension mat 1))
-         (displacement (mat-displacement mat))
-         (size (- n-columns from-column)))
-    (assert (<= 0 size))
+(defun map-displacements (fn mat dimensions &key (displacement-start 0)
+                          displacement-step)
+  "Call FN with MAT reshaped to DIMENSIONS, first displaced by
+  DISPLACEMENT-START that's incremented by DISPLACEMENT-STEP each
+  iteration while there are enough elements left for DIMENSIONS at the
+  current displacement. Returns MAT.
+
+      (let ((mat (make-mat 14 :initial-contents '(-1 0 1 2 3
+                                                     4 5 6 7
+                                                     8 9 10 11 12))))
+        (reshape-and-displace! mat '(4 3) 1)
+        (map-displacements #'print mat 4))
+
+  The above prints:
+
+      #<MAT 1+4+9 B #(0.0d0 1.0d0 2.0d0 3.0d0)> 
+      #<MAT 5+4+5 B #(4.0d0 5.0d0 6.0d0 7.0d0)> 
+      #<MAT 9+4+1 B #(8.0d0 9.0d0 10.0d0 11.0d0)>"
+  (let ((displacement-step
+          (or displacement-step
+              (reduce #'* (alexandria:ensure-list dimensions))))
+        (displacement (mat-displacement mat))
+        (size (mat-size mat)))
     (with-shape-and-displacement (mat)
-      (reshape! mat (list 1 size))
-      (loop for m in mats
-            for row upfrom from-row
-            do (displace! mat (+ displacement (* row n-columns) from-column))
-               (funcall fn (if key (funcall key m) m) mat))))
-  mat)
+      (reshape! mat dimensions)
+      (loop for d upfrom displacement-start upto (- size displacement-step)
+            by displacement-step
+            do (displace! mat (+ displacement d))
+               (funcall fn mat)))))
 
 (defun map-mats-into (result-mat fn &rest mats)
   "Like CL:MAP-INTO but for MAT objects. Destructively modifies
