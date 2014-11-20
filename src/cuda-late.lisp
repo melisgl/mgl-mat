@@ -62,9 +62,9 @@ macro's BODY."
   thread or a device with DEVICE-ID is available."
   (let ((*show-messages* nil))
     (or (boundp '*cuda-context*)
-        (ignore-errors
-         (init-cuda)
-         (get-cuda-device device-id)))))
+        (not (not (ignore-errors
+                   (init-cuda)
+                   (get-cuda-device device-id)))))))
 
 (defmacro with-cuda* ((&key (enabled '*cuda-enabled*)
                        (device-id *cuda-default-device-id*)
