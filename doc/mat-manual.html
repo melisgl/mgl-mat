@@ -1059,7 +1059,20 @@ manner. Return <code>X</code>.</p></li>
 <ul>
 <li><p>[function] <strong>GEEM!</strong> <em>ALPHA A B BETA C</em></p>
 
-<p>Like <a href="#x-28MGL-MAT-3AGEMM-21-20FUNCTION-29" title="(MGL-MAT:GEMM! FUNCTION)"><code>GEMM!</code></a>, but multiplication is elementwise.</p></li>
+<p>Like <a href="#x-28MGL-MAT-3AGEMM-21-20FUNCTION-29" title="(MGL-MAT:GEMM! FUNCTION)"><code>GEMM!</code></a>, but multiplication is elementwise. This is not a
+standard BLAS routine.</p></li>
+</ul>
+
+<p><a name='x-28MGL-MAT-3AGEERV-21-20FUNCTION-29'></a></p>
+
+<ul>
+<li><p>[function] <strong>GEERV!</strong> <em>ALPHA A X BETA B</em></p>
+
+<p>GEneric Elementwise Row - Vector multiplication. <code>B</code> = beta * <code>B</code> + alpha * a
+* diag(x). In other words, perform elementwise multiplication on
+each row of <code>A</code> with the vector <code>X</code> and add the scaled result to the
+corresponding row of <code>B</code>. Return <code>B</code>. This is not a standard BLAS
+routine.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3A-2E-3C-21-20FUNCTION-29'></a></p>

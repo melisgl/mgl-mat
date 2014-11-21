@@ -922,6 +922,7 @@
   (.+! function)
   (.*! function)
   (geem! function)
+  (geerv! function)
   (.<! function)
   (add-sign! function)
   (fill! function)
@@ -978,6 +979,24 @@
 (defun .*! (x y)
   (geem! 1 x y 0 y))
 
+(defun geem! (alpha a b beta c)
+  "Like GEMM!, but multiplication is elementwise. This is not a
+  standard BLAS routine."
+  (let* ((n (mat-size a))
+         (ctype (mat-ctype a))
+         (alpha (coerce-to-ctype alpha :ctype ctype))
+         (beta (coerce-to-ctype beta :ctype ctype)))
+    (assert (= n (mat-size b)))
+    (assert (= n (mat-size c)))
+    (if (use-cuda-p)
+        (multiple-value-bind (block-dim grid-dim) (choose-1d-block-and-grid n 4)
+          (cuda-geem! alpha a b beta c n
+                      :grid-dim grid-dim :block-dim block-dim))
+        (lisp-geem! alpha a (mat-displacement a)
+                    b (mat-displacement b)
+                    beta c (mat-displacement c) n)))
+  c)
+
 (define-cuda-kernel (cuda-geem!)
     (void ((alpha float) (a :mat :input) (b :mat :input)
            (beta float) (c :mat :io) (n int)))
@@ -999,22 +1018,55 @@
         do (setf (aref c ci) (+ (* alpha (* (aref a ai) (aref b bi)))
                                 (* beta (aref c ci))))))
 
-(defun geem! (alpha a b beta c)
-  "Like GEMM!, but multiplication is elementwise."
-  (let* ((n (mat-size a))
-         (ctype (mat-ctype a))
+(defun geerv! (alpha a x beta b)
+  "GEneric Elementwise Row - Vector multiplication. B = beta * B + alpha * a
+  * diag(x). In other words, perform elementwise multiplication on
+  each row of A with the vector X and add the scaled result to the
+  corresponding row of B. Return B. This is not a standard BLAS
+  routine."
+  (assert (equal (mat-dimensions a) (mat-dimensions b)))
+  (let* ((ctype (mat-ctype a))
          (alpha (coerce-to-ctype alpha :ctype ctype))
          (beta (coerce-to-ctype beta :ctype ctype)))
-    (assert (= n (mat-size b)))
-    (assert (= n (mat-size c)))
-    (if (use-cuda-p)
-        (multiple-value-bind (block-dim grid-dim) (choose-1d-block-and-grid n 4)
-          (cuda-geem! alpha a b beta c n
-                      :grid-dim grid-dim :block-dim block-dim))
-        (lisp-geem! alpha a (mat-displacement a)
-                    b (mat-displacement b)
-                    beta c (mat-displacement c) n)))
-  c)
+    (destructuring-bind (n-rows n-columns) (mat-dimensions a)
+      (assert (= n-columns (mat-size x)))
+      (if (use-cuda-p)
+          (multiple-value-bind (block-dim grid-dim)
+              (choose-1d-block-and-grid (mat-size a) 4)
+            (cuda-geerv! alpha a x beta b n-rows n-columns
+                         :grid-dim grid-dim :block-dim block-dim))
+          (lisp-geerv! alpha a (mat-displacement a)
+                       x (mat-displacement x)
+                       beta
+                       b (mat-displacement b)
+                       n-rows n-columns))))
+  b)
+
+(define-cuda-kernel (cuda-geerv!)
+    (void ((alpha float) (a :mat :input) (x :mat :input)
+           (beta float) (b :mat :io) (n-rows int) (n-columns int)))
+  (let ((stride (* block-dim-x grid-dim-x))
+        (n (* n-rows n-columns)))
+    (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+            (+ i stride)))
+        ((>= i n))
+      (set (aref b i) (+ (* alpha (aref a i) (aref x (mod i n-columns)))
+                         (* beta (aref b i)))))))
+
+(define-lisp-kernel (lisp-geerv!)
+    ((alpha single-float) (a :mat :input) (start-a index)
+     (x :mat :input) (start-x index)
+     (beta single-float)
+     (b :mat :io) (start-b index) (n-rows index) (n-columns index))
+  (dotimes (row n-rows)
+    (let ((row-offset (the! index (* row n-columns))))
+      (loop for ai of-type index upfrom (the! index (+ start-a row-offset))
+              below (the! index (+ start-a row-offset n-columns))
+            for xi of-type index upfrom start-x
+            for bi of-type index upfrom (the! index (+ start-b row-offset))
+            do (setf (aref b bi)
+                     (+ (* alpha (aref a ai) (aref x xi))
+                        (* beta (aref b bi))))))))
 
 (define-cuda-kernel (cuda-less-than!)
     (void ((x :mat :input) (y :mat :io) (n int)))

@@ -900,7 +900,18 @@ Level 3 BLAS operations
 
 - [function] **GEEM!** *ALPHA A B BETA C*
 
-    Like [`GEMM!`][acfb], but multiplication is elementwise.
+    Like [`GEMM!`][acfb], but multiplication is elementwise. This is not a
+    standard BLAS routine.
+
+<a name='x-28MGL-MAT-3AGEERV-21-20FUNCTION-29'></a>
+
+- [function] **GEERV!** *ALPHA A X BETA B*
+
+    GEneric Elementwise Row - Vector multiplication. `B` = beta \* `B` + alpha \* a
+    \* diag(x). In other words, perform elementwise multiplication on
+    each row of `A` with the vector `X` and add the scaled result to the
+    corresponding row of `B`. Return `B`. This is not a standard BLAS
+    routine.
 
 <a name='x-28MGL-MAT-3A-2E-3C-21-20FUNCTION-29'></a>
 
