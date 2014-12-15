@@ -289,7 +289,7 @@
 
 (defsection @default-call-with-facet*
     (:title "The default implementation of CALL-WITH-FACET*")
-  (call-with-facet* (method () (t t t t)))
+  (call-with-facet* (method () (cube t t t)))
   (watch-facet generic-function)
   (unwatch-facet generic-function)
   (*let-input-through-p* variable)
@@ -297,7 +297,7 @@
   (check-no-writers function)
   (check-no-watchers function))
 
-(defmethod call-with-facet* (cube facet-name direction fn)
+(defmethod call-with-facet* ((cube cube) facet-name direction fn)
   "The default implementation of CALL-WITH-FACET* is defined in terms
   of the WATCH-FACET and the UNWATCH-FACET generic functions. These
   can be considered part of the @FACET-EXTENSION-API."

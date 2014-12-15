@@ -436,7 +436,7 @@ collected.
 While the cache is global, thread safety is guaranteed by having
 separate subcaches per thread. Each subcache is keyed by a gensym
 that's unique to each invocation of the caching macro, so different
-occurrences of caching macros in the source never share data. Still
+occurrences of caching macros in the source never share data. Still,
 recursion could lead to data sharing between different invocations
 of the same function. To prevent this, the cached object is removed
 from the cache while it is used so other invocations will create a
@@ -1535,9 +1535,9 @@ Also see [The default implementation of CALL-WITH-FACET\*][b64e].
 
 ## 5 The default implementation of CALL-WITH-FACET*
 
-<a name='x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20-28METHOD-20NIL-20-28T-20T-20T-20T-29-29-29'></a>
+<a name='x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20-28METHOD-20NIL-20-28MGL-CUBE-3ACUBE-20T-20T-20T-29-29-29'></a>
 
-- [method] **CALL-WITH-FACET\*** *CUBE FACET-NAME DIRECTION FN*
+- [method] **CALL-WITH-FACET\*** *(CUBE CUBE) FACET-NAME DIRECTION FN*
 
     The default implementation of [`CALL-WITH-FACET*`][46c5] is defined in terms
     of the [`WATCH-FACET`][a238] and the [`UNWATCH-FACET`][ee90] generic functions. These

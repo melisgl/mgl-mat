@@ -512,7 +512,7 @@ collected.</p>
 <p>While the cache is global, thread safety is guaranteed by having
 separate subcaches per thread. Each subcache is keyed by a gensym
 that's unique to each invocation of the caching macro, so different
-occurrences of caching macros in the source never share data. Still
+occurrences of caching macros in the source never share data. Still,
 recursion could lead to data sharing between different invocations
 of the same function. To prevent this, the cached object is removed
 from the cache while it is used so other invocations will create a
