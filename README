@@ -893,6 +893,11 @@ This is rather experimental.
     Fill MAT with independent normally distributed random numbers with
     MEAN and STDDEV.
 
+- [function] ORTHOGONAL-RANDOM! M &KEY (SCALE 1)
+
+    Fill the matrix M with random values in such a way that M^T \* M is
+    the identity matrix (or something close if M is wide). Return M.
+
 ## I/O
 
 - [generic-function] WRITE-MAT MAT STREAM

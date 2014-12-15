@@ -1613,7 +1613,8 @@
   (mv-gaussian-random function)
   (copy-random-state generic-function)
   (uniform-random! function)
-  (gaussian-random! function))
+  (gaussian-random! function)
+  (orthogonal-random! function))
 
 (defun gaussian-random-1 ()
   "Return a double float of zero mean and unit variance."
@@ -1695,6 +1696,22 @@
                                          (coerce-to-ctype (gaussian-random-1)
                                                           :ctype ctype))))))))))
   mat)
+
+(defun orthogonal-random! (m &key (scale 1))
+  "Fill the matrix M with random values in such a way that M^T * M is
+  the identity matrix (or something close if M is wide). Return M."
+  (uniform-random! m)
+  (let* ((svd (with-facets ((a (m 'array :direction :input)))
+                (lla:svd a :thin)))
+         (u (lla:svd-u svd))
+         (vt (lla:svd-vt svd)))
+    (cond ((equal (mat-dimensions m) (array-dimensions u))
+           (copy! (array-to-mat u) m))
+          ((equal (mat-dimensions m) (array-dimensions vt))
+           (copy! (array-to-mat vt) m))
+          (t
+           (assert nil))))
+  (scal! scale m))
 
 (defgeneric copy-random-state (state))
 

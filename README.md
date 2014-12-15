@@ -1176,6 +1176,13 @@ This is rather experimental.
     Fill `MAT` with independent normally distributed random numbers with
     `MEAN` and `STDDEV`.
 
+<a name='x-28MGL-MAT-3AORTHOGONAL-RANDOM-21-20FUNCTION-29'></a>
+
+- [function] **ORTHOGONAL-RANDOM!** *M &KEY (SCALE 1)*
+
+    Fill the matrix `M` with random values in such a way that M^T \* `M` is
+    the identity matrix (or something close if `M` is wide). Return `M`.
+
 <a name='x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29'></a>
 
 ## 16 I/O
