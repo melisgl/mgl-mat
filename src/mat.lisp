@@ -924,6 +924,8 @@
   (geem! function)
   (geerv! function)
   (.<! function)
+  (.min! function)
+  (.max! function)
   (add-sign! function)
   (fill! function)
   (sum! function)
@@ -1089,13 +1091,67 @@
 
 (defun .<! (x y)
   "For each element of X and Y set Y to 1 if the element in Y is
-  greater than the element in X, and to 0 otherwise."
+  greater than the element in X, and to 0 otherwise. Return Y."
   (assert (= (mat-size x) (mat-size y)))
   (let ((n (mat-size x)))
     (if (use-cuda-p)
         (cuda-less-than! x y n :grid-dim (list (ceiling n 256) 1 1)
                          :block-dim (list 256 1 1))
-        (lisp-less-than! x (mat-displacement x) y (mat-displacement y) n))))
+        (lisp-less-than! x (mat-displacement x) y (mat-displacement y) n))
+    y))
+
+(defun .min! (alpha x)
+  "Set each element of X to ALPHA if it's greater than ALPHA. Return
+  X."
+  (let* ((n (mat-size x))
+         (ctype (mat-ctype x))
+         (alpha (coerce-to-ctype alpha :ctype ctype)))
+    (if (use-cuda-p)
+        (cuda-.min! alpha x n :grid-dim (list (ceiling n 256) 1 1)
+                    :block-dim (list 256 1 1))
+        (lisp-.min! alpha x (mat-displacement x) n))
+    x))
+
+(define-cuda-kernel (cuda-.min!)
+    (void ((alpha float) (x :mat :io) (n int)))
+  (let ((stride (* block-dim-x grid-dim-x)))
+    (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+            (+ i stride)))
+        ((>= i n))
+      (when (< alpha (aref x i))
+        (set (aref x i) alpha)))))
+
+(define-lisp-kernel (lisp-.min!)
+    ((alpha single-float) (x :mat :io) (start-x index) (n index))
+  (loop for xi of-type index upfrom start-x below (+ start-x n)
+        do (when (< alpha (aref x xi))
+             (setf (aref x xi) alpha))))
+
+(defun .max! (alpha x)
+  "Set each element of X to ALPHA if it's less than ALPHA. Return X."
+  (let* ((n (mat-size x))
+         (ctype (mat-ctype x))
+         (alpha (coerce-to-ctype alpha :ctype ctype)))
+    (if (use-cuda-p)
+        (cuda-.max! alpha x n :grid-dim (list (ceiling n 256) 1 1)
+                    :block-dim (list 256 1 1))
+        (lisp-.max! alpha x (mat-displacement x) n))
+    x))
+
+(define-cuda-kernel (cuda-.max!)
+    (void ((alpha float) (x :mat :io) (n int)))
+  (let ((stride (* block-dim-x grid-dim-x)))
+    (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+            (+ i stride)))
+        ((>= i n))
+      (when (< (aref x i) alpha)
+        (set (aref x i) alpha)))))
+
+(define-lisp-kernel (lisp-.max!)
+    ((alpha single-float) (x :mat :io) (start-x index) (n index))
+  (loop for xi of-type index upfrom start-x below (+ start-x n)
+        do (when (< (aref x xi) alpha)
+             (setf (aref x xi) alpha))))
 
 (define-lisp-kernel (lisp-add-sign!)
     ((alpha single-float) (x :mat :input) (start-x index)

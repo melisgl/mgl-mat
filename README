@@ -697,7 +697,16 @@ Level 3 BLAS operations
 - [function] .<! X Y
 
     For each element of X and Y set Y to 1 if the element in Y is
-    greater than the element in X, and to 0 otherwise.
+    greater than the element in X, and to 0 otherwise. Return Y.
+
+- [function] .MIN! ALPHA X
+
+    Set each element of X to ALPHA if it's greater than ALPHA. Return
+    X.
+
+- [function] .MAX! ALPHA X
+
+    Set each element of X to ALPHA if it's less than ALPHA. Return X.
 
 - [function] ADD-SIGN! ALPHA A BETA B
 

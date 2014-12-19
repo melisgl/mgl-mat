@@ -918,7 +918,20 @@ Level 3 BLAS operations
 - [function] **.\<!** *X Y*
 
     For each element of `X` and `Y` set `Y` to 1 if the element in `Y` is
-    greater than the element in `X`, and to 0 otherwise.
+    greater than the element in `X`, and to 0 otherwise. Return `Y`.
+
+<a name='x-28MGL-MAT-3A-2EMIN-21-20FUNCTION-29'></a>
+
+- [function] **.MIN!** *ALPHA X*
+
+    Set each element of `X` to `ALPHA` if it's greater than `ALPHA`. Return
+    `X`.
+
+<a name='x-28MGL-MAT-3A-2EMAX-21-20FUNCTION-29'></a>
+
+- [function] **.MAX!** *ALPHA X*
+
+    Set each element of `X` to `ALPHA` if it's less than `ALPHA`. Return `X`.
 
 <a name='x-28MGL-MAT-3AADD-SIGN-21-20FUNCTION-29'></a>
 
