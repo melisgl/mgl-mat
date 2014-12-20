@@ -1604,22 +1604,25 @@
 
 (defun map-displacements (fn mat dimensions &key (displacement-start 0)
                           displacement-step)
+  ;; KLUDGE: No cl-transcript because whether A shows up in the
+  ;; up-to-date facet list depends on the value of *PRINT-CIRCLE*, its
+  ;; implementation and whether DESCRIBE binds *PRINT-CIRCLE*.
   "Call FN with MAT reshaped to DIMENSIONS, first displaced by
   DISPLACEMENT-START that's incremented by DISPLACEMENT-STEP each
   iteration while there are enough elements left for DIMENSIONS at the
   current displacement. Returns MAT.
 
-      (let ((mat (make-mat 14 :initial-contents '(-1 0 1 2 3
-                                                     4 5 6 7
-                                                     8 9 10 11 12))))
-        (reshape-and-displace! mat '(4 3) 1)
-        (map-displacements #'print mat 4))
-
-  The above prints:
-
-      #<MAT 1+4+9 B #(0.0d0 1.0d0 2.0d0 3.0d0)> 
-      #<MAT 5+4+5 B #(4.0d0 5.0d0 6.0d0 7.0d0)> 
-      #<MAT 9+4+1 B #(8.0d0 9.0d0 10.0d0 11.0d0)>"
+  ```commonlisp
+  (let ((mat (make-mat 14 :initial-contents '(-1 0 1 2 3
+                                              4 5 6 7
+                                              8 9 10 11 12))))
+    (reshape-and-displace! mat '(4 3) 1)
+    (map-displacements #'print mat 4))
+  ..
+  .. #<MAT 1+4+9 B #(0.0d0 1.0d0 2.0d0 3.0d0)> 
+  .. #<MAT 5+4+5 B #(4.0d0 5.0d0 6.0d0 7.0d0)> 
+  .. #<MAT 9+4+1 B #(8.0d0 9.0d0 10.0d0 11.0d0)> 
+  ```"
   (let ((displacement-step
           (or displacement-step
               (reduce #'* (alexandria:ensure-list dimensions))))
@@ -1630,7 +1633,8 @@
       (loop for d upfrom displacement-start upto (- size displacement-step)
             by displacement-step
             do (displace! mat (+ displacement d))
-               (funcall fn mat)))))
+               (funcall fn mat))))
+  mat)
 
 (defun map-mats-into (result-mat fn &rest mats)
   "Like CL:MAP-INTO but for MAT objects. Destructively modifies

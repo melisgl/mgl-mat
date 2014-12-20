@@ -1137,17 +1137,17 @@ Finally, some neural network operations.
     iteration while there are enough elements left for `DIMENSIONS` at the
     current displacement. Returns `MAT`.
     
-        (let ((mat (make-mat 14 :initial-contents '(-1 0 1 2 3
-                                                       4 5 6 7
-                                                       8 9 10 11 12))))
-          (reshape-and-displace! mat '(4 3) 1)
-          (map-displacements #'print mat 4))
-    
-    The above prints:
-    
-        #<MAT 1+4+9 B #(0.0d0 1.0d0 2.0d0 3.0d0)> 
-        #<MAT 5+4+5 B #(4.0d0 5.0d0 6.0d0 7.0d0)> 
-        #<MAT 9+4+1 B #(8.0d0 9.0d0 10.0d0 11.0d0)>
+    ```commonlisp
+    (let ((mat (make-mat 14 :initial-contents '(-1 0 1 2 3
+                                                4 5 6 7
+                                                8 9 10 11 12))))
+      (reshape-and-displace! mat '(4 3) 1)
+      (map-displacements #'print mat 4))
+    ..
+    .. #<MAT 1+4+9 B #(0.0d0 1.0d0 2.0d0 3.0d0)> 
+    .. #<MAT 5+4+5 B #(4.0d0 5.0d0 6.0d0 7.0d0)> 
+    .. #<MAT 9+4+1 B #(8.0d0 9.0d0 10.0d0 11.0d0)> 
+    ```
 
 
 <a name='x-28MGL-MAT-3AMAP-MATS-INTO-20FUNCTION-29'></a>

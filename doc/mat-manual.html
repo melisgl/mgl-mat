@@ -1350,19 +1350,15 @@ overlap. <code>MATS</code> is keyed by <code>KEY</code> just like the CL sequenc
 iteration while there are enough elements left for <code>DIMENSIONS</code> at the
 current displacement. Returns <code>MAT</code>.</p>
 
-<pre><code>(let ((mat (make-mat 14 :initial-contents '(-1 0 1 2 3
-                                               4 5 6 7
-                                               8 9 10 11 12))))
-  (reshape-and-displace! mat '(4 3) 1)
-  (map-displacements #'print mat 4))
-</code></pre>
-
-<p>The above prints:</p>
-
-<pre><code>#&lt;MAT 1+4+9 B #(0.0d0 1.0d0 2.0d0 3.0d0)&gt; 
-#&lt;MAT 5+4+5 B #(4.0d0 5.0d0 6.0d0 7.0d0)&gt; 
-#&lt;MAT 9+4+1 B #(8.0d0 9.0d0 10.0d0 11.0d0)&gt;
-</code></pre></li>
+<pre><code><span class="code"><span class="paren1">(<span class="code"><i><span class="symbol">let</span></i> <span class="paren2">(<span class="code"><span class="paren3">(<span class="code">mat <span class="paren4">(<span class="code">make-mat 14 <span class="keyword">:initial-contents</span> '<span class="paren5">(<span class="code">-1 0 1 2 3
+                                            4 5 6 7
+                                            8 9 10 11 12</span>)</span></span>)</span></span>)</span></span>)</span>
+  <span class="paren2">(<span class="code">reshape-and-displace! mat '<span class="paren3">(<span class="code">4 3</span>)</span> 1</span>)</span>
+  <span class="paren2">(<span class="code">map-displacements #'print mat 4</span>)</span></span>)</span>
+..
+.. #&lt;MAT 1+4+9 B #<span class="paren1">(<span class="code">0.0d0 1.0d0 2.0d0 3.0d0</span>)</span>&gt; 
+.. #&lt;MAT 5+4+5 B #<span class="paren1">(<span class="code">4.0d0 5.0d0 6.0d0 7.0d0</span>)</span>&gt; 
+.. #&lt;MAT 9+4+1 B #<span class="paren1">(<span class="code">8.0d0 9.0d0 10.0d0 11.0d0</span>)</span>&gt; </span></code></pre></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3AMAP-MATS-INTO-20FUNCTION-29'></a></p>
