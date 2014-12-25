@@ -1584,20 +1584,22 @@
   (map-displacements function)
   (map-mats-into function))
 
-(defun map-concat (fn mats mat &key key)
+(defun map-concat (fn mats mat &key key pass-raw-p)
   "Call FN with each element of MATS and MAT temporarily reshaped to
   the dimensions of the current element of MATS and return MAT. For
   the next element the displacement is increased so that there is no
-  overlap. MATS is keyed by KEY just like the CL sequence functions."
+  overlap. MATS is keyed by KEY just like the CL sequence functions.
+
+  FIXDOC: PASS-RAW-P"
   (let* ((start (mat-displacement mat))
          (end (+ start (mat-size mat))))
     (with-shape-and-displacement (mat)
       (map nil (lambda (m)
-                 (let* ((m (if key (funcall key m) m))
-                        (size (mat-size m)))
+                 (let* ((m0 (if key (funcall key m) m))
+                        (size (mat-size m0)))
                    (assert (<= (+ start size) end))
-                   (reshape-and-displace! mat (mat-dimensions m) start)
-                   (funcall fn m mat)
+                   (reshape-and-displace! mat (mat-dimensions m0) start)
+                   (funcall fn (if pass-raw-p m m0) mat)
                    (incf start size)))
            mats)))
   mat)
