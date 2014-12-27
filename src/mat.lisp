@@ -287,7 +287,8 @@
 
 (defun mref (mat &rest indices)
   "Like AREF for arrays. Don't use this if you care about performance
-  at all. SETFable."
+  at all. SETFable. When set, the value is coerced to the ctype of MAT
+  with COERCE-TO-CTYPE."
   (with-facets ((a (mat 'array :direction :input)))
     (apply #'aref a indices)))
 
@@ -301,7 +302,8 @@
 
 (defun row-major-mref (mat index)
   "Like ROW-MAJOR-AREF for arrays. Don't use this if you care about
-  performance at all. SETFable."
+  performance at all. SETFable. When set, the value is coerced to the
+  ctype of MAT with COERCE-TO-CTYPE."
   (with-facets ((a (mat 'array :direction :input)))
     (row-major-aref a index)))
 
@@ -1590,9 +1592,19 @@
   "Call FN with each element of MATS and MAT temporarily reshaped to
   the dimensions of the current element of MATS and return MAT. For
   the next element the displacement is increased so that there is no
-  overlap. MATS is keyed by KEY just like the CL sequence functions.
+  overlap.
 
-  FIXDOC: PASS-RAW-P"
+  MATS is keyed by KEY just like the CL sequence functions. Normally,
+  FN is called with the matrix returned by KEY. However, if
+  PASS-RAW-P, then the matrix returned by KEY is only used to
+  calculate dimensions and the element of MATS that was passed to KEY
+  is passed to FN, too.
+
+  ```
+  (map-concat #'copy! (list (make-mat 2) (make-mat 4 :initial-element 1))
+              (make-mat '(2 3)))
+  ==> #<MAT 2x3 AB #2A((0.0d0 0.0d0 1.0d0) (1.0d0 1.0d0 1.0d0))>
+  ```"
   (let* ((start (mat-displacement mat))
          (end (+ start (mat-size mat))))
     (with-shape-and-displacement (mat)

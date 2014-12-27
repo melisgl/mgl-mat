@@ -313,7 +313,8 @@ elements must match the size of <code>MAT</code>. Returns <code>MAT</code>.</p><
 <li><p>[function] <strong>MREF</strong> <em>MAT &amp;REST INDICES</em></p>
 
 <p>Like <code>AREF</code> for arrays. Don't use this if you care about performance
-at all. SETFable.</p></li>
+at all. SETFable. When set, the value is coerced to the ctype of <code>MAT</code>
+with <a href="#x-28MGL-MAT-3ACOERCE-TO-CTYPE-20FUNCTION-29" title="(MGL-MAT:COERCE-TO-CTYPE FUNCTION)"><code>COERCE-TO-CTYPE</code></a>.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3AROW-MAJOR-MREF-20FUNCTION-29'></a></p>
@@ -322,7 +323,8 @@ at all. SETFable.</p></li>
 <li><p>[function] <strong>ROW-MAJOR-MREF</strong> <em>MAT INDEX</em></p>
 
 <p>Like <code>ROW-MAJOR-AREF</code> for arrays. Don't use this if you care about
-performance at all. SETFable.</p></li>
+performance at all. SETFable. When set, the value is coerced to the
+ctype of <code>MAT</code> with <a href="#x-28MGL-MAT-3ACOERCE-TO-CTYPE-20FUNCTION-29" title="(MGL-MAT:COERCE-TO-CTYPE FUNCTION)"><code>COERCE-TO-CTYPE</code></a>.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29'></a></p>
@@ -533,7 +535,7 @@ change.</p></li>
 <p><a name='x-28MGL-MAT-3AWITH-ONES-20MGL-PAX-3AMACRO-29'></a></p>
 
 <ul>
-<li><p>[macro] <strong>WITH-ONES</strong> <em>(VAR DIMENSIONS &amp;KEY (CTYPE *DEFAULT-MAT-CTYPE*)) &amp;BODY BODY</em></p>
+<li><p>[macro] <strong>WITH-ONES</strong> <em>(VAR DIMENSIONS &amp;KEY (CTYPE '*DEFAULT-MAT-CTYPE*)) &amp;BODY BODY</em></p>
 
 <p>Bind <code>VAR</code> to a matrix of <code>DIMENSIONS</code> whose every element is 1. The
 matrix is cached for efficiency.</p></li>
@@ -1332,12 +1334,22 @@ equivalent) to correct for the sign, as a second value.</p></li>
 <p><a name='x-28MGL-MAT-3AMAP-CONCAT-20FUNCTION-29'></a></p>
 
 <ul>
-<li><p>[function] <strong>MAP-CONCAT</strong> <em>FN MATS MAT &amp;KEY KEY</em></p>
+<li><p>[function] <strong>MAP-CONCAT</strong> <em>FN MATS MAT &amp;KEY KEY PASS-RAW-P</em></p>
 
 <p>Call <code>FN</code> with each element of <code>MATS</code> and <code>MAT</code> temporarily reshaped to
 the dimensions of the current element of <code>MATS</code> and return <code>MAT</code>. For
 the next element the displacement is increased so that there is no
-overlap. <code>MATS</code> is keyed by <code>KEY</code> just like the CL sequence functions.</p></li>
+overlap.</p>
+
+<p><code>MATS</code> is keyed by <code>KEY</code> just like the CL sequence functions. Normally,
+<code>FN</code> is called with the matrix returned by <code>KEY</code>. However, if
+<code>PASS-RAW-P</code>, then the matrix returned by <code>KEY</code> is only used to
+calculate dimensions and the element of <code>MATS</code> that was passed to <code>KEY</code>
+is passed to <code>FN</code>, too.</p>
+
+<pre><code><span class="code"><span class="paren1">(<span class="code">map-concat #'copy! <span class="paren2">(<span class="code">list <span class="paren3">(<span class="code">make-mat 2</span>)</span> <span class="paren3">(<span class="code">make-mat 4 <span class="keyword">:initial-element</span> 1</span>)</span></span>)</span>
+            <span class="paren2">(<span class="code">make-mat '<span class="paren3">(<span class="code">2 3</span>)</span></span>)</span></span>)</span>
+==&gt; #&lt;MAT 2x3 AB #2A<span class="paren1">(<span class="code"><span class="paren2">(<span class="code">0.0d0 0.0d0 1.0d0</span>)</span> <span class="paren2">(<span class="code">1.0d0 1.0d0 1.0d0</span>)</span></span>)</span>&gt;</span></code></pre></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3AMAP-DISPLACEMENTS-20FUNCTION-29'></a></p>

@@ -195,12 +195,14 @@ WITH-FACETS with one of the following [FACET-NAME][]s:
 - [function] MREF MAT &REST INDICES
 
     Like AREF for arrays. Don't use this if you care about performance
-    at all. SETFable.
+    at all. SETFable. When set, the value is coerced to the ctype of MAT
+    with COERCE-TO-CTYPE.
 
 - [function] ROW-MAJOR-MREF MAT INDEX
 
     Like ROW-MAJOR-AREF for arrays. Don't use this if you care about
-    performance at all. SETFable.
+    performance at all. SETFable. When set, the value is coerced to the
+    ctype of MAT with COERCE-TO-CTYPE.
 
 ## Element types
 
@@ -337,7 +339,7 @@ safe.
     cached object is updated with the binding of VAR which BODY may
     change.
 
-- [macro] WITH-ONES (VAR DIMENSIONS &KEY (CTYPE *DEFAULT-MAT-CTYPE*)) &BODY BODY
+- [macro] WITH-ONES (VAR DIMENSIONS &KEY (CTYPE '*DEFAULT-MAT-CTYPE*)) &BODY BODY
 
     Bind VAR to a matrix of DIMENSIONS whose every element is 1. The
     matrix is cached for efficiency.
@@ -848,12 +850,25 @@ Finally, some neural network operations.
 
 ## Mappings
 
-- [function] MAP-CONCAT FN MATS MAT &KEY KEY
+- [function] MAP-CONCAT FN MATS MAT &KEY KEY PASS-RAW-P
 
     Call FN with each element of MATS and MAT temporarily reshaped to
     the dimensions of the current element of MATS and return MAT. For
     the next element the displacement is increased so that there is no
-    overlap. MATS is keyed by KEY just like the CL sequence functions.
+    overlap.
+    
+    MATS is keyed by KEY just like the CL sequence functions. Normally,
+    FN is called with the matrix returned by KEY. However, if
+    PASS-RAW-P, then the matrix returned by KEY is only used to
+    calculate dimensions and the element of MATS that was passed to KEY
+    is passed to FN, too.
+    
+    ```
+    (map-concat #'copy! (list (make-mat 2) (make-mat 4 :initial-element 1))
+                (make-mat '(2 3)))
+    ==> #<MAT 2x3 AB #2A((0.0d0 0.0d0 1.0d0) (1.0d0 1.0d0 1.0d0))>
+    ```
+
 
 - [function] MAP-DISPLACEMENTS FN MAT DIMENSIONS &KEY (DISPLACEMENT-START 0) DISPLACEMENT-STEP
 

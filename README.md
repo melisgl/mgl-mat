@@ -268,14 +268,16 @@ representations of numeric arrays. These facets can be accessed with
 - [function] **MREF** *MAT &REST INDICES*
 
     Like `AREF` for arrays. Don't use this if you care about performance
-    at all. SETFable.
+    at all. SETFable. When set, the value is coerced to the ctype of `MAT`
+    with [`COERCE-TO-CTYPE`][ad5b].
 
 <a name='x-28MGL-MAT-3AROW-MAJOR-MREF-20FUNCTION-29'></a>
 
 - [function] **ROW-MAJOR-MREF** *MAT INDEX*
 
     Like `ROW-MAJOR-AREF` for arrays. Don't use this if you care about
-    performance at all. SETFable.
+    performance at all. SETFable. When set, the value is coerced to the
+    ctype of `MAT` with [`COERCE-TO-CTYPE`][ad5b].
 
 <a name='x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29'></a>
 
@@ -454,7 +456,7 @@ safe.
 
 <a name='x-28MGL-MAT-3AWITH-ONES-20MGL-PAX-3AMACRO-29'></a>
 
-- [macro] **WITH-ONES** *(VAR DIMENSIONS &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*)) &BODY BODY*
+- [macro] **WITH-ONES** *(VAR DIMENSIONS &KEY (CTYPE '\*DEFAULT-MAT-CTYPE\*)) &BODY BODY*
 
     Bind `VAR` to a matrix of `DIMENSIONS` whose every element is 1. The
     matrix is cached for efficiency.
@@ -1121,12 +1123,25 @@ Finally, some neural network operations.
 
 <a name='x-28MGL-MAT-3AMAP-CONCAT-20FUNCTION-29'></a>
 
-- [function] **MAP-CONCAT** *FN MATS MAT &KEY KEY*
+- [function] **MAP-CONCAT** *FN MATS MAT &KEY KEY PASS-RAW-P*
 
     Call `FN` with each element of `MATS` and `MAT` temporarily reshaped to
     the dimensions of the current element of `MATS` and return `MAT`. For
     the next element the displacement is increased so that there is no
-    overlap. `MATS` is keyed by `KEY` just like the CL sequence functions.
+    overlap.
+    
+    `MATS` is keyed by `KEY` just like the CL sequence functions. Normally,
+    `FN` is called with the matrix returned by `KEY`. However, if
+    `PASS-RAW-P`, then the matrix returned by `KEY` is only used to
+    calculate dimensions and the element of `MATS` that was passed to `KEY`
+    is passed to `FN`, too.
+    
+    ```
+    (map-concat #'copy! (list (make-mat 2) (make-mat 4 :initial-element 1))
+                (make-mat '(2 3)))
+    ==> #<MAT 2x3 AB #2A((0.0d0 0.0d0 1.0d0) (1.0d0 1.0d0 1.0d0))>
+    ```
+
 
 <a name='x-28MGL-MAT-3AMAP-DISPLACEMENTS-20FUNCTION-29'></a>
 
@@ -1795,6 +1810,7 @@ Also see [Destroying cubes][2fa1].
   [9fcc]: #x-28MGL-CUBE-3ACUBE-20CLASS-29 "(MGL-CUBE:CUBE CLASS)"
   [a238]: #x-28MGL-CUBE-3AWATCH-FACET-20GENERIC-FUNCTION-29 "(MGL-CUBE:WATCH-FACET GENERIC-FUNCTION)"
   [acfb]: #x-28MGL-MAT-3AGEMM-21-20FUNCTION-29 "(MGL-MAT:GEMM! FUNCTION)"
+  [ad5b]: #x-28MGL-MAT-3ACOERCE-TO-CTYPE-20FUNCTION-29 "(MGL-MAT:COERCE-TO-CTYPE FUNCTION)"
   [afa0]: #x-28MGL-MAT-3A-40MAT-CUBLAS-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-CUBLAS MGL-PAX:SECTION)"
   [b0b5]: #x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-INTRODUCTION MGL-PAX:SECTION)"
   [b61b]: #x-28MGL-CUBE-3AWITH-FACETS-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:WITH-FACETS MGL-PAX:MACRO)"
