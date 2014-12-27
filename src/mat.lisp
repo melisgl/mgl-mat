@@ -581,7 +581,7 @@
              (setq ,var (adjust! ,var ,dimensions ,displacement))
              (locally ,@body)))))))
 
-(defmacro with-ones ((var dimensions &key (ctype *default-mat-ctype*))
+(defmacro with-ones ((var dimensions &key (ctype '*default-mat-ctype*))
                      &body body)
   "Bind VAR to a matrix of DIMENSIONS whose every element is 1. The
   matrix is cached for efficiency."
