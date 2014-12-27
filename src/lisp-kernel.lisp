@@ -16,6 +16,14 @@
          (ecase ctype
            ((:float) object)
            ((:double) (float object 0d0))))
+        ((eq object 'most-negative-single-float)
+         (ecase ctype
+           ((:float) object)
+           ((:double) 'most-negative-double-float)))
+        ((eq object 'most-positive-single-float)
+         (ecase ctype
+           ((:float) object)
+           ((:double) 'most-positive-double-float)))
         (t
          object)))
 
