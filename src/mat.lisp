@@ -293,7 +293,8 @@
 
 (defun set-mref (value mat &rest indices)
   (with-facets ((a (mat 'array :direction :io)))
-    (setf (apply #'aref a indices) value)))
+    (setf (apply #'aref a indices)
+          (coerce-to-ctype value :ctype (mat-ctype mat)))))
 
 (defsetf mref (mat &rest indices) (value)
   `(set-mref ,value ,mat ,@indices))
@@ -306,7 +307,8 @@
 
 (defun set-row-major-mref (mat index value)
   (with-facets ((a (mat 'array :direction :io)))
-    (setf (row-major-aref a index) value)))
+    (setf (row-major-aref a index)
+          (coerce-to-ctype value :ctype (mat-ctype mat)))))
 
 (defsetf row-major-mref set-row-major-mref)
 
