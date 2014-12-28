@@ -72,12 +72,14 @@
     (setf (gethash key place-cache) value)))
 
 ;;; A thread safe, reentrant caching mechanism with a separate cache
-;;; for each occurrence of WITH-THREAD-CACHED-OBJECT.
+;;; for each PLACE (or for each occurrence of
+;;; WITH-THREAD-CACHED-OBJECT in the sources if PLACE is not
+;;; specified).
 ;;;
 ;;; Conceptually, the thread cache associates a (THREAD PLACE KEY)
 ;;; triplet with an object. THREAD is the current thread. PLACE is
-;;; implicit and unique to each occurrence of
-;;; WITH-THREAD-CACHED-OBJECT. KEY is provided by the user.
+;;; specified explicitly or it is a gensym unique to each occurrence
+;;; of WITH-THREAD-CACHED-OBJECT. KEY is provided by the user.
 ;;;
 ;;; Before BODY is executed, VAR is bound to the object associated
 ;;; with (THREAD PLACE KEY). When BODY is finished, the same triplet
@@ -87,17 +89,27 @@
 ;;; In the example below, ARRAY is bound to an array of the
 ;;; appropriate ELEMENT-TYPE:
 ;;;
-;;;   (with-thread-cached-object (array element-type
-;;;                               (make-array 7 :element-type element-type))
-;;;    (do-something-with array))
-(defmacro with-thread-cached-object ((var key initform) &body body)
-  (alexandria:with-unique-names (place-key)
+;;;     (with-thread-cached-object (array element-type
+;;;                                 (make-array 7 :element-type element-type))
+;;;      (do-something-with array))
+;;;
+;;; The same thing with a thread global cache:
+;;;
+;;;     (with-thread-cached-object (array element-type
+;;;                                 (make-array 7 :element-type element-type)
+;;;                                 :place :thread-global)
+;;;      (do-something-with array))
+;;;
+;;; where :THREAD-GLOBAL can be anything as long as other uses agree
+;;; on it.
+(defmacro with-thread-cached-object ((var key initform &key place) &body body)
+  (let ((place (or place (gensym (symbol-name 'place)))))
     (alexandria:once-only (key)
-      `(let ((,var (or (borrow-thread-cached-object ',place-key ,key)
+      `(let ((,var (or (borrow-thread-cached-object ',place ,key)
                        ,initform)))
          (unwind-protect
               (locally ,@body)
-           (return-thread-cached-object ',place-key ,key ,var))))))
+           (return-thread-cached-object ',place ,key ,var))))))
 
 
 ;;;; Parameters are lists of the form (NAME TYPE &OPTIONAL (DIRECTION

@@ -540,24 +540,24 @@
 (defsection @mat-caching (:title "Caching")
   "Allocating and initializing a MAT object and its necessary facets
   can be expensive. The following macros remember the previous value
-  of a binding in the same thread and lexical environment. Only weak
-  references are constructed so the cached objects can be garbage
-  collected.
+  of a binding in the same thread and /place/. Only weak references
+  are constructed so the cached objects can be garbage collected.
 
   While the cache is global, thread safety is guaranteed by having
-  separate subcaches per thread. Each subcache is keyed by a gensym
-  that's unique to each invocation of the caching macro, so different
-  occurrences of caching macros in the source never share data. Still,
-  recursion could lead to data sharing between different invocations
-  of the same function. To prevent this, the cached object is removed
-  from the cache while it is used so other invocations will create a
-  fresh one which isn't particularly efficient but at least it's
-  safe."
+  separate subcaches per thread. Each subcache is keyed by a /place/
+  object that's either explicitly specified or else is unique to each
+  invocation of the caching macro, so different occurrences of caching
+  macros in the source never share data. Still, recursion could lead
+  to data sharing between different invocations of the same function.
+  To prevent this, the cached object is removed from the cache while
+  it is used so other invocations will create a fresh one which isn't
+  particularly efficient but at least it's safe."
   (with-thread-cached-mat macro)
   (with-ones macro))
 
 (defmacro with-thread-cached-mat ((var dimensions &rest args
-                                   &key (ctype *default-mat-ctype*)
+                                   &key (place :scratch)
+                                   (ctype '*default-mat-ctype*)
                                    (displacement 0)
                                    max-size
                                    (initial-element 0) initial-contents)
@@ -568,6 +568,7 @@
   change."
   (declare (ignore max-size initial-contents))
   (let ((args (copy-list args)))
+    (remf args :place)
     (remf args :ctype)
     (remf args :displacement)
     (remf args :initial-element)
@@ -579,15 +580,18 @@
                                     :ctype ,ctype
                                     :displacement ,displacement
                                     :initial-element ,initial-element
-                                    ,@args))
+                                    ,@args)
+                :place ,place)
              (setq ,var (adjust! ,var ,dimensions ,displacement))
              (locally ,@body)))))))
 
-(defmacro with-ones ((var dimensions &key (ctype '*default-mat-ctype*))
+(defmacro with-ones ((var dimensions &key (ctype '*default-mat-ctype*)
+                      (place :ones))
                      &body body)
   "Bind VAR to a matrix of DIMENSIONS whose every element is 1. The
   matrix is cached for efficiency."
-  `(with-thread-cached-mat (,var ,dimensions :ctype ,ctype :initial-element 1)
+  `(with-thread-cached-mat (,var ,dimensions :place ,place
+                                 :ctype ,ctype :initial-element 1)
      ;; Rebind VAR to make sure that WITH-THREAD-CACHED-MAT doesn't
      ;; update the cached object if BODY changes the binding.
      (let ((,var ,var))
@@ -1774,8 +1778,8 @@
   mat)
 
 (defun orthogonal-random! (m &key (scale 1))
-  "Fill the matrix M with random values in such a way that M^T * M is
-  the identity matrix (or something close if M is wide). Return M."
+  "Fill the matrix M with random values in such a way that `M^T * M`
+  is the identity matrix (or something close if M is wide). Return M."
   (uniform-random! m)
   (let* ((svd (with-facets ((a (m 'array :direction :input)))
                 (lla:svd a :thin)))

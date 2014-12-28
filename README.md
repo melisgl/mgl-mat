@@ -431,23 +431,22 @@ The functions here assemble a single [`MAT`][773f] from a number of
 
 Allocating and initializing a [`MAT`][773f] object and its necessary facets
 can be expensive. The following macros remember the previous value
-of a binding in the same thread and lexical environment. Only weak
-references are constructed so the cached objects can be garbage
-collected.
+of a binding in the same thread and /place/. Only weak references
+are constructed so the cached objects can be garbage collected.
 
 While the cache is global, thread safety is guaranteed by having
-separate subcaches per thread. Each subcache is keyed by a gensym
-that's unique to each invocation of the caching macro, so different
-occurrences of caching macros in the source never share data. Still,
-recursion could lead to data sharing between different invocations
-of the same function. To prevent this, the cached object is removed
-from the cache while it is used so other invocations will create a
-fresh one which isn't particularly efficient but at least it's
-safe.
+separate subcaches per thread. Each subcache is keyed by a /place/
+object that's either explicitly specified or else is unique to each
+invocation of the caching macro, so different occurrences of caching
+macros in the source never share data. Still, recursion could lead
+to data sharing between different invocations of the same function.
+To prevent this, the cached object is removed from the cache while
+it is used so other invocations will create a fresh one which isn't
+particularly efficient but at least it's safe.
 
 <a name='x-28MGL-MAT-3AWITH-THREAD-CACHED-MAT-20MGL-PAX-3AMACRO-29'></a>
 
-- [macro] **WITH-THREAD-CACHED-MAT** *(VAR DIMENSIONS &REST ARGS &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS) &BODY BODY*
+- [macro] **WITH-THREAD-CACHED-MAT** *(VAR DIMENSIONS &REST ARGS &KEY (PLACE :SCRATCH) (CTYPE '\*DEFAULT-MAT-CTYPE\*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS) &BODY BODY*
 
     Bind `VAR` to a matrix of `DIMENSIONS`, `CTYPE`, etc. Cache this matrix,
     and possibly reuse it later by reshaping it. When `BODY` exits the
@@ -456,7 +455,7 @@ safe.
 
 <a name='x-28MGL-MAT-3AWITH-ONES-20MGL-PAX-3AMACRO-29'></a>
 
-- [macro] **WITH-ONES** *(VAR DIMENSIONS &KEY (CTYPE '\*DEFAULT-MAT-CTYPE\*)) &BODY BODY*
+- [macro] **WITH-ONES** *(VAR DIMENSIONS &KEY (CTYPE '\*DEFAULT-MAT-CTYPE\*) (PLACE :ONES)) &BODY BODY*
 
     Bind `VAR` to a matrix of `DIMENSIONS` whose every element is 1. The
     matrix is cached for efficiency.
@@ -1208,8 +1207,8 @@ This is rather experimental.
 
 - [function] **ORTHOGONAL-RANDOM!** *M &KEY (SCALE 1)*
 
-    Fill the matrix `M` with random values in such a way that M^T \* `M` is
-    the identity matrix (or something close if `M` is wide). Return `M`.
+    Fill the matrix `M` with random values in such a way that `M^T * M`
+    is the identity matrix (or something close if `M` is wide). Return `M`.
 
 <a name='x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29'></a>
 

@@ -507,24 +507,23 @@ supported. All dimensions except for <code>AXIS</code> must be the same for all
 
 <p>Allocating and initializing a <a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> object and its necessary facets
 can be expensive. The following macros remember the previous value
-of a binding in the same thread and lexical environment. Only weak
-references are constructed so the cached objects can be garbage
-collected.</p>
+of a binding in the same thread and /place/. Only weak references
+are constructed so the cached objects can be garbage collected.</p>
 
 <p>While the cache is global, thread safety is guaranteed by having
-separate subcaches per thread. Each subcache is keyed by a gensym
-that's unique to each invocation of the caching macro, so different
-occurrences of caching macros in the source never share data. Still,
-recursion could lead to data sharing between different invocations
-of the same function. To prevent this, the cached object is removed
-from the cache while it is used so other invocations will create a
-fresh one which isn't particularly efficient but at least it's
-safe.</p>
+separate subcaches per thread. Each subcache is keyed by a /place/
+object that's either explicitly specified or else is unique to each
+invocation of the caching macro, so different occurrences of caching
+macros in the source never share data. Still, recursion could lead
+to data sharing between different invocations of the same function.
+To prevent this, the cached object is removed from the cache while
+it is used so other invocations will create a fresh one which isn't
+particularly efficient but at least it's safe.</p>
 
 <p><a name='x-28MGL-MAT-3AWITH-THREAD-CACHED-MAT-20MGL-PAX-3AMACRO-29'></a></p>
 
 <ul>
-<li><p>[macro] <strong>WITH-THREAD-CACHED-MAT</strong> <em>(VAR DIMENSIONS &amp;REST ARGS &amp;KEY (CTYPE *DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS) &amp;BODY BODY</em></p>
+<li><p>[macro] <strong>WITH-THREAD-CACHED-MAT</strong> <em>(VAR DIMENSIONS &amp;REST ARGS &amp;KEY (PLACE :SCRATCH) (CTYPE '*DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS) &amp;BODY BODY</em></p>
 
 <p>Bind <code>VAR</code> to a matrix of <code>DIMENSIONS</code>, <code>CTYPE</code>, etc. Cache this matrix,
 and possibly reuse it later by reshaping it. When <code>BODY</code> exits the
@@ -535,7 +534,7 @@ change.</p></li>
 <p><a name='x-28MGL-MAT-3AWITH-ONES-20MGL-PAX-3AMACRO-29'></a></p>
 
 <ul>
-<li><p>[macro] <strong>WITH-ONES</strong> <em>(VAR DIMENSIONS &amp;KEY (CTYPE '*DEFAULT-MAT-CTYPE*)) &amp;BODY BODY</em></p>
+<li><p>[macro] <strong>WITH-ONES</strong> <em>(VAR DIMENSIONS &amp;KEY (CTYPE '*DEFAULT-MAT-CTYPE*) (PLACE :ONES)) &amp;BODY BODY</em></p>
 
 <p>Bind <code>VAR</code> to a matrix of <code>DIMENSIONS</code> whose every element is 1. The
 matrix is cached for efficiency.</p></li>
@@ -1427,8 +1426,8 @@ interval of <code>MAT</code>'s type.</p></li>
 <ul>
 <li><p>[function] <strong>ORTHOGONAL-RANDOM!</strong> <em>M &amp;KEY (SCALE 1)</em></p>
 
-<p>Fill the matrix <code>M</code> with random values in such a way that M^T * <code>M</code> is
-the identity matrix (or something close if <code>M</code> is wide). Return <code>M</code>.</p></li>
+<p>Fill the matrix <code>M</code> with random values in such a way that <code>M^T * M</code>
+is the identity matrix (or something close if <code>M</code> is wide). Return <code>M</code>.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29'></a></p>
