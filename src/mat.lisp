@@ -507,13 +507,7 @@
   MATS into MAT below each other starting from the top. If AXIS is 1,
   place MATS side by side starting from the left. Higher AXIS are also
   supported. All dimensions except for AXIS must be the same for all
-  MATS.
-
-      (stack 1 (list (make-mat '(3 2) :initial-element 0)
-                     (make-mat '(3 1) :initial-element 1)))
-      => #<MAT 3x3 B #2A((0.0d0 0.0d0 1.0d0)
-                         (0.0d0 0.0d0 1.0d0)
-                         (0.0d0 0.0d0 1.0d0))>"
+  MATS."
   ;; FIXME: this implementation is consing a lot.
   (labels ((foo (mats facets)
              (if (endp mats)
@@ -525,7 +519,15 @@
     (replace! mat (foo mats ()))))
 
 (defun stack (axis mats &key (ctype *default-mat-ctype*))
-  "Like STACK! but return a new MAT of CTYPE."
+  "Like STACK! but return a new MAT of CTYPE.
+
+  ```commonlisp
+  (stack 1 (list (make-mat '(3 2) :initial-element 0)
+                 (make-mat '(3 1) :initial-element 1)))
+  ==> #<MAT 3x3 B #2A((0.0d0 0.0d0 1.0d0)
+  -->                 (0.0d0 0.0d0 1.0d0)
+  -->                 (0.0d0 0.0d0 1.0d0))>
+  ```"
   (labels ((foo (mats facets)
              (if (endp mats)
                  (apply #'aops:stack axis (reverse facets))

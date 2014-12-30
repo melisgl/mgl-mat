@@ -483,14 +483,7 @@ copied over and the old matrix is destroyed with <a href="cube-manual.html#x-28M
 <code>MATS</code> into <code>MAT</code> below each other starting from the top. If <code>AXIS</code> is 1,
 place <code>MATS</code> side by side starting from the left. Higher <code>AXIS</code> are also
 supported. All dimensions except for <code>AXIS</code> must be the same for all
-<code>MATS</code>.</p>
-
-<pre><code>(stack 1 (list (make-mat '(3 2) :initial-element 0)
-               (make-mat '(3 1) :initial-element 1)))
-=&gt; #&lt;MAT 3x3 B #2A((0.0d0 0.0d0 1.0d0)
-                   (0.0d0 0.0d0 1.0d0)
-                   (0.0d0 0.0d0 1.0d0))&gt;
-</code></pre></li>
+<code>MATS</code>.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3ASTACK-20FUNCTION-29'></a></p>
@@ -498,7 +491,13 @@ supported. All dimensions except for <code>AXIS</code> must be the same for all
 <ul>
 <li><p>[function] <strong>STACK</strong> <em>AXIS MATS &amp;KEY (CTYPE *DEFAULT-MAT-CTYPE*)</em></p>
 
-<p>Like <a href="#x-28MGL-MAT-3ASTACK-21-20FUNCTION-29" title="(MGL-MAT:STACK! FUNCTION)"><code>STACK!</code></a> but return a new <a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> of <code>CTYPE</code>.</p></li>
+<p>Like <a href="#x-28MGL-MAT-3ASTACK-21-20FUNCTION-29" title="(MGL-MAT:STACK! FUNCTION)"><code>STACK!</code></a> but return a new <a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> of <code>CTYPE</code>.</p>
+
+<pre><code><span class="code"><span class="paren1">(<span class="code">stack 1 <span class="paren2">(<span class="code">list <span class="paren3">(<span class="code">make-mat '<span class="paren4">(<span class="code">3 2</span>)</span> <span class="keyword">:initial-element</span> 0</span>)</span>
+               <span class="paren3">(<span class="code">make-mat '<span class="paren4">(<span class="code">3 1</span>)</span> <span class="keyword">:initial-element</span> 1</span>)</span></span>)</span></span>)</span>
+==&gt; #&lt;MAT 3x3 B #2A<span class="paren1">(<span class="code"><span class="paren2">(<span class="code">0.0d0 0.0d0 1.0d0</span>)</span>
+--&gt;                 <span class="paren2">(<span class="code">0.0d0 0.0d0 1.0d0</span>)</span>
+--&gt;                 <span class="paren2">(<span class="code">0.0d0 0.0d0 1.0d0</span>)</span></span>)</span>&gt;</span></code></pre></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-CACHING-20MGL-PAX-3ASECTION-29'></a></p>

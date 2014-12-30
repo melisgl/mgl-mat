@@ -411,19 +411,21 @@ The functions here assemble a single [`MAT`][773f] from a number of
     place `MATS` side by side starting from the left. Higher `AXIS` are also
     supported. All dimensions except for `AXIS` must be the same for all
     `MATS`.
-    
-        (stack 1 (list (make-mat '(3 2) :initial-element 0)
-                       (make-mat '(3 1) :initial-element 1)))
-        => #<MAT 3x3 B #2A((0.0d0 0.0d0 1.0d0)
-                           (0.0d0 0.0d0 1.0d0)
-                           (0.0d0 0.0d0 1.0d0))>
-
 
 <a name='x-28MGL-MAT-3ASTACK-20FUNCTION-29'></a>
 
 - [function] **STACK** *AXIS MATS &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*)*
 
     Like [`STACK!`][552a] but return a new [`MAT`][773f] of `CTYPE`.
+    
+    ```commonlisp
+    (stack 1 (list (make-mat '(3 2) :initial-element 0)
+                   (make-mat '(3 1) :initial-element 1)))
+    ==> #<MAT 3x3 B #2A((0.0d0 0.0d0 1.0d0)
+    -->                 (0.0d0 0.0d0 1.0d0)
+    -->                 (0.0d0 0.0d0 1.0d0))>
+    ```
+
 
 <a name='x-28MGL-MAT-3A-40MAT-CACHING-20MGL-PAX-3ASECTION-29'></a>
 
