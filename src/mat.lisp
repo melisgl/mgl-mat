@@ -256,7 +256,15 @@
   "Replace the contents of MAT with the elements of SEQ-OF-SEQS.
   SEQ-OF-SEQS is a nested sequence of sequences similar to the
   INITIAL-CONTENTS argument of MAKE-ARRAY. The total number of
-  elements must match the size of MAT. Returns MAT."
+  elements must match the size of MAT. Returns MAT.
+
+  SEQ-OF-SEQS may contain multi-dimensional arrays as _leafs_, so the
+  following is legal:
+
+  ```common-lisp
+  (replace! (make-mat '(1 2 3)) '(#2A((1 2 3) (4 5 6))))
+  ==> #<MAT 1x2x3 AB #3A(((1.0d0 2.0d0 3.0d0) (4.0d0 5.0d0 6.0d0)))>
+  ```"
   (with-facets ((m (mat 'backing-array :direction :output)))
     (replace-vector m (mat-displacement mat) (mat-dimensions mat)
                     seq-of-seqs (mat-ctype mat)))
@@ -277,10 +285,18 @@
                                          (coerce-to-ctype element :ctype ctype))
                                    (incf i))
                              seq-of-seqs))
-                       (t
+                       ((typep seq-of-seqs 'sequence)
                         (map nil (lambda (seq-of-seqs)
                                    (foo (cdr dims) seq-of-seqs))
-                             seq-of-seqs))))))
+                             seq-of-seqs))
+                       ((arrayp seq-of-seqs)
+                        (let* ((n (length (array-dimensions seq-of-seqs)))
+                               (dims (nthcdr n dims)))
+                          (loop for j below (array-total-size seq-of-seqs)
+                                do (foo dims (row-major-aref seq-of-seqs j)))))
+                       (t
+                        (assert nil () "Unexpected non-sequence type ~S."
+                                (type-of seq-of-seqs)))))))
       (foo dimensions seq-of-seqs))
     (unless (= i (+ start n))
       (error "Total size of ~S is not ~S." seq-of-seqs n))))
@@ -445,7 +461,8 @@
 
 (defun reshape-to-row-matrix! (mat row)
   "Reshape the 2d MAT to make only a single ROW visible. This is made
-  possible by the row-major layout, hence no column counterpart."
+  possible by the row-major layout, hence no column counterpart.
+  Return MAT."
   (destructuring-bind (n-rows n-columns) (mat-dimensions mat)
     (assert (< row n-rows))
     (reshape-and-displace! mat (list 1 n-columns)

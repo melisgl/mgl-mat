@@ -304,7 +304,13 @@ Elements of <code>ARRAY</code> are coerced to <code>CTYPE</code>.</p>
 <p>Replace the contents of <code>MAT</code> with the elements of <code>SEQ-OF-SEQS</code>.
 <code>SEQ-OF-SEQS</code> is a nested sequence of sequences similar to the
 <code>INITIAL-CONTENTS</code> argument of <code>MAKE-ARRAY</code>. The total number of
-elements must match the size of <code>MAT</code>. Returns <code>MAT</code>.</p></li>
+elements must match the size of <code>MAT</code>. Returns <code>MAT</code>.</p>
+
+<p><code>SEQ-OF-SEQS</code> may contain multi-dimensional arrays as <em>leafs</em>, so the
+following is legal:</p>
+
+<pre><code><span class="code"><span class="paren1">(<span class="code">replace! <span class="paren2">(<span class="code">make-mat '<span class="paren3">(<span class="code">1 2 3</span>)</span></span>)</span> '<span class="paren2">(<span class="code">#2A<span class="paren3">(<span class="code"><span class="paren4">(<span class="code">1 2 3</span>)</span> <span class="paren4">(<span class="code">4 5 6</span>)</span></span>)</span></span>)</span></span>)</span>
+==&gt; #&lt;MAT 1x2x3 AB #3A<span class="paren1">(<span class="code"><span class="paren2">(<span class="code"><span class="paren3">(<span class="code">1.0d0 2.0d0 3.0d0</span>)</span> <span class="paren3">(<span class="code">4.0d0 5.0d0 6.0d0</span>)</span></span>)</span></span>)</span>&gt;</span></code></pre></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3AMREF-20FUNCTION-29'></a></p>
@@ -442,7 +448,8 @@ stable.</p></li>
 <li><p>[function] <strong>RESHAPE-TO-ROW-MATRIX!</strong> <em>MAT ROW</em></p>
 
 <p>Reshape the 2d <code>MAT</code> to make only a single <code>ROW</code> visible. This is made
-possible by the row-major layout, hence no column counterpart.</p></li>
+possible by the row-major layout, hence no column counterpart.
+Return <code>MAT</code>.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20MGL-PAX-3AMACRO-29'></a></p>

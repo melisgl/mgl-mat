@@ -262,6 +262,15 @@ representations of numeric arrays. These facets can be accessed with
     `SEQ-OF-SEQS` is a nested sequence of sequences similar to the
     `INITIAL-CONTENTS` argument of `MAKE-ARRAY`. The total number of
     elements must match the size of `MAT`. Returns `MAT`.
+    
+    `SEQ-OF-SEQS` may contain multi-dimensional arrays as *leafs*, so the
+    following is legal:
+    
+    ```common-lisp
+    (replace! (make-mat '(1 2 3)) '(#2A((1 2 3) (4 5 6))))
+    ==> #<MAT 1x2x3 AB #3A(((1.0d0 2.0d0 3.0d0) (4.0d0 5.0d0 6.0d0)))>
+    ```
+
 
 <a name='x-28MGL-MAT-3AMREF-20FUNCTION-29'></a>
 
@@ -376,6 +385,7 @@ displacement is done by changing the offset. Clients need to observe
 
     Reshape the 2d `MAT` to make only a single `ROW` visible. This is made
     possible by the row-major layout, hence no column counterpart.
+    Return `MAT`.
 
 <a name='x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20MGL-PAX-3AMACRO-29'></a>
 
