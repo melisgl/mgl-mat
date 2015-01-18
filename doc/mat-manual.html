@@ -729,11 +729,11 @@ each element of a length <code>N</code> vector looks like this:</p>
       <span class="paren3">(<span class="code"><span class="paren4">(<span class="code">&gt;= i n</span>)</span></span>)</span>
     <span class="paren3">(<span class="code">set <span class="paren4">(<span class="code">aref x i</span>)</span> <span class="paren4">(<span class="code">+ <span class="paren5">(<span class="code">aref x i</span>)</span> alpha</span>)</span></span>)</span></span>)</span></span>)</span></span></code></pre>
 
-<p>It is often the most efficient to have <code>MAX-N-WARPS-PER-BLOCK</code> is
-around 4. Note that the maximum number of threads per block is
-limited by hardware (512 for compute capability &lt; 2.0, 1024 for
-later versions), so <code>*CUDA-MAX-N-BLOCKS*</code> times <code>MAX-N-WARPS-PER-BLOCK</code>
-must not exceed that limit.</p></li>
+<p>It is often the most efficient to have <code>MAX-N-WARPS-PER-BLOCK</code> around
+4. Note that the maximum number of threads per block is limited by
+hardware (512 for compute capability &lt; 2.0, 1024 for later
+versions), so <code>*CUDA-MAX-N-BLOCKS*</code> times <code>MAX-N-WARPS-PER-BLOCK</code> must
+not exceed that limit.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3ACHOOSE-2D-BLOCK-AND-GRID-20FUNCTION-29'></a></p>

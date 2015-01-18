@@ -634,11 +634,11 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
         (set (aref x i) (+ (aref x i) alpha))))
     ```
     
-    It is often the most efficient to have `MAX-N-WARPS-PER-BLOCK` is
-    around 4. Note that the maximum number of threads per block is
-    limited by hardware (512 for compute capability < 2.0, 1024 for
-    later versions), so `*CUDA-MAX-N-BLOCKS*` times `MAX-N-WARPS-PER-BLOCK`
-    must not exceed that limit.
+    It is often the most efficient to have `MAX-N-WARPS-PER-BLOCK` around
+    4. Note that the maximum number of threads per block is limited by
+    hardware (512 for compute capability < 2.0, 1024 for later
+    versions), so `*CUDA-MAX-N-BLOCKS*` times `MAX-N-WARPS-PER-BLOCK` must
+    not exceed that limit.
 
 <a name='x-28MGL-MAT-3ACHOOSE-2D-BLOCK-AND-GRID-20FUNCTION-29'></a>
 

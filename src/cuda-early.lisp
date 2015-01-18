@@ -75,11 +75,11 @@
       (set (aref x i) (+ (aref x i) alpha))))
   ```
 
-  It is often the most efficient to have MAX-N-WARPS-PER-BLOCK is
-  around 4. Note that the maximum number of threads per block is
-  limited by hardware (512 for compute capability < 2.0, 1024 for
-  later versions), so *CUDA-MAX-N-BLOCKS* times MAX-N-WARPS-PER-BLOCK
-  must not exceed that limit."
+  It is often the most efficient to have MAX-N-WARPS-PER-BLOCK around
+  4. Note that the maximum number of threads per block is limited by
+  hardware (512 for compute capability < 2.0, 1024 for later
+  versions), so *CUDA-MAX-N-BLOCKS* times MAX-N-WARPS-PER-BLOCK must
+  not exceed that limit."
   (let* ((n-warps (ceiling n *cuda-warp-size*))
          (n-warps-per-block (clip n-warps :min 1 :max max-n-warps-per-block))
          (n-threads-per-block (* *cuda-warp-size* n-warps-per-block))
