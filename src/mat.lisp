@@ -185,24 +185,41 @@
    different representations of the same data. See @MAT-BASICS for a
    tuturialish treatment."))
 
+;;; Faster version of CFFI:FOREIGN-TYPE-SIZE.
+(declaim (inline ctype-size))
+(defun ctype-size (ctype)
+  (if (eq ctype :float)
+      4
+      8))
+
 (defmethod initialize-instance :after ((mat mat) &key initial-contents
                                        &allow-other-keys)
   (unless (listp (mat-dimensions mat))
     (setf (slot-value mat 'dimensions)
           (list (mat-dimensions mat))))
-  (setf (slot-value mat 'size) (reduce #'* (mat-dimensions mat)))
+  (setf (slot-value mat 'size) (mat-size-from-dimensions (mat-dimensions mat)))
   (unless (slot-boundp mat 'max-size)
     (setf (slot-value mat 'max-size)
           (+ (mat-displacement mat) (mat-size mat))))
   (assert (<= (+ (mat-displacement mat) (mat-size mat)) (mat-max-size mat)))
   (setf (slot-value mat 'n-bytes)
-        (* (mat-max-size mat) (cffi:foreign-type-size (mat-ctype mat))))
+        (* (mat-max-size mat) (ctype-size (mat-ctype mat))))
   (when (mat-initial-element mat)
     (setf (slot-value mat 'initial-element)
           (coerce-to-ctype (mat-initial-element mat)
                            :ctype (mat-ctype mat))))
   (when initial-contents
     (replace! mat initial-contents)))
+
+;;; Optimized version of (REDUCE #'* DIMENSIONS).
+(defun mat-size-from-dimensions (dimensions)
+  (let ((product 1))
+    (declare (type index product)
+             (optimize speed))
+    (dolist (dimension dimensions)
+      (declare (type index dimension))
+      (setq product (the! index (* product dimension))))
+    product))
 
 (defun mat-dimension (mat axis-number)
   "Return the dimension along AXIS-NUMBER. Similar to
@@ -272,7 +289,7 @@
 
 (defun replace-vector (vector start dimensions seq-of-seqs ctype)
   (let ((i start)
-        (n (reduce #'* dimensions)))
+        (n (mat-size-from-dimensions dimensions)))
     (labels ((foo (dims seq-of-seqs)
                (let ((n-dims (length dims)))
                  (cond ((= 0 n-dims)
@@ -459,27 +476,19 @@
   ;; BACKING-ARRAY (i.e. it's not displaced), then we change the
   ;; identity of the array which is surprising to say the least.
   (check-no-watchers mat nil "Cannot reshape or displace the matrix")
-  (let* ((dimensions (alexandria:ensure-list dimensions))
-         (size (reduce #'* dimensions)))
-    (assert (<= (+ displacement size) (mat-max-size mat)))
+  (let ((dimensions (alexandria:ensure-list dimensions)))
     (when (or (not (equal (mat-dimensions mat) dimensions))
               (not (= (mat-displacement mat) displacement)))
-      (setf (slot-value mat 'dimensions) dimensions)
-      (setf (slot-value mat 'displacement) displacement)
-      (setf (slot-value mat 'size) size)
-      (maybe-reshape-and-displace-facet mat 'array
-                                        dimensions displacement)
-      (maybe-reshape-and-displace-facet mat 'cuda-array
-                                        dimensions displacement)
-      (maybe-reshape-and-displace-facet mat 'foreign-array
-                                        dimensions displacement))
+      (let ((size (mat-size-from-dimensions dimensions)))
+        (assert (<= (+ displacement size) (mat-max-size mat)))
+        (setf (slot-value mat 'dimensions) dimensions)
+        (setf (slot-value mat 'displacement) displacement)
+        (setf (slot-value mat 'size) size)
+        (dolist (view (views mat))
+          (reshape-and-displace-facet* mat (view-facet-name view)
+                                       (view-facet view)
+                                       dimensions displacement))))
     mat))
-
-(defun maybe-reshape-and-displace-facet (mat facet-name dimensions displacement)
-  (let ((view (find-view mat facet-name)))
-    (when view
-      (reshape-and-displace-facet* mat facet-name (view-facet view)
-                                   dimensions displacement))))
 
 (defgeneric reshape-and-displace-facet* (mat facet-name facet
                                          dimensions displacement)
@@ -537,7 +546,7 @@
   copied over and the old matrix is destroyed with DESTROY-CUBE if
   DESTROY-OLD-P."
   (let* ((dimensions (alexandria:ensure-list dimensions))
-         (size (reduce #'* dimensions)))
+         (size (mat-size-from-dimensions dimensions)))
     (if (<= (+ displacement size) (mat-max-size mat))
         (reshape-and-displace! mat dimensions displacement)
         (prog1
@@ -712,7 +721,7 @@
 
 (defmethod make-facet* ((mat mat) (facet-name (eql 'foreign-array)))
   (assert (or (eq *foreign-array-strategy* :dynamic)
-              ;; It may be that this backing array was allocating when
+              ;; It may be that this backing array was allocated when
               ;; *FOREIGN-ARRAY-STRATEGY* was :PIN-BACKING-ARRAY so it
               ;; is not static.
               (and (eq *foreign-array-strategy* :static-backing-array)
@@ -731,7 +740,7 @@
 
 (defmethod make-facet* ((mat mat) (facet-name (eql 'cuda-array)))
   (let ((array (alloc-cuda-array (* (mat-max-size mat)
-                                    (cffi:foreign-type-size (mat-ctype mat))))))
+                                    (ctype-size (mat-ctype mat))))))
     (when (and (mat-initial-element mat)
                (endp (views mat)))
       (cuda-fill!-2 (mat-ctype mat) (mat-initial-element mat)
@@ -868,8 +877,7 @@
                         'backing-array array)))))
 
 (defun displacement-bytes (mat)
-  (* (mat-displacement mat)
-     (cffi:foreign-type-size (mat-ctype mat))))
+  (* (mat-displacement mat) (ctype-size (mat-ctype mat))))
 
 (defmethod reshape-and-displace-facet* ((mat mat) facet-name
                                         (facet offset-pointer)
@@ -1699,7 +1707,7 @@
   ```"
   (let ((displacement-step
           (or displacement-step
-              (reduce #'* (alexandria:ensure-list dimensions))))
+              (mat-size-from-dimensions (alexandria:ensure-list dimensions))))
         (displacement (mat-displacement mat))
         (size (mat-size mat)))
     (with-shape-and-displacement (mat)
