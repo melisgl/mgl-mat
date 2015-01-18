@@ -320,7 +320,10 @@ following is legal:</p>
 
 <p>Like <code>AREF</code> for arrays. Don't use this if you care about performance
 at all. SETFable. When set, the value is coerced to the ctype of <code>MAT</code>
-with <a href="#x-28MGL-MAT-3ACOERCE-TO-CTYPE-20FUNCTION-29" title="(MGL-MAT:COERCE-TO-CTYPE FUNCTION)"><code>COERCE-TO-CTYPE</code></a>.</p></li>
+with <a href="#x-28MGL-MAT-3ACOERCE-TO-CTYPE-20FUNCTION-29" title="(MGL-MAT:COERCE-TO-CTYPE FUNCTION)"><code>COERCE-TO-CTYPE</code></a>. Note that currently <a href="#x-28MGL-MAT-3AMREF-20FUNCTION-29" title="(MGL-MAT:MREF FUNCTION)"><code>MREF</code></a> always operates on
+the <a href="#x-28MGL-MAT-3ABACKING-ARRAY-20MGL-CUBE-3AFACET-NAME-29" title="(MGL-MAT:BACKING-ARRAY MGL-CUBE:FACET-NAME)"><code>BACKING-ARRAY</code></a> facet so it can trigger copying of facets. When
+it's <code>SETF</code>'ed, however, it will update the <a href="#x-28MGL-MAT-3ACUDA-ARRAY-20MGL-CUBE-3AFACET-NAME-29" title="(MGL-MAT:CUDA-ARRAY MGL-CUBE:FACET-NAME)"><code>CUDA-ARRAY</code></a> if cuda is
+enabled and it is up-to-date or there are no views at all.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3AROW-MAJOR-MREF-20FUNCTION-29'></a></p>
@@ -330,7 +333,11 @@ with <a href="#x-28MGL-MAT-3ACOERCE-TO-CTYPE-20FUNCTION-29" title="(MGL-MAT:COER
 
 <p>Like <code>ROW-MAJOR-AREF</code> for arrays. Don't use this if you care about
 performance at all. SETFable. When set, the value is coerced to the
-ctype of <code>MAT</code> with <a href="#x-28MGL-MAT-3ACOERCE-TO-CTYPE-20FUNCTION-29" title="(MGL-MAT:COERCE-TO-CTYPE FUNCTION)"><code>COERCE-TO-CTYPE</code></a>.</p></li>
+ctype of <code>MAT</code> with <a href="#x-28MGL-MAT-3ACOERCE-TO-CTYPE-20FUNCTION-29" title="(MGL-MAT:COERCE-TO-CTYPE FUNCTION)"><code>COERCE-TO-CTYPE</code></a>. Note that currently
+<a href="#x-28MGL-MAT-3AROW-MAJOR-MREF-20FUNCTION-29" title="(MGL-MAT:ROW-MAJOR-MREF FUNCTION)"><code>ROW-MAJOR-MREF</code></a> always operates on the <a href="#x-28MGL-MAT-3ABACKING-ARRAY-20MGL-CUBE-3AFACET-NAME-29" title="(MGL-MAT:BACKING-ARRAY MGL-CUBE:FACET-NAME)"><code>BACKING-ARRAY</code></a> facet so it can
+trigger copying of facets. When it's <code>SETF</code>'ed, however, it will
+update the <a href="#x-28MGL-MAT-3ACUDA-ARRAY-20MGL-CUBE-3AFACET-NAME-29" title="(MGL-MAT:CUDA-ARRAY MGL-CUBE:FACET-NAME)"><code>CUDA-ARRAY</code></a> if cuda is enabled and it is up-to-date or
+there are no views at all.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29'></a></p>

@@ -20,11 +20,11 @@
      (format *trace-output* "* testing ~S~%" ',name)
      (dolist (*default-mat-ctype* ,ctypes)
        (format *trace-output* "** ctype: ~S~%" *default-mat-ctype*)
-       (do-cuda ()
-         (format *trace-output* "*** cuda enabled: ~S~%" *cuda-enabled*)
-         (do-foreign-array-strategies ()
-           (format *trace-output* "**** foreign array strategy: ~S~%"
-                   *foreign-array-strategy*)
+       (do-foreign-array-strategies ()
+         (format *trace-output* "**** foreign array strategy: ~S~%"
+                 *foreign-array-strategy*)
+         (do-cuda ()
+           (format *trace-output* "*** cuda enabled: ~S~%" *cuda-enabled*)
            ,@body)))))
 
 (defun ~= (x y)
@@ -101,12 +101,17 @@
       (dotimes (i 3)
         (assert (= 1 (mref mat 0 i)))
         (assert (= 1 (row-major-mref mat i))))
-      (setf (mref mat 0 1) (coerce-to-ctype 2))
+      (setf (mref mat 0 1) 2)
       (assert (= 2 (mref mat 0 1)))
       (assert (= 2 (row-major-mref mat 1)))
-      (setf (row-major-mref mat 2) (coerce-to-ctype 3))
+      (setf (row-major-mref mat 2) 3)
       (assert (= 3 (mref mat 0 2)))
       (assert (= 3 (row-major-mref mat 2))))))
+
+(defun test-mat-row-major-index ()
+  (do-configurations (mref)
+    (assert (= 40 (array-row-major-index (make-array '(2 3 7)) 1 2 5)))
+    (assert (= 40 (mat-row-major-index (make-mat '(2 3 7)) 1 2 5)))))
 
 (defun test-fill! ()
   (do-configurations (fill!)

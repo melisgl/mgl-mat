@@ -304,14 +304,20 @@
 (defun mref (mat &rest indices)
   "Like AREF for arrays. Don't use this if you care about performance
   at all. SETFable. When set, the value is coerced to the ctype of MAT
-  with COERCE-TO-CTYPE."
-  (with-facets ((a (mat 'array :direction :input)))
-    (apply #'aref a indices)))
+  with COERCE-TO-CTYPE. Note that currently MREF always operates on
+  the BACKING-ARRAY facet so it can trigger copying of facets. When
+  it's SETF'ed, however, it will update the CUDA-ARRAY if cuda is
+  enabled and it is up-to-date or there are no views at all."
+  (let ((index (apply #'mat-row-major-index mat indices)))
+    (with-facets ((a (mat 'backing-array :direction :input)))
+      (row-major-aref a (+ (mat-displacement mat) index)))))
 
 (defun set-mref (value mat &rest indices)
-  (with-facets ((a (mat 'array :direction :io)))
-    (setf (apply #'aref a indices)
-          (coerce-to-ctype value :ctype (mat-ctype mat)))))
+  (set-row-major-mref mat (apply #'mat-row-major-index mat indices) value))
+
+(define-cuda-kernel (cuda-setf-mref)
+    (void ((x :mat :io) (index int) (value float)))
+  (set (aref x index) value))
 
 (defsetf mref (mat &rest indices) (value)
   `(set-mref ,value ,mat ,@indices))
@@ -319,16 +325,45 @@
 (defun row-major-mref (mat index)
   "Like ROW-MAJOR-AREF for arrays. Don't use this if you care about
   performance at all. SETFable. When set, the value is coerced to the
-  ctype of MAT with COERCE-TO-CTYPE."
-  (with-facets ((a (mat 'array :direction :input)))
-    (row-major-aref a index)))
+  ctype of MAT with COERCE-TO-CTYPE. Note that currently
+  ROW-MAJOR-MREF always operates on the BACKING-ARRAY facet so it can
+  trigger copying of facets. When it's SETF'ed, however, it will
+  update the CUDA-ARRAY if cuda is enabled and it is up-to-date or
+  there are no views at all."
+  (with-facets ((a (mat 'backing-array :direction :input)))
+    (row-major-aref a (+ (mat-displacement mat) index))))
 
 (defun set-row-major-mref (mat index value)
-  (with-facets ((a (mat 'array :direction :io)))
-    (setf (row-major-aref a index)
-          (coerce-to-ctype value :ctype (mat-ctype mat)))))
+  (let ((value (coerce-to-ctype value :ctype (mat-ctype mat))))
+    (cond ((and (use-cuda-p)
+                (let ((view (find-view mat 'cuda-array)))
+                  (or (and view (view-up-to-date-p view))
+                      (endp (views mat)))))
+           (assert (and (<= 0 index) (< index (mat-size mat)))
+                   () "Index ~S out of bounds for ~S." index mat)
+           (cuda-setf-mref mat index value
+                           :grid-dim '(1 1 1) :block-dim '(1 1 1)))
+          (t
+           (with-facets ((a (mat 'backing-array :direction :io)))
+             (setf (row-major-aref a (+ (mat-displacement mat) index))
+                   (coerce-to-ctype value :ctype (mat-ctype mat))))))
+    value))
 
 (defsetf row-major-mref set-row-major-mref)
+
+(defun mat-row-major-index (mat &rest subscripts)
+  "Like ARRAY-ROW-MAJOR-INDEX for arrays."
+  ;; Can't call ARRAY-ROW-MAJOR-INDEX because we may not have an ARRAY
+  ;; view.
+  (let ((sum 0)
+        (multiplier (mat-size mat)))
+    (declare (optimize speed)
+             (type index sum multiplier))
+    (loop for index of-type index in subscripts
+          for dimension of-type index in (mat-dimensions mat)
+          do (setq multiplier (/ multiplier dimension))
+             (setq sum (the! index (+ sum (the! index (* multiplier index))))))
+    sum))
 
 
 (defsection @mat-printing (:title "Printing")

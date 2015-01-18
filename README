@@ -205,13 +205,20 @@ WITH-FACETS with one of the following [FACET-NAME][]s:
 
     Like AREF for arrays. Don't use this if you care about performance
     at all. SETFable. When set, the value is coerced to the ctype of MAT
-    with COERCE-TO-CTYPE.
+    with COERCE-TO-CTYPE. Note that currently MREF always operates on
+    the BACKING-ARRAY facet so it can trigger copying of facets. When
+    it's SETF'ed, however, it will update the CUDA-ARRAY if cuda is
+    enabled and it is up-to-date or there are no views at all.
 
 - [function] ROW-MAJOR-MREF MAT INDEX
 
     Like ROW-MAJOR-AREF for arrays. Don't use this if you care about
     performance at all. SETFable. When set, the value is coerced to the
-    ctype of MAT with COERCE-TO-CTYPE.
+    ctype of MAT with COERCE-TO-CTYPE. Note that currently
+    ROW-MAJOR-MREF always operates on the BACKING-ARRAY facet so it can
+    trigger copying of facets. When it's SETF'ed, however, it will
+    update the CUDA-ARRAY if cuda is enabled and it is up-to-date or
+    there are no views at all.
 
 ## Element types
 
