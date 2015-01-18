@@ -21,10 +21,10 @@
      (dolist (*default-mat-ctype* ,ctypes)
        (format *trace-output* "** ctype: ~S~%" *default-mat-ctype*)
        (do-foreign-array-strategies ()
-         (format *trace-output* "**** foreign array strategy: ~S~%"
+         (format *trace-output* "*** foreign array strategy: ~S~%"
                  *foreign-array-strategy*)
          (do-cuda ()
-           (format *trace-output* "*** cuda enabled: ~S~%" *cuda-enabled*)
+           (format *trace-output* "**** cuda enabled: ~S~%" *cuda-enabled*)
            ,@body)))))
 
 (defun ~= (x y)
