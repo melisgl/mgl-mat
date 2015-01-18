@@ -689,6 +689,14 @@ Level 3 BLAS operations
 
     Set X to its elementwise square root. Return X.
 
+- [function] .LOG! X &KEY (N (MAT-SIZE X))
+
+    Set X to its elementwise natural logarithm. Return X.
+
+- [function] .EXP! X &KEY (N (MAT-SIZE X))
+
+    Apply EXP elementwise to X in a destructive manner. Return X.
+
 - [function] .LOGISTIC! X &KEY (N (MAT-SIZE X))
 
     Destructively apply the logistic function to X in an elementwise

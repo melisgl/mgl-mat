@@ -988,6 +988,8 @@
 (defsection @mat-destructive-api (:title "Destructive API")
   (.square! function)
   (.sqrt! function)
+  (.log! function)
+  (.exp! function)
   (.logistic! function)
   (.+! function)
   (.*! function)
@@ -1015,6 +1017,16 @@
   "Set X to its elementwise square root. Return X.")
 (define-elementwise-cuda-kernel cuda-.sqrt! (e) (sqrt e))
 (define-elementwise-lisp-kernel lisp-.sqrt! (e) (the! single-float (sqrt e)))
+
+(define-elementwise-dispatcher .log! cuda-.log! lisp-.log!
+  "Set X to its elementwise natural logarithm. Return X.")
+(define-elementwise-cuda-kernel cuda-.log! (e) (log e))
+(define-elementwise-lisp-kernel lisp-.log! (e) (the! single-float (log e)))
+
+(define-elementwise-dispatcher .exp! cuda-.exp! lisp-.exp!
+  "Apply EXP elementwise to X in a destructive manner. Return X.")
+(define-elementwise-cuda-kernel cuda-.exp! (e) (exp e))
+(define-elementwise-lisp-kernel lisp-.exp! (e) (the! single-float (exp e)))
 
 (define-elementwise-dispatcher .logistic! cuda-.logistic! lisp-.logistic!
   "Destructively apply the logistic function to X in an elementwise

@@ -898,6 +898,18 @@ Level 3 BLAS operations
 
     Set `X` to its elementwise square root. Return `X`.
 
+<a name='x-28MGL-MAT-3A-2ELOG-21-20FUNCTION-29'></a>
+
+- [function] **.LOG!** *X &KEY (N (MAT-SIZE X))*
+
+    Set `X` to its elementwise natural logarithm. Return `X`.
+
+<a name='x-28MGL-MAT-3A-2EEXP-21-20FUNCTION-29'></a>
+
+- [function] **.EXP!** *X &KEY (N (MAT-SIZE X))*
+
+    Apply `EXP` elementwise to `X` in a destructive manner. Return `X`.
+
 <a name='x-28MGL-MAT-3A-2ELOGISTIC-21-20FUNCTION-29'></a>
 
 - [function] **.LOGISTIC!** *X &KEY (N (MAT-SIZE X))*
