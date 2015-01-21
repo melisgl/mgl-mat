@@ -44,7 +44,7 @@
 
 (declaim (inline check-cuda-sdk))
 (defun check-cuda-sdk ()
-  (unless cl-cuda:*sdk-not-found*
+  (when cl-cuda:*sdk-not-found*
     (error 'cl-cuda.driver-api::sdk-not-found-error)))
 
 (defmacro define-auxiliary-cublas-function ((cname name) &body args)
