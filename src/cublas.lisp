@@ -31,6 +31,22 @@
 (ignore-errors
  (cffi:use-foreign-library libcublas))
 
+;;; If grovelling had not been done (because the SDK is not
+;;; installed), then define some stuff to prevent compilation
+;;; failures. One would still get a runtime error when trying to use
+;;; cublas directly, but USE-CUDA-P and CUDA-AVAILABLE-P will steer
+;;; generic operation away from using CUDA.
+(eval-when (:compile-toplevel :load-toplevel :execute)
+ (when cl-cuda:*sdk-not-found*
+   (cffi:defctype cublas-status :int)
+   (cffi:defctype cublas-operation :int)
+   (cffi:defctype cl-cuda.driver-api:cu-device-ptr :pointer)))
+
+(declaim (inline check-cuda-sdk))
+(defun check-cuda-sdk ()
+  (unless cl-cuda:*sdk-not-found*
+    (error 'cl-cuda.driver-api::sdk-not-found-error)))
+
 (defmacro define-auxiliary-cublas-function ((cname name) &body args)
   (let ((%name (intern (format nil "%~A" (symbol-name name))))
         (arg-names (mapcar #'first args)))
@@ -39,6 +55,7 @@
          (handle cublas-handle)
          ,@args)
        (defun ,name (,@arg-names &key (handle *cublas-handle*))
+         (check-cuda-sdk)
          (let ((status (,%name handle ,@arg-names)))
            (unless (eq status :cublas-status-success)
              (error 'cublas-error :function-name ,cname :status status)))))))
@@ -68,6 +85,7 @@
 
 (defmacro with-cublas-handle (() &body body)
   `(cffi:with-foreign-object (handle-pointer 'cublas-handle)
+     (check-cuda-sdk)
      (assert (eq :cublas-status-success (cublas-create handle-pointer)))
      (let ((*cublas-handle* (cffi:mem-aref handle-pointer 'cublas-handle 0)))
        (unwind-protect
