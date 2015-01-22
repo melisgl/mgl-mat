@@ -1861,9 +1861,9 @@
          (u (lla:svd-u svd))
          (vt (lla:svd-vt svd)))
     (cond ((equal (mat-dimensions m) (array-dimensions u))
-           (copy! (array-to-mat u) m))
+           (replace! m u))
           ((equal (mat-dimensions m) (array-dimensions vt))
-           (copy! (array-to-mat vt) m))
+           (replace! m vt))
           (t
            (assert nil))))
   (scal! scale m))
