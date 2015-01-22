@@ -497,9 +497,9 @@
 
   - have a facet name among DESTROYS
 
-  - were created in in the dynamic extent of BODY
+  - were created in the dynamic extent of BODY
 
-  Before destroying the facets make sure that the facets with names
+  Before destroying the facets, it is ensured that facets with names
   among ENSURES are up-to-date. WITH-FACET-BARRIERs can be nested, in
   case of multiple barriers matching the cube's type and the created
   facet's name, the innermost one takes precedence.

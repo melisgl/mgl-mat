@@ -1,9 +1,9 @@
 ;;;; -*- mode: Lisp -*-
 
-;; The CUDA SDK may not be installed, we need CUDA-GROVEL-FILE from
-;; CL-CUDA to grovel safely.
+;;; The CUDA SDK may not be installed, we need CUDA-GROVEL-FILE from
+;;; CL-CUDA to grovel safely.
 (eval-when (:load-toplevel :execute)
-  (asdf:operate 'asdf:load-op 'cl-cuda))
+  (asdf:operate 'asdf:load-op '#:cl-cuda))
 
 (asdf:defsystem #:mgl-mat
   :licence "MIT, see COPYING."

@@ -437,7 +437,8 @@ foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     bound to a CURAND-XORWOW-STATE with N-RANDOM-STATES, seeded with
     RANDOM-SEED.
     
-    Else - that is, if cuda not available -, BODY is simply executed.
+    Else - that is, if cuda is not available -, BODY is simply
+    executed.
 
 - [function] CALL-WITH-CUDA FN &KEY ((:ENABLED *CUDA-ENABLED*) *CUDA-ENABLED*) (DEVICE-ID *CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED *CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES *CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T)
 
@@ -1034,6 +1035,49 @@ USE-CUDA-P. These are provided to help writing new operations.
     the ctype of the MAT objects passed for :MAT typed parameters. It's
     an error if they are not of the same type. Scalars declared FLOAT
     are coerced to that type and the appropriate kernel is called.
+
+## Debugging
+
+The largest class of bugs has to do with synchronization of facets
+being broken. This is almost always caused by an operation that
+mispecifies the DIRECTION argument of WITH-FACET. For example, the
+matrix argument of SCAL! should be accessed with direciton :IO. But
+if it's :INPUT instead, then subsequent access to the ARRAY facet
+will not see the changes made by AXPY!, and if it's :OUTPUT, then
+any changes made to the ARRAY facet since the last update of the
+CUDA-ARRAY facet will not be copied and from the wrong input SCAL!
+will compute the wrong result.
+
+Another thing that tends to come up is figuring out where memory is
+used.
+
+- [macro] WITH-MAT-COUNTERS (&KEY COUNT N-BYTES) &BODY BODY
+
+    Count all MAT allocations and also the number of bytes they may
+    require. *May require* here really means an upper bound,
+    because `(MAKE-MAT (EXPT 2 60))` doesn't actually uses memory until
+    one of its facets is accessed (don't simply evaluate it though,
+    printing the result will access the ARRAY facet if *PRINT-MAT*).
+    Also, while facets today all require the same number of bytes, this
+    may change in the future. This is a debugging tool, don't use it in
+    production.
+    
+    ```cl-transcript
+    (with-mat-counters (:count count :n-bytes n-bytes)
+      (assert (= count 0))
+      (assert (= n-bytes 0))
+      (make-mat '(2 3) :ctype :double)
+      (assert (= count 1))
+      (assert (= n-bytes (* 2 3 8)))
+      (with-mat-counters (:n-bytes n-bytes-1 :count count-1)
+        (make-mat '7 :ctype :float)
+        (assert (= count-1 1))
+        (assert (= n-bytes-1 (* 7 4))))
+      (assert (= n-bytes (+ (* 2 3 8) (* 7 4))))
+      (assert (= count 2)))
+    
+    ```
+
 # Cube manual
 
 ###### \[in package MGL-CUBE\]
@@ -1356,9 +1400,9 @@ Also see @DESTRUCTION-OF-CUBES.
     
     - have a facet name among DESTROYS
     
-    - were created in in the dynamic extent of BODY
+    - were created in the dynamic extent of BODY
     
-    Before destroying the facets make sure that the facets with names
+    Before destroying the facets, it is ensured that facets with names
     among ENSURES are up-to-date. WITH-FACET-BARRIERs can be nested, in
     case of multiple barriers matching the cube's type and the created
     facet's name, the innermost one takes precedence.

@@ -26,6 +26,7 @@
 - [15 Random numbers][ef83]
 - [16 I/O][78d7]
 - [17 Extension API][8b4f]
+- [18 Debugging][fe72]
 
 ###### \[in package MGL-MAT\]
 <a name='x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29'></a>
@@ -570,7 +571,8 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
     bound to a [`CURAND-XORWOW-STATE`][fa6c] with `N-RANDOM-STATES`, seeded with
     `RANDOM-SEED`.
     
-    Else - that is, if cuda not available -, `BODY` is simply executed.
+    Else - that is, if cuda is not available -, `BODY` is simply
+    executed.
 
 <a name='x-28MGL-MAT-3ACALL-WITH-CUDA-20FUNCTION-29'></a>
 
@@ -1341,6 +1343,53 @@ have a cuda and a lisp implementations and decide which to use with
     the ctype of the [`MAT`][773f] objects passed for `:MAT` typed parameters. It's
     an error if they are not of the same type. Scalars declared `FLOAT`
     are coerced to that type and the appropriate kernel is called.
+
+<a name='x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29'></a>
+
+## 18 Debugging
+
+The largest class of bugs has to do with synchronization of facets
+being broken. This is almost always caused by an operation that
+mispecifies the [`DIRECTION`][298b] argument of [`WITH-FACET`][f66e]. For example, the
+matrix argument of [`SCAL!`][4c84] should be accessed with direciton `:IO`. But
+if it's `:INPUT` instead, then subsequent access to the [`ARRAY`][ba88] facet
+will not see the changes made by [`AXPY!`][9221], and if it's `:OUTPUT`, then
+any changes made to the [`ARRAY`][ba88] facet since the last update of the
+[`CUDA-ARRAY`][84c3] facet will not be copied and from the wrong input [`SCAL!`][4c84]
+will compute the wrong result.
+
+Another thing that tends to come up is figuring out where memory is
+used.
+
+<a name='x-28MGL-MAT-3AWITH-MAT-COUNTERS-20MGL-PAX-3AMACRO-29'></a>
+
+- [macro] **WITH-MAT-COUNTERS** *(&KEY COUNT N-BYTES) &BODY BODY*
+
+    Count all [`MAT`][773f] allocations and also the number of bytes they may
+    require. *May require* here really means an upper bound,
+    because `(MAKE-MAT (EXPT 2 60))` doesn't actually uses memory until
+    one of its facets is accessed (don't simply evaluate it though,
+    printing the result will access the [`ARRAY`][ba88] facet if [`*PRINT-MAT*`][81d0]).
+    Also, while facets today all require the same number of bytes, this
+    may change in the future. This is a debugging tool, don't use it in
+    production.
+    
+    ```cl-transcript
+    (with-mat-counters (:count count :n-bytes n-bytes)
+      (assert (= count 0))
+      (assert (= n-bytes 0))
+      (make-mat '(2 3) :ctype :double)
+      (assert (= count 1))
+      (assert (= n-bytes (* 2 3 8)))
+      (with-mat-counters (:n-bytes n-bytes-1 :count count-1)
+        (make-mat '7 :ctype :float)
+        (assert (= count-1 1))
+        (assert (= n-bytes-1 (* 7 4))))
+      (assert (= n-bytes (+ (* 2 3 8) (* 7 4))))
+      (assert (= count 2)))
+    
+    ```
+
 <a name='x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29'></a>
 
 # Cube manual
@@ -1756,9 +1805,9 @@ Also see [Destroying cubes][2fa1].
     
     - have a facet name among `DESTROYS`
     
-    - were created in in the dynamic extent of `BODY`
+    - were created in the dynamic extent of `BODY`
     
-    Before destroying the facets make sure that the facets with names
+    Before destroying the facets, it is ensured that facets with names
     among `ENSURES` are up-to-date. WITH-FACET-BARRIERs can be nested, in
     case of multiple barriers matching the cube's type and the created
     facet's name, the innermost one takes precedence.
@@ -1805,6 +1854,7 @@ Also see [Destroying cubes][2fa1].
   [46c5]: #x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:CALL-WITH-FACET* GENERIC-FUNCTION)"
   [478c]: #x-28MGL-CUBE-3A-2AMAYBE-SYNCHRONIZE-CUBE-2A-20VARIABLE-29 "(MGL-CUBE:*MAYBE-SYNCHRONIZE-CUBE* VARIABLE)"
   [4802]: #x-28MGL-MAT-3ADISPLACE-21-20FUNCTION-29 "(MGL-MAT:DISPLACE! FUNCTION)"
+  [4c84]: #x-28MGL-MAT-3ASCAL-21-20FUNCTION-29 "(MGL-MAT:SCAL! FUNCTION)"
   [4cc3]: #x-28MGL-MAT-3AMAKE-MAT-20FUNCTION-29 "(MGL-MAT:MAKE-MAT FUNCTION)"
   [4d1e]: #x-28MGL-MAT-3A-40MAT-FOREIGN-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-FOREIGN MGL-PAX:SECTION)"
   [5192]: #x-28MGL-CUBE-3ADEFINE-FACET-NAME-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:DEFINE-FACET-NAME MGL-PAX:MACRO)"
@@ -1826,6 +1876,7 @@ Also see [Destroying cubes][2fa1].
   [776e]: #x-28MGL-CUBE-3AVIEW-20CLASS-29 "(MGL-CUBE:VIEW CLASS)"
   [78d7]: #x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-IO MGL-PAX:SECTION)"
   [7de8]: #x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)"
+  [81d0]: #x-28MGL-MAT-3A-2APRINT-MAT-2A-20VARIABLE-29 "(MGL-MAT:*PRINT-MAT* VARIABLE)"
   [84c3]: #x-28MGL-MAT-3ACUDA-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:CUDA-ARRAY MGL-CUBE:FACET-NAME)"
   [8520]: #x-28MGL-CUBE-3A-40FACET-BARRIER-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@FACET-BARRIER MGL-PAX:SECTION)"
   [85d5]: #x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29 "(\"mgl-mat\" ASDF/SYSTEM:SYSTEM)"
@@ -1834,6 +1885,7 @@ Also see [Destroying cubes][2fa1].
   [8816]: #x-28MGL-MAT-3A-40MAT-ASSEMBLING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-ASSEMBLING MGL-PAX:SECTION)"
   [8866]: #x-28MGL-MAT-3A-40MAT-SHAPING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-SHAPING MGL-PAX:SECTION)"
   [8b4f]: #x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)"
+  [9221]: #x-28MGL-MAT-3AAXPY-21-20FUNCTION-29 "(MGL-MAT:AXPY! FUNCTION)"
   [923f]: #x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29 "(MGL-CUBE:SYNCHRONIZATION (MGL-PAX:ACCESSOR MGL-CUBE:CUBE))"
   [9984]: #x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-NON-DESTRUCTIVE-API MGL-PAX:SECTION)"
   [99b9]: #x-28MGL-CUBE-3AWITH-FACET-BARRIER-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:WITH-FACET-BARRIER MGL-PAX:MACRO)"
@@ -1875,6 +1927,7 @@ Also see [Destroying cubes][2fa1].
   [f966]: #x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-BASICS MGL-PAX:SECTION)"
   [fa6c]: #x-28MGL-MAT-3ACURAND-XORWOW-STATE-20CLASS-29 "(MGL-MAT:CURAND-XORWOW-STATE CLASS)"
   [fd9c]: #x-28MGL-MAT-3A-2ADEFAULT-LISP-KERNEL-DECLARATIONS-2A-20VARIABLE-29 "(MGL-MAT:*DEFAULT-LISP-KERNEL-DECLARATIONS* VARIABLE)"
+  [fe72]: #x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-DEBUGGING MGL-PAX:SECTION)"
 
 * * *
 ###### \[generated by [MGL-PAX](https://github.com/melisgl/mgl-pax)\]

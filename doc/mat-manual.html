@@ -40,6 +40,7 @@
 <li><a href="#x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-RANDOM MGL-PAX:SECTION)">15 Random numbers</a></li>
 <li><a href="#x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-IO MGL-PAX:SECTION)">16 I/O</a></li>
 <li><a href="#x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)">17 Extension API</a></li>
+<li><a href="#x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-DEBUGGING MGL-PAX:SECTION)">18 Debugging</a></li>
 </ul>
 
 <h6>[in package MGL-MAT]</h6>
@@ -655,7 +656,8 @@ facet barrier, a cuda context is set up, <a href="#x-28MGL-MAT-3A-2AN-MEMCPY-HOS
 bound to a <a href="#x-28MGL-MAT-3ACURAND-XORWOW-STATE-20CLASS-29" title="(MGL-MAT:CURAND-XORWOW-STATE CLASS)"><code>CURAND-XORWOW-STATE</code></a> with <code>N-RANDOM-STATES</code>, seeded with
 <code>RANDOM-SEED</code>.</p>
 
-<p>Else - that is, if cuda not available -, <code>BODY</code> is simply executed.</p></li>
+<p>Else - that is, if cuda is not available -, <code>BODY</code> is simply
+executed.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3ACALL-WITH-CUDA-20FUNCTION-29'></a></p>
@@ -1486,7 +1488,7 @@ may return without error even if <code>STREAM</code> contains garbage.</p></li>
 
 <p><a name='x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29'></a></p>
 
-<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-IO MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)">&#8634;</a></span>17 Extension API</h2>
+<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-IO MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-DEBUGGING MGL-PAX:SECTION)">&#8594;</a> <a href="#x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)">&#8634;</a></span>17 Extension API</h2>
 
 <p>Macros for defining cuda and lisp kernels. Typically operations
 have a cuda and a lisp implementations and decide which to use with
@@ -1570,6 +1572,52 @@ one kernel for <code>FLOAT</code> and <code>DOUBLE</code>.</p>
 the ctype of the <a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> objects passed for <code>:MAT</code> typed parameters. It's
 an error if they are not of the same type. Scalars declared <code>FLOAT</code>
 are coerced to that type and the appropriate kernel is called.</p></li>
+</ul>
+
+<p><a name='x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29'></a></p>
+
+<h2><span class="navigation"> <a href="#x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)">&#8592;</a> <a href="#x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)">&#8593;</a> <a href="#x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-DEBUGGING MGL-PAX:SECTION)">&#8634;</a></span>18 Debugging</h2>
+
+<p>The largest class of bugs has to do with synchronization of facets
+being broken. This is almost always caused by an operation that
+mispecifies the <a href="cube-manual.html#x-28MGL-CUBE-3ADIRECTION-20TYPE-29" title="(MGL-CUBE:DIRECTION TYPE)"><code>DIRECTION</code></a> argument of <a href="cube-manual.html#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a>. For example, the
+matrix argument of <a href="#x-28MGL-MAT-3ASCAL-21-20FUNCTION-29" title="(MGL-MAT:SCAL! FUNCTION)"><code>SCAL!</code></a> should be accessed with direciton <code>:IO</code>. But
+if it's <code>:INPUT</code> instead, then subsequent access to the <a href="#x-28ARRAY-20MGL-CUBE-3AFACET-NAME-29" title="(ARRAY MGL-CUBE:FACET-NAME)"><code>ARRAY</code></a> facet
+will not see the changes made by <a href="#x-28MGL-MAT-3AAXPY-21-20FUNCTION-29" title="(MGL-MAT:AXPY! FUNCTION)"><code>AXPY!</code></a>, and if it's <code>:OUTPUT</code>, then
+any changes made to the <a href="#x-28ARRAY-20MGL-CUBE-3AFACET-NAME-29" title="(ARRAY MGL-CUBE:FACET-NAME)"><code>ARRAY</code></a> facet since the last update of the
+<a href="#x-28MGL-MAT-3ACUDA-ARRAY-20MGL-CUBE-3AFACET-NAME-29" title="(MGL-MAT:CUDA-ARRAY MGL-CUBE:FACET-NAME)"><code>CUDA-ARRAY</code></a> facet will not be copied and from the wrong input <a href="#x-28MGL-MAT-3ASCAL-21-20FUNCTION-29" title="(MGL-MAT:SCAL! FUNCTION)"><code>SCAL!</code></a>
+will compute the wrong result.</p>
+
+<p>Another thing that tends to come up is figuring out where memory is
+used.</p>
+
+<p><a name='x-28MGL-MAT-3AWITH-MAT-COUNTERS-20MGL-PAX-3AMACRO-29'></a></p>
+
+<ul>
+<li><p>[macro] <strong>WITH-MAT-COUNTERS</strong> <em>(&amp;KEY COUNT N-BYTES) &amp;BODY BODY</em></p>
+
+<p>Count all <a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> allocations and also the number of bytes they may
+require. <em>May require</em> here really means an upper bound,
+because <code>(MAKE-MAT (EXPT 2 60))</code> doesn't actually uses memory until
+one of its facets is accessed (don't simply evaluate it though,
+printing the result will access the <a href="#x-28ARRAY-20MGL-CUBE-3AFACET-NAME-29" title="(ARRAY MGL-CUBE:FACET-NAME)"><code>ARRAY</code></a> facet if <a href="#x-28MGL-MAT-3A-2APRINT-MAT-2A-20VARIABLE-29" title="(MGL-MAT:*PRINT-MAT* VARIABLE)"><code>*PRINT-MAT*</code></a>).
+Also, while facets today all require the same number of bytes, this
+may change in the future. This is a debugging tool, don't use it in
+production.</p>
+
+<pre><code>(with-mat-counters (:count count :n-bytes n-bytes)
+  (assert (= count 0))
+  (assert (= n-bytes 0))
+  (make-mat '(2 3) :ctype :double)
+  (assert (= count 1))
+  (assert (= n-bytes (* 2 3 8)))
+  (with-mat-counters (:n-bytes n-bytes-1 :count count-1)
+    (make-mat '7 :ctype :float)
+    (assert (= count-1 1))
+    (assert (= n-bytes-1 (* 7 4))))
+  (assert (= n-bytes (+ (* 2 3 8) (* 7 4))))
+  (assert (= count 2)))
+</code></pre></li>
 </ul>
 <hr/><h6>[generated by
           <a href="https://github.com/melisgl/mgl-pax">MGL-PAX</a>]

@@ -89,7 +89,8 @@ macro's BODY."
   bound to a CURAND-XORWOW-STATE with N-RANDOM-STATES, seeded with
   RANDOM-SEED.
 
-  Else - that is, if cuda not available -, BODY is simply executed."
+  Else - that is, if cuda is not available -, BODY is simply
+  executed."
   `(call-with-cuda (lambda () ,@body) :enabled ,enabled
                    :device-id ,device-id :random-seed ,random-seed
                    :n-random-states ,n-random-states

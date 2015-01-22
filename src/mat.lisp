@@ -23,7 +23,8 @@
   (@mat-mappings section)
   (@mat-random section)
   (@mat-io section)
-  (@mat-extension-api section))
+  (@mat-extension-api section)
+  (@mat-debugging section))
 
 (defsection @mat-introduction (:title "Introduction")
   (@mat-what-is-it section)
@@ -177,7 +178,7 @@
     :documentation "The total size can be larger than MAT-SIZE, but
     cannot change. Also DISPLACEMENT + SIZE must not exceed it. This
     is not")
-   ;; The number of bytes SIZE number of elements take.
+   ;; The number of bytes MAX-SIZE number of elements take.
    (n-bytes :reader mat-n-bytes))
   (:documentation "A MAT is a data CUBE that is much like a lisp
    array, it supports DISPLACEMENT, arbitrary DIMENSIONS and
@@ -206,10 +207,10 @@
         (* (mat-max-size mat) (ctype-size (mat-ctype mat))))
   (when (mat-initial-element mat)
     (setf (slot-value mat 'initial-element)
-          (coerce-to-ctype (mat-initial-element mat)
-                           :ctype (mat-ctype mat))))
+          (coerce-to-ctype (mat-initial-element mat) :ctype (mat-ctype mat))))
   (when initial-contents
-    (replace! mat initial-contents)))
+    (replace! mat initial-contents))
+  (note-allocation (mat-n-bytes mat)))
 
 ;;; Optimized version of (REDUCE #'* DIMENSIONS).
 (defun mat-size-from-dimensions (dimensions)
@@ -1911,3 +1912,60 @@
   (define-lisp-kernel macro)
   (*default-lisp-kernel-declarations* variable)
   (define-cuda-kernel macro))
+
+
+(defsection @mat-debugging (:title "Debugging")
+  "The largest class of bugs has to do with synchronization of facets
+  being broken. This is almost always caused by an operation that
+  mispecifies the DIRECTION argument of WITH-FACET. For example, the
+  matrix argument of SCAL! should be accessed with direciton :IO. But
+  if it's :INPUT instead, then subsequent access to the ARRAY facet
+  will not see the changes made by AXPY!, and if it's :OUTPUT, then
+  any changes made to the ARRAY facet since the last update of the
+  CUDA-ARRAY facet will not be copied and from the wrong input SCAL!
+  will compute the wrong result.
+
+  Another thing that tends to come up is figuring out where memory is
+  used."
+  (with-mat-counters macro))
+
+(defvar *counters* ())
+
+(defmacro with-mat-counters ((&key count n-bytes) &body body)
+  "Count all MAT allocations and also the number of bytes they may
+  require. _May require_ here really means an upper bound,
+  because `(MAKE-MAT (EXPT 2 60))` doesn't actually uses memory until
+  one of its facets is accessed (don't simply evaluate it though,
+  printing the result will access the ARRAY facet if *PRINT-MAT*).
+  Also, while facets today all require the same number of bytes, this
+  may change in the future. This is a debugging tool, don't use it in
+  production.
+
+  ```cl-transcript
+  (with-mat-counters (:count count :n-bytes n-bytes)
+    (assert (= count 0))
+    (assert (= n-bytes 0))
+    (make-mat '(2 3) :ctype :double)
+    (assert (= count 1))
+    (assert (= n-bytes (* 2 3 8)))
+    (with-mat-counters (:n-bytes n-bytes-1 :count count-1)
+      (make-mat '7 :ctype :float)
+      (assert (= count-1 1))
+      (assert (= n-bytes-1 (* 7 4))))
+    (assert (= n-bytes (+ (* 2 3 8) (* 7 4))))
+    (assert (= count 2)))
+  ```"
+  (alexandria:with-unique-names (counter)
+    `(let* ((,counter (list 0 0))
+            (*counters* (cons ,counter *counters*)))
+       (symbol-macrolet (,@(when n-bytes
+                             `((,n-bytes (first ,counter))))
+                         ,@(when count
+                             `((,count (second ,counter)))))
+         ,@body))))
+
+(defun note-allocation (n)
+  (loop for counter in *counters*
+        do (incf (first counter) n)
+           (incf (second counter))))
+
