@@ -190,9 +190,9 @@ initialized. See <a href="#x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29" titl
 <ul>
 <li><p>[class] <strong>MAT</strong> <em>CUBE</em></p>
 
-<p>A <a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> is a data <a href="cube-manual.html#x-28MGL-CUBE-3ACUBE-20CLASS-29" title="(MGL-CUBE:CUBE CLASS)"><code>CUBE</code></a> that is much like a lisp
+<p>A <code>MAT</code> is a data <a href="cube-manual.html#x-28MGL-CUBE-3ACUBE-20CLASS-29" title="(MGL-CUBE:CUBE CLASS)"><code>CUBE</code></a> that is much like a lisp
 array, it supports <code>DISPLACEMENT</code>, arbitrary <code>DIMENSIONS</code> and
-<code>INITIAL-ELEMENT</code> with the usual semantics. However, a <a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> supports
+<code>INITIAL-ELEMENT</code> with the usual semantics. However, a <code>MAT</code> supports
 different representations of the same data. See <a href="#x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-MAT:@MAT-BASICS MGL-PAX:SECTION)">Basics</a> for a
 tuturialish treatment.</p></li>
 </ul>
@@ -787,8 +787,8 @@ Currently - but this may change - the <code>BLOCK-DIM-X</code> is always
 
 <p>This means that the kernel must be able handle any number of
 elements in each thread. For example, a strided kernel that adds a
-constant to each element of a <code>THICKNESS</code><em><code>HEIGHT</code></em><code>WIDTH</code> 3d array looks
-like this:</p>
+constant to each element of a <code>THICKNESS</code> * <code>HEIGHT</code> * <code>WIDTH</code> 3d array
+looks like this:</p>
 
 <pre><code><span class="code"><span class="paren1">(<span class="code"><i><span class="symbol">let</span></i> <span class="paren2">(<span class="code"><span class="paren3">(<span class="code">id-x <span class="paren4">(<span class="code">+ <span class="paren5">(<span class="code">* block-dim-x block-idx-x</span>)</span> thread-idx-x</span>)</span></span>)</span>
       <span class="paren3">(<span class="code">id-y <span class="paren4">(<span class="code">+ <span class="paren5">(<span class="code">* block-dim-y block-idx-y</span>)</span> thread-idx-y</span>)</span></span>)</span>

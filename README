@@ -541,8 +541,8 @@ foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     
     This means that the kernel must be able handle any number of
     elements in each thread. For example, a strided kernel that adds a
-    constant to each element of a THICKNESS*HEIGHT*WIDTH 3d array looks
-    like this:
+    constant to each element of a THICKNESS \* HEIGHT \* WIDTH 3d array
+    looks like this:
     
     ```
     (let ((id-x (+ (* block-dim-x block-idx-x) thread-idx-x))

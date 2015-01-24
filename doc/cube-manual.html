@@ -86,7 +86,7 @@ the type <code>DIRECTION</code>.</p></li>
 <ul>
 <li><p>[type] <strong>DIRECTION</strong></p>
 
-<p>Used by <a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a>, <a href="#x-28MGL-CUBE-3ADIRECTION-20TYPE-29" title="(MGL-CUBE:DIRECTION TYPE)"><code>DIRECTION</code></a> can be <code>:INPUT</code>, <code>:OUTPUT</code> or <code>:IO</code>.</p>
+<p>Used by <a href="#x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"><code>WITH-FACET</code></a>, <code>DIRECTION</code> can be <code>:INPUT</code>, <code>:OUTPUT</code> or <code>:IO</code>.</p>
 
 <ul>
 <li><p><code>:INPUT</code> promises that the facet will only be read and never
@@ -199,7 +199,7 @@ cubes with <a href="#x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MG
 <ul>
 <li><p>[locative] <strong>FACET-NAME</strong></p>
 
-<p>The <a href="#x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29" title="(MGL-CUBE:FACET-NAME MGL-PAX:LOCATIVE)"><code>FACET-NAME</code></a> locative is to refer to stuff defined with
+<p>The <code>FACET-NAME</code> locative is to refer to stuff defined with
 <a href="#x-28MGL-CUBE-3ADEFINE-FACET-NAME-20MGL-PAX-3AMACRO-29" title="(MGL-CUBE:DEFINE-FACET-NAME MGL-PAX:MACRO)"><code>DEFINE-FACET-NAME</code></a>.</p></li>
 </ul>
 
@@ -389,9 +389,9 @@ only visible to those implementing the <a href="#x-28MGL-CUBE-3A-40FACET-EXTENSI
 
 <p>A cube has facets, as we discussed in <a href="#x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@CUBE-BASICS MGL-PAX:SECTION)">Basics</a>. The object
 which holds the data in a particular representation is the facet. A
-<a href="#x-28MGL-CUBE-3AVIEW-20CLASS-29" title="(MGL-CUBE:VIEW CLASS)"><code>VIEW</code></a> holds one such facet and some metadata pertaining to it: its
+<code>VIEW</code> holds one such facet and some metadata pertaining to it: its
 name (<a href="#x-28MGL-CUBE-3AVIEW-FACET-NAME-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29" title="(MGL-CUBE:VIEW-FACET-NAME MGL-PAX:STRUCTURE-ACCESSOR)"><code>VIEW-FACET-NAME</code></a>), whether it's up-to-date (<a href="#x-28MGL-CUBE-3AVIEW-UP-TO-DATE-P-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29" title="(MGL-CUBE:VIEW-UP-TO-DATE-P MGL-PAX:STRUCTURE-ACCESSOR)"><code>VIEW-UP-TO-DATE-P</code></a>),
-etc. <a href="#x-28MGL-CUBE-3AVIEW-20CLASS-29" title="(MGL-CUBE:VIEW CLASS)"><code>VIEW</code></a> ojbects are never seen when simply using a cube, they are
+etc. <code>VIEW</code> ojbects are never seen when simply using a cube, they are
 for implementing the <a href="#x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29" title="(MGL-CUBE:@FACET-EXTENSION-API MGL-PAX:SECTION)">Facet extension API</a>.</p></li>
 </ul>
 

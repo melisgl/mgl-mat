@@ -169,9 +169,9 @@ representations of numeric arrays. These facets can be accessed with
 
 - [class] **MAT** *CUBE*
 
-    A [`MAT`][773f] is a data [`CUBE`][9fcc] that is much like a lisp
+    A `MAT` is a data [`CUBE`][9fcc] that is much like a lisp
     array, it supports `DISPLACEMENT`, arbitrary `DIMENSIONS` and
-    `INITIAL-ELEMENT` with the usual semantics. However, a [`MAT`][773f] supports
+    `INITIAL-ELEMENT` with the usual semantics. However, a `MAT` supports
     different representations of the same data. See [Basics][f966] for a
     tuturialish treatment.
 
@@ -691,8 +691,8 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
     
     This means that the kernel must be able handle any number of
     elements in each thread. For example, a strided kernel that adds a
-    constant to each element of a `THICKNESS`*`HEIGHT`*`WIDTH` 3d array looks
-    like this:
+    constant to each element of a `THICKNESS` \* `HEIGHT` \* `WIDTH` 3d array
+    looks like this:
     
     ```
     (let ((id-x (+ (* block-dim-x block-idx-x) thread-idx-x))
@@ -1463,7 +1463,7 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
 
 - [type] **DIRECTION**
 
-    Used by [`WITH-FACET`][f66e], [`DIRECTION`][298b] can be `:INPUT`, `:OUTPUT` or `:IO`.
+    Used by [`WITH-FACET`][f66e], `DIRECTION` can be `:INPUT`, `:OUTPUT` or `:IO`.
     
     - `:INPUT` promises that the facet will only be read and never
       written. Other up-to-date facets of the same cube remain
@@ -1571,7 +1571,7 @@ signal safe.
 
 - [locative] **FACET-NAME**
 
-    The [`FACET-NAME`][21a4] locative is to refer to stuff defined with
+    The `FACET-NAME` locative is to refer to stuff defined with
     [`DEFINE-FACET-NAME`][5192].
 
 <a name='x-28MGL-CUBE-3ADEFINE-FACET-NAME-20MGL-PAX-3AMACRO-29'></a>
@@ -1731,9 +1731,9 @@ only visible to those implementing the [Facet extension API][eb06].
 
     A cube has facets, as we discussed in [Basics][1164]. The object
     which holds the data in a particular representation is the facet. A
-    [`VIEW`][776e] holds one such facet and some metadata pertaining to it: its
+    `VIEW` holds one such facet and some metadata pertaining to it: its
     name ([`VIEW-FACET-NAME`][9ecd]), whether it's up-to-date ([`VIEW-UP-TO-DATE-P`][9e0b]),
-    etc. [`VIEW`][776e] ojbects are never seen when simply using a cube, they are
+    etc. `VIEW` ojbects are never seen when simply using a cube, they are
     for implementing the [Facet extension API][eb06].
 
 <a name='x-28MGL-CUBE-3AVIEW-FACET-NAME-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
