@@ -1,4 +1,4 @@
-# MAT manual
+# MAT Manual
 
 ###### \[in package MGL-MAT\]
 ## mgl-mat ASDF System Details
@@ -607,7 +607,7 @@ This the low level CURAND API.
 
 - [variable] *CURAND-STATE* "-unbound-"
 
-- [class] CURAND-XORWOW-STATE
+- [class] CURAND-XORWOW-STATE CURAND-STATE
 
 - [reader] N-STATES CURAND-XORWOW-STATE (:N-STATES)
 
@@ -933,6 +933,9 @@ This is rather experimental.
     distribution defined by MEANS (Nx1) and COVARIANCES (NxN).
 
 - [generic-function] COPY-RANDOM-STATE STATE
+
+    Return a copy of STATE be it a lisp or cuda random
+    state.
 
 - [function] UNIFORM-RANDOM! MAT &KEY (LIMIT 1)
 

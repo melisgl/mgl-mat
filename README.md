@@ -1,6 +1,6 @@
 <a name='x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29'></a>
 
-# MAT manual
+# MAT Manual
 
 ## Table of Contents
 
@@ -791,7 +791,7 @@ This the low level CURAND API.
 
 <a name='x-28MGL-MAT-3ACURAND-XORWOW-STATE-20CLASS-29'></a>
 
-- [class] **CURAND-XORWOW-STATE**
+- [class] **CURAND-XORWOW-STATE** *CURAND-STATE*
 
 <a name='x-28MGL-MAT-3AN-STATES-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACURAND-XORWOW-STATE-29-29'></a>
 
@@ -1222,6 +1222,9 @@ This is rather experimental.
 
 - [generic-function] **COPY-RANDOM-STATE** *STATE*
 
+    Return a copy of `STATE` be it a lisp or cuda random
+    state.
+
 <a name='x-28MGL-MAT-3AUNIFORM-RANDOM-21-20FUNCTION-29'></a>
 
 - [function] **UNIFORM-RANDOM!** *MAT &KEY (LIMIT 1)*
@@ -1410,7 +1413,7 @@ used.
 
 ## 1 Introduction
 
-This is the libray on which MGL-MAT (see [MAT manual][2629]) is
+This is the libray on which MGL-MAT (see [MAT Manual][2629]) is
 built. The idea of automatically translating between various
 representations may be useful for other applications, so this got
 its own package and all ties to MGL-MAT has been severed.

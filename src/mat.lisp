@@ -1870,7 +1870,13 @@
            (assert nil))))
   (scal! scale m))
 
-(defgeneric copy-random-state (state))
+(defgeneric copy-random-state (state)
+  (:method ((state curand-state))
+    (copy-curand-state state))
+  (:method ((state random-state))
+    (make-random-state state))
+  (:documentation "Return a copy of STATE be it a lisp or cuda random
+  state."))
 
 
 (defsection @mat-io (:title "I/O")

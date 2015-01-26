@@ -10,22 +10,26 @@
 
 (defvar *curand-state*)
 
-(defgeneric destroy-random-state (state))
+(defgeneric copy-curand-state (state))
+(defgeneric destroy-curand-state (state))
 
 (defmacro with-curand-state ((state) &body body)
   `(let ((*curand-state* ,state))
      (unwind-protect
           (locally ,@body)
-       (destroy-random-state *curand-state*))))
+       (destroy-curand-state *curand-state*))))
 
 (defgeneric curand-uniform (state mat))
 
 (defgeneric curand-normal (state mat))
+
+(defclass curand-state ()
+  ())
 
 
 ;;;; XORWOW
 
-(defclass curand-xorwow-state ()
+(defclass curand-xorwow-state (curand-state)
   ((n-states :initarg :n-states :reader n-states)
    (states :initarg :states :reader states)))
 
@@ -107,7 +111,7 @@
     (when (< i n)
       (set (aref to i) (aref from i)))))
 
-(defmethod copy-random-state ((state curand-xorwow-state))
+(defmethod copy-curand-state ((state curand-xorwow-state))
   (let* ((n-states (n-states state))
          (states (alloc-cuda-array
                   (* n-states
@@ -121,6 +125,6 @@
                    :n-states n-states
                    :states states)))
 
-(defmethod destroy-random-state ((state curand-xorwow-state))
+(defmethod destroy-curand-state ((state curand-xorwow-state))
   (free-cuda-array (states state))
   (setf (slot-value state 'states) nil))
