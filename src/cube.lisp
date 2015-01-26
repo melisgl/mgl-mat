@@ -297,6 +297,28 @@
   (check-no-writers function)
   (check-no-watchers function))
 
+;;; This actually belongs @CUBE-VIEWS, but it's defined early so that
+;;; accessors can be compiled efficiently.
+(defstruct view
+  "A cube has facets, as we discussed in @CUBE-BASICS. The object
+  which holds the data in a particular representation is the facet. A
+  VIEW holds one such facet and some metadata pertaining to it: its
+  name (VIEW-FACET-NAME), whether it's up-to-date (VIEW-UP-TO-DATE-P),
+  etc. VIEW ojbects are never seen when simply using a cube, they are
+  for implementing the @FACET-EXTENSION-API."
+  facet-name
+  facet
+  facet-description
+  up-to-date-p
+  (n-watchers 0)
+  (watcher-threads ())
+  (direction nil :type direction)
+  ;; Destruction can be initiated by finalizers running in other
+  ;; threads, and also by both a FACET-BARRIER and a finalizer on some
+  ;; platforms. Hence, we CAS T onto the CAR of this token before
+  ;; destroying a facet.
+  (permission-to-destroy (cons nil nil)))
+
 (defmethod call-with-facet* ((cube cube) facet-name direction fn)
   "The default implementation of CALL-WITH-FACET* is defined in terms
   of the WATCH-FACET and the UNWATCH-FACET generic functions. These
@@ -415,26 +437,6 @@
   (view-up-to-date-p structure-accessor)
   (views function)
   (find-view function))
-
-(defstruct view
-  "A cube has facets, as we discussed in @CUBE-BASICS. The object
-  which holds the data in a particular representation is the facet. A
-  VIEW holds one such facet and some metadata pertaining to it: its
-  name (VIEW-FACET-NAME), whether it's up-to-date (VIEW-UP-TO-DATE-P),
-  etc. VIEW ojbects are never seen when simply using a cube, they are
-  for implementing the @FACET-EXTENSION-API."
-  facet-name
-  facet
-  facet-description
-  up-to-date-p
-  (n-watchers 0)
-  (watcher-threads ())
-  (direction nil :type direction)
-  ;; Destruction can be initiated by finalizers running in other
-  ;; threads, and also by both a FACET-BARRIER and a finalizer on some
-  ;; platforms. Hence, we CAS T onto the CAR of this token before
-  ;; destroying a facet.
-  (permission-to-destroy (cons nil nil)))
 
 (defun views (cube)
   "Return the views of CUBE."
