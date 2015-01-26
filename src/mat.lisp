@@ -1206,7 +1206,8 @@
 
 (define-lisp-kernel (lisp-.min!)
     ((alpha single-float) (x :mat :io) (start-x index) (n index))
-  (loop for xi of-type index upfrom start-x below (+ start-x n)
+  (loop for xi of-type index upfrom start-x
+          below (the! index (+ start-x n))
         do (when (< alpha (aref x xi))
              (setf (aref x xi) alpha))))
 
@@ -1232,7 +1233,8 @@
 
 (define-lisp-kernel (lisp-.max!)
     ((alpha single-float) (x :mat :io) (start-x index) (n index))
-  (loop for xi of-type index upfrom start-x below (+ start-x n)
+  (loop for xi of-type index upfrom start-x
+          below (the! index (+ start-x n))
         do (when (< (aref x xi) alpha)
              (setf (aref x xi) alpha))))
 
