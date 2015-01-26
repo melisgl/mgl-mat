@@ -6,7 +6,7 @@
 
 (in-package :mgl-mat)
 
-(defsection @mat-manual (:title "MAT manual")
+(defsection @mat-manual (:title "MAT Manual")
   (mgl-mat asdf:system)
   (@mat-introduction section)
   (@mat-basics section)

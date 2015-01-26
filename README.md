@@ -80,7 +80,7 @@ from github.
 
 ## 3 Basics
 
-A [`MAT`][773f] is a [`CUBE`][9fcc] (see [Cube manual][7de8]) whose facets are different
+A [`MAT`][773f] is a [`CUBE`][9fcc] (see [Cube Manual][7de8]) whose facets are different
 representations of numeric arrays. These facets can be accessed with
 [`WITH-FACETS`][b61b] with one of the following [`FACET-NAME`][21a4]s:
 
@@ -1392,7 +1392,7 @@ used.
 
 <a name='x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29'></a>
 
-# Cube manual
+# Cube Manual
 
 ## Table of Contents
 

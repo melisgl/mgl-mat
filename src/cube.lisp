@@ -1,6 +1,6 @@
 (in-package :mgl-cube)
 
-(defsection @cube-manual (:title "Cube manual")
+(defsection @cube-manual (:title "Cube Manual")
   (@cube-introduction section)
   (@cube-basics section)
   (@cube-synchronization section)
