@@ -5,7 +5,9 @@
   (with-cuda* macro)
   (call-with-cuda function)
   (*cuda-enabled* variable)
+  (cuda-enabled (accessor mat))
   (use-cuda-p function)
+  (*default-mat-cuda-enabled* variable)
   (*n-memcpy-host-to-device* variable)
   (*n-memcpy-device-to-host* variable)
   (choose-1d-block-and-grid function)
@@ -38,12 +40,16 @@
   values of the ENABLED argument of any future [WITH-CUDA*][]s which
   turns off cuda initialization entirely.")
 
-(defun use-cuda-p ()
-  "Return true if cuda is enabled (*CUDA-ENABLED*) and it's
-  initialized. MAT operations use this to decide whether to go for the
-  cuda implementation or BLAS/Lisp. It's provided for implementing new
+(defun use-cuda-p (&rest mats)
+  "Return true if cuda is enabled (*CUDA-ENABLED*), it's initialized
+  and all MATS have [CUDA-ENABLED][(accessor mat)]. Operations of
+  matrices use this to decide whether to go for the CUDA
+  implementation or BLAS/Lisp. It's provided for implementing new
   operations."
-  (and *cuda-enabled* (boundp '*cuda-context*)))
+  (declare (optimize speed)
+           (dynamic-extent mats))
+  (and *cuda-enabled* (boundp '*cuda-context*)
+       (every #'cuda-enabled mats)))
 
 ;;; This is effectively a constant across all cuda cards.
 (defvar *cuda-warp-size* 32)

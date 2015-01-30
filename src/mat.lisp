@@ -148,6 +148,9 @@
   Most operations automatically use CUDA, if available and
   initialized. See WITH-CUDA* for detail.")
 
+(defvar *default-mat-cuda-enabled* t
+  "The default for [CUDA-ENABLED][(accessor mat)].")
+
 (defclass mat (cube)
   ((ctype
     :type ctype :initform *default-mat-ctype*
@@ -178,6 +181,15 @@
     :documentation "The total size can be larger than MAT-SIZE, but
     cannot change. Also DISPLACEMENT + SIZE must not exceed it. This
     is not")
+   (cuda-enabled
+    :initform *default-mat-cuda-enabled*
+    :initarg cuda-enabled :accessor cuda-enabled
+    :documentation "The control provided by *CUDA-ENABLED* can be too
+    coarse. This flag provides a per-object mechanism to turn cuda
+    off. If it is set to NIL, then any operation that pays attention
+    to this flag will not create or access the CUDA-ARRAY facet.
+    Implementationally speaking, this is easily accomplished by using
+    USE-CUDA-P.")
    ;; The number of bytes MAX-SIZE number of elements take.
    (n-bytes :reader mat-n-bytes))
   (:documentation "A MAT is a data CUBE that is much like a lisp
@@ -358,7 +370,7 @@
 
 (defun set-row-major-mref (mat index value)
   (let ((value (coerce-to-ctype value :ctype (mat-ctype mat))))
-    (cond ((and (use-cuda-p)
+    (cond ((and (use-cuda-p mat)
                 (let ((view (find-view mat 'cuda-array)))
                   (or (and view (view-up-to-date-p view))
                       (endp (views mat)))))
@@ -984,7 +996,7 @@
     `(defun ,name (x &key (n (mat-size x)))
        ,@(when docstring (list docstring))
        (assert (<= n (mat-size x)))
-       (if (use-cuda-p)
+       (if (use-cuda-p x)
            (,cuda-name x n :grid-dim (list (ceiling n 256) 1 1)
                        :block-dim (list 256 1 1))
            (let* ((start (mat-displacement x))
@@ -1064,7 +1076,7 @@
   X. Return X."
   (let ((n (mat-size x))
         (alpha (coerce-to-ctype alpha :ctype (mat-ctype x))))
-    (if (use-cuda-p)
+    (if (use-cuda-p x)
         (multiple-value-bind (block-dim grid-dim) (choose-1d-block-and-grid n 4)
           (cuda-.+! alpha x n :grid-dim grid-dim :block-dim block-dim))
         (lisp-.+! alpha x (mat-displacement x) n)))
@@ -1082,7 +1094,7 @@
          (beta (coerce-to-ctype beta :ctype ctype)))
     (assert (= n (mat-size b)))
     (assert (= n (mat-size c)))
-    (if (use-cuda-p)
+    (if (use-cuda-p a b c)
         (multiple-value-bind (block-dim grid-dim) (choose-1d-block-and-grid n 4)
           (cuda-geem! alpha a b beta c n
                       :grid-dim grid-dim :block-dim block-dim))
@@ -1124,7 +1136,7 @@
          (beta (coerce-to-ctype beta :ctype ctype)))
     (destructuring-bind (n-rows n-columns) (mat-dimensions a)
       (assert (= n-columns (mat-size x)))
-      (if (use-cuda-p)
+      (if (use-cuda-p a x b)
           (multiple-value-bind (block-dim grid-dim)
               (choose-1d-block-and-grid (mat-size a) 4)
             (cuda-geerv! alpha a x beta b n-rows n-columns
@@ -1186,7 +1198,7 @@
   greater than the element in X, and to 0 otherwise. Return Y."
   (assert (= (mat-size x) (mat-size y)))
   (let ((n (mat-size x)))
-    (if (use-cuda-p)
+    (if (use-cuda-p x y)
         (cuda-less-than! x y n :grid-dim (list (ceiling n 256) 1 1)
                          :block-dim (list 256 1 1))
         (lisp-less-than! x (mat-displacement x) y (mat-displacement y) n))
@@ -1198,7 +1210,7 @@
   (let* ((n (mat-size x))
          (ctype (mat-ctype x))
          (alpha (coerce-to-ctype alpha :ctype ctype)))
-    (if (use-cuda-p)
+    (if (use-cuda-p x)
         (cuda-.min! alpha x n :grid-dim (list (ceiling n 256) 1 1)
                     :block-dim (list 256 1 1))
         (lisp-.min! alpha x (mat-displacement x) n))
@@ -1225,7 +1237,7 @@
   (let* ((n (mat-size x))
          (ctype (mat-ctype x))
          (alpha (coerce-to-ctype alpha :ctype ctype)))
-    (if (use-cuda-p)
+    (if (use-cuda-p x)
         (cuda-.max! alpha x n :grid-dim (list (ceiling n 256) 1 1)
                     :block-dim (list 256 1 1))
         (lisp-.max! alpha x (mat-displacement x) n))
@@ -1286,7 +1298,7 @@
          (alpha (coerce-to-ctype alpha :ctype ctype))
          (beta (coerce-to-ctype beta :ctype ctype)))
     (assert (= n (mat-size b)))
-    (if (use-cuda-p)
+    (if (use-cuda-p a b)
         (multiple-value-bind (block-dim grid-dim) (choose-1d-block-and-grid n 4)
           (cuda-add-sign! alpha a beta b n
                           :grid-dim grid-dim :block-dim block-dim))
@@ -1320,7 +1332,7 @@
          (n (mat-size x))
          (end (+ start n))
          (ctype (mat-ctype x)))
-    (cond ((use-cuda-p)
+    (cond ((use-cuda-p x)
            (with-facets ((x* (x 'cuda-array :direction :output)))
              (cuda-fill!-2 ctype alpha x* n)))
           ((eq ctype :float)
@@ -1391,7 +1403,7 @@
   (destructuring-bind (n-rows n-columns) (mat-dimensions a)
     (assert (equal (mat-dimensions a) (mat-dimensions b)))
     (assert (= n-rows (mat-size scales)))
-    (if (use-cuda-p)
+    (if (use-cuda-p a b)
         (multiple-value-bind (block-dim grid-dim)
             (choose-1d-block-and-grid (mat-size a) 4)
           (cuda-scale-rows! scales a b n-rows n-columns
@@ -1423,7 +1435,7 @@
   "Return the l1 norm of X, that is, sum of the absolute values of its
   elements."
   (assert (<= (abs (* n incx)) (mat-size x)))
-  (if (use-cuda-p)
+  (if (use-cuda-p x)
       (cublas-asum n x incx)
       (blas-asum n x incx)))
 
@@ -1431,7 +1443,7 @@
   "Set Y to ALPHA * X + Y. Return Y."
   (assert (<= (abs (* n incx)) (mat-size x)))
   (assert (<= (abs (* n incy)) (mat-size y)))
-  (if (use-cuda-p)
+  (if (use-cuda-p x y)
       (cublas-axpy n alpha x incx y incy)
       (blas-axpy n alpha x incx y incy))
   y)
@@ -1440,7 +1452,7 @@
   "Copy X into Y. Return Y."
   (assert (<= (abs (* n incx)) (mat-size x)))
   (assert (<= (abs (* n incy)) (mat-size y)))
-  (if (use-cuda-p)
+  (if (use-cuda-p x y)
       (cublas-copy n x incx y incy)
       (blas-copy n x incx y incy))
   y)
@@ -1449,7 +1461,7 @@
   "Return the dot product of X and Y."
   (assert (<= (abs (* n incx)) (mat-size x)))
   (assert (<= (abs (* n incy)) (mat-size y)))
-  (if (use-cuda-p)
+  (if (use-cuda-p x y)
       (cublas-dot n x incx y incy)
       (blas-dot n x incx y incy)))
 
@@ -1457,14 +1469,14 @@
   "Return the l2 norm of X, which is the square root of the sum of the
   squares of its elements."
   (assert (<= (abs (* n incx)) (mat-size x)))
-  (if (use-cuda-p)
+  (if (use-cuda-p x)
       (cublas-nrm2 n x incx)
       (blas-nrm2 n x incx)))
 
 (defun scal! (alpha x &key (n (mat-size x)) (incx 1))
   "Set X to ALPHA * X. Return X."
   (assert (<= (abs (* n incx)) (mat-size x)))
-  (if (use-cuda-p)
+  (if (use-cuda-p x)
       (cublas-scal n alpha x incx)
       (blas-scal n alpha x incx))
   x)
@@ -1528,7 +1540,7 @@
            (assert (<= (* k ldb) b-size))))
     (assert (<= n ldc))
     (assert (<= (* m ldc) c-size))
-    (if (use-cuda-p)
+    (if (use-cuda-p a b c)
         (cublas-gemm (if transpose-b? :cublas-op-c :cublas-op-n)
                      (if transpose-a? :cublas-op-c :cublas-op-n)
                      n m k
@@ -1832,7 +1844,7 @@
   interval of MAT's type."
   (let* ((ctype (mat-ctype mat))
          (limit (coerce-to-ctype limit :ctype ctype)))
-    (cond ((use-cuda-p)
+    (cond ((use-cuda-p mat)
            (curand-uniform *curand-state* mat)
            (unless (= limit 1)
              (scal! limit mat)))
@@ -1849,7 +1861,7 @@
   (let* ((ctype (mat-ctype mat))
          (mean (coerce-to-ctype mean :ctype ctype))
          (stddev (coerce-to-ctype stddev :ctype ctype)))
-    (cond ((use-cuda-p)
+    (cond ((use-cuda-p mat)
            (curand-normal *curand-state* mat)
            (unless (= stddev 1)
              (scal! stddev mat))

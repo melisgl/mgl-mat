@@ -453,12 +453,26 @@ foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     values of the ENABLED argument of any future [WITH-CUDA\*][]s which
     turns off cuda initialization entirely.
 
-- [function] USE-CUDA-P 
+- [accessor] CUDA-ENABLED MAT (CUDA-ENABLED = *DEFAULT-MAT-CUDA-ENABLED*)
 
-    Return true if cuda is enabled (*CUDA-ENABLED*) and it's
-    initialized. MAT operations use this to decide whether to go for the
-    cuda implementation or BLAS/Lisp. It's provided for implementing new
+    The control provided by *CUDA-ENABLED* can be too
+    coarse. This flag provides a per-object mechanism to turn cuda
+    off. If it is set to NIL, then any operation that pays attention
+    to this flag will not create or access the CUDA-ARRAY facet.
+    Implementationally speaking, this is easily accomplished by using
+    USE-CUDA-P.
+
+- [function] USE-CUDA-P &REST MATS
+
+    Return true if cuda is enabled (*CUDA-ENABLED*), it's initialized
+    and all MATS have [CUDA-ENABLED][(accessor mat)]. Operations of
+    matrices use this to decide whether to go for the CUDA
+    implementation or BLAS/Lisp. It's provided for implementing new
     operations.
+
+- [variable] *DEFAULT-MAT-CUDA-ENABLED* T
+
+    The default for [CUDA-ENABLED][(accessor mat)].
 
 - [variable] *N-MEMCPY-HOST-TO-DEVICE* 0
 

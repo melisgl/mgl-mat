@@ -591,14 +591,32 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
     values of the `ENABLED` argument of any future [`WITH-CUDA*`][c00b]s which
     turns off cuda initialization entirely.
 
+<a name='x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29'></a>
+
+- [accessor] **CUDA-ENABLED** *MAT* *(CUDA-ENABLED = \*DEFAULT-MAT-CUDA-ENABLED\*)*
+
+    The control provided by [`*CUDA-ENABLED*`][5feb] can be too
+    coarse. This flag provides a per-object mechanism to turn cuda
+    off. If it is set to `NIL`, then any operation that pays attention
+    to this flag will not create or access the [`CUDA-ARRAY`][84c3] facet.
+    Implementationally speaking, this is easily accomplished by using
+    [`USE-CUDA-P`][51e4].
+
 <a name='x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29'></a>
 
-- [function] **USE-CUDA-P** 
+- [function] **USE-CUDA-P** *&REST MATS*
 
-    Return true if cuda is enabled ([`*CUDA-ENABLED*`][5feb]) and it's
-    initialized. [`MAT`][773f] operations use this to decide whether to go for the
-    cuda implementation or BLAS/Lisp. It's provided for implementing new
+    Return true if cuda is enabled ([`*CUDA-ENABLED*`][5feb]), it's initialized
+    and all `MATS` have [`CUDA-ENABLED`][5ed3]. Operations of
+    matrices use this to decide whether to go for the CUDA
+    implementation or BLAS/Lisp. It's provided for implementing new
     operations.
+
+<a name='x-28MGL-MAT-3A-2ADEFAULT-MAT-CUDA-ENABLED-2A-20VARIABLE-29'></a>
+
+- [variable] **\*DEFAULT-MAT-CUDA-ENABLED\*** *T*
+
+    The default for [`CUDA-ENABLED`][5ed3].
 
 <a name='x-28MGL-MAT-3A-2AN-MEMCPY-HOST-TO-DEVICE-2A-20VARIABLE-29'></a>
 
@@ -1868,6 +1886,7 @@ Also see [Destroying cubes][2fa1].
   [58e7]: #x-28MGL-MAT-3ARESHAPE-21-20FUNCTION-29 "(MGL-MAT:RESHAPE! FUNCTION)"
   [59d0]: #x-28MGL-CUBE-3ASET-UP-TO-DATE-P-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:SET-UP-TO-DATE-P* GENERIC-FUNCTION)"
   [5d9b]: #x-28MGL-MAT-3A-2AN-MEMCPY-DEVICE-TO-HOST-2A-20VARIABLE-29 "(MGL-MAT:*N-MEMCPY-DEVICE-TO-HOST* VARIABLE)"
+  [5ed3]: #x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:CUDA-ENABLED (MGL-PAX:ACCESSOR MGL-MAT:MAT))"
   [5feb]: #x-28MGL-MAT-3A-2ACUDA-ENABLED-2A-20VARIABLE-29 "(MGL-MAT:*CUDA-ENABLED* VARIABLE)"
   [6056]: #x-28MGL-CUBE-3ASELECT-COPY-SOURCE-FOR-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:SELECT-COPY-SOURCE-FOR-FACET* GENERIC-FUNCTION)"
   [688d]: #x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-SYNCHRONIZATION MGL-PAX:SECTION)"

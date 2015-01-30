@@ -681,15 +681,37 @@ values of the <code>ENABLED</code> argument of any future <a href="#x-28MGL-MAT-
 turns off cuda initialization entirely.</p></li>
 </ul>
 
+<p><a name='x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29'></a></p>
+
+<ul>
+<li><p>[accessor] <strong>CUDA-ENABLED</strong> <em>MAT</em> <em>(CUDA-ENABLED = *DEFAULT-MAT-CUDA-ENABLED*)</em></p>
+
+<p>The control provided by <a href="#x-28MGL-MAT-3A-2ACUDA-ENABLED-2A-20VARIABLE-29" title="(MGL-MAT:*CUDA-ENABLED* VARIABLE)"><code>*CUDA-ENABLED*</code></a> can be too
+coarse. This flag provides a per-object mechanism to turn cuda
+off. If it is set to <code>NIL</code>, then any operation that pays attention
+to this flag will not create or access the <a href="#x-28MGL-MAT-3ACUDA-ARRAY-20MGL-CUBE-3AFACET-NAME-29" title="(MGL-MAT:CUDA-ARRAY MGL-CUBE:FACET-NAME)"><code>CUDA-ARRAY</code></a> facet.
+Implementationally speaking, this is easily accomplished by using
+<a href="#x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29" title="(MGL-MAT:USE-CUDA-P FUNCTION)"><code>USE-CUDA-P</code></a>.</p></li>
+</ul>
+
 <p><a name='x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29'></a></p>
 
 <ul>
-<li><p>[function] <strong>USE-CUDA-P</strong> </p>
+<li><p>[function] <strong>USE-CUDA-P</strong> <em>&amp;REST MATS</em></p>
 
-<p>Return true if cuda is enabled (<a href="#x-28MGL-MAT-3A-2ACUDA-ENABLED-2A-20VARIABLE-29" title="(MGL-MAT:*CUDA-ENABLED* VARIABLE)"><code>*CUDA-ENABLED*</code></a>) and it's
-initialized. <a href="#x-28MGL-MAT-3AMAT-20CLASS-29" title="(MGL-MAT:MAT CLASS)"><code>MAT</code></a> operations use this to decide whether to go for the
-cuda implementation or BLAS/Lisp. It's provided for implementing new
+<p>Return true if cuda is enabled (<a href="#x-28MGL-MAT-3A-2ACUDA-ENABLED-2A-20VARIABLE-29" title="(MGL-MAT:*CUDA-ENABLED* VARIABLE)"><code>*CUDA-ENABLED*</code></a>), it's initialized
+and all <code>MATS</code> have <a href="#x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29" title="(MGL-MAT:CUDA-ENABLED (MGL-PAX:ACCESSOR MGL-MAT:MAT))"><code>CUDA-ENABLED</code></a>. Operations of
+matrices use this to decide whether to go for the CUDA
+implementation or BLAS/Lisp. It's provided for implementing new
 operations.</p></li>
+</ul>
+
+<p><a name='x-28MGL-MAT-3A-2ADEFAULT-MAT-CUDA-ENABLED-2A-20VARIABLE-29'></a></p>
+
+<ul>
+<li><p>[variable] <strong>*DEFAULT-MAT-CUDA-ENABLED*</strong> <em>T</em></p>
+
+<p>The default for <a href="#x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29" title="(MGL-MAT:CUDA-ENABLED (MGL-PAX:ACCESSOR MGL-MAT:MAT))"><code>CUDA-ENABLED</code></a>.</p></li>
 </ul>
 
 <p><a name='x-28MGL-MAT-3A-2AN-MEMCPY-HOST-TO-DEVICE-2A-20VARIABLE-29'></a></p>
