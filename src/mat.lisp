@@ -236,7 +236,9 @@
   'MAT ...) does except DIMENSIONS is not a keyword argument so
   MAKE-MAT looks more like MAKE-ARRAY. Also see
   @CUBE-SYNCHRONIZATION."
-  (declare (ignore displacement max-size initial-element initial-contents))
+  (declare (ignore displacement max-size initial-element initial-contents)
+           (optimize speed)
+           (dynamic-extent args))
   (apply #'make-instance 'mat :ctype ctype :dimensions dimensions
          :synchronization synchronization args))
 
@@ -326,11 +328,14 @@
   the BACKING-ARRAY facet so it can trigger copying of facets. When
   it's SETF'ed, however, it will update the CUDA-ARRAY if cuda is
   enabled and it is up-to-date or there are no views at all."
+  (declare (dynamic-extent indices))
   (let ((index (apply #'mat-row-major-index mat indices)))
     (with-facets ((a (mat 'backing-array :direction :input)))
       (row-major-aref a (+ (mat-displacement mat) index)))))
 
 (defun set-mref (value mat &rest indices)
+  (declare (optimize speed)
+           (dynamic-extent indices))
   (set-row-major-mref mat (apply #'mat-row-major-index mat indices) value))
 
 (define-cuda-kernel (cuda-setf-mref)
@@ -371,6 +376,8 @@
 
 (defun mat-row-major-index (mat &rest subscripts)
   "Like ARRAY-ROW-MAJOR-INDEX for arrays."
+  (declare (optimize speed)
+           (dynamic-extent subscripts))
   ;; Can't call ARRAY-ROW-MAJOR-INDEX because we may not have an ARRAY
   ;; view.
   (let ((sum 0)
@@ -940,6 +947,8 @@
 ;;;; Utilities for defining the high[er] level api
 
 (defun common-mat-ctype (&rest mats)
+  (declare (optimize speed)
+           (dynamic-extent mats))
   (when mats
     (let ((ctype (mat-ctype (first mats))))
       (dolist (mat (rest mats))
@@ -1619,6 +1628,8 @@
   "Convenience function to multiply several matrices. 
 
   (mm* a b c) => a * b * c"
+  (declare (optimize speed)
+           (dynamic-extent args))
   (let* ((args (cons m args))
          (n (length args)))
     (if (= 1 n)
@@ -1737,6 +1748,7 @@
   "Like CL:MAP-INTO but for MAT objects. Destructively modifies
   RESULT-MAT to contain the results of applying FN to each element in
   the argument MATS in turn."
+  (declare (dynamic-extent mats))
   (let ((n (mat-size result-mat)))
     (assert (every (lambda (mat) (= n (mat-size mat)))
                    mats))

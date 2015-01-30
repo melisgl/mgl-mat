@@ -402,6 +402,8 @@
 (defun check-no-writers (cube facet-name message-format &rest message-args)
   "Signal an error if CUBE has facets (with names other than
   FACET-NAME) being written (i.e. direction is :IO or :OUTPUT)."
+  (declare (optimize speed)
+           (dynamic-extent message-args))
   (assert (every (lambda (view)
                    (or (eq (view-facet-name view) facet-name)
                        (not (has-writers-p view))))
@@ -415,6 +417,8 @@
 (defun check-no-watchers (cube facet-name message-format &rest message-args)
   "Signal an error if CUBE has facets (with names other than
   FACET-NAME) being regardless of the direction."
+  (declare (optimize speed)
+           (dynamic-extent message-args))
   (assert (every (lambda (view)
                    (or (eq (view-facet-name view) facet-name)
                        (not (has-watchers-p view))))
