@@ -178,18 +178,31 @@
 
 ;;;; Memory allocation on the GPU
 ;;;;
-;;;; In a nutshell, all allocations must be within a WITH-CUDA-POOL
-;;;; with ALLOC-CUDA-ARRAY. In return, FREE-CUDA-ARRAY can be legally
-;;;; called from all threads which is a big no-no with cuMemFree. This
-;;;; allows finalizers to work although the freeing is deferred until
-;;;; the next call to ALLOC-CUDA-ARRAY.
+;;;; In a nutshell, all allocations must be performed within
+;;;; WITH-CUDA-POOL with ALLOC-CUDA-ARRAY. In return, FREE-CUDA-ARRAY
+;;;; can be legally called from all threads which is a big no-no with
+;;;; cuMemFree. This allows finalizers to work although the freeing is
+;;;; deferred until the next call to ALLOC-CUDA-ARRAY.
+;;;;
+;;;; Similarly, all host memory must be registered within
+;;;; WITH-CUDA-POOL with REGISTER-CUDA-HOST-ARRAY (instead of
+;;;; CU-MEM-HOST-REGISTER) and in return
+;;;; UNREGISTER-AND-FREE-CUDA-HOST-ARRAY can be called from any
+;;;; thread.
 ;;;;
 ;;;; This is all internal except for CUDA-OUT-OF-MEMORY condition.
 
 (defvar *cuda-pool* nil)
 
 (defclass cuda-pool ()
-  ((arrays-to-be-freed :initform () :accessor arrays-to-be-freed)))
+  ((arrays-to-be-freed :initform () :accessor arrays-to-be-freed)
+   (host-arrays-to-be-unregistered
+    :initform ()
+    :accessor host-arrays-to-be-unregistered)))
+
+(defun process-pool (cuda-pool)
+  (maybe-free-pointers cuda-pool)
+  (maybe-unregister-pointers cuda-pool))
 
 (defun maybe-free-pointers (cuda-pool)
   (when (arrays-to-be-freed cuda-pool)
@@ -209,32 +222,52 @@
              (slot-value cuda-pool 'arrays-to-be-freed) old new)
         (return)))))
 
+(defun maybe-unregister-pointers (cuda-pool)
+  (when (host-arrays-to-be-unregistered cuda-pool)
+    (loop
+      (let ((host-arrays-to-be-unregistered
+              (host-arrays-to-be-unregistered cuda-pool)))
+        (when (mgl-cube::compare-and-swap
+               (slot-value cuda-pool 'host-arrays-to-be-unregistered)
+               host-arrays-to-be-unregistered ())
+          (dolist (cuda-host-array host-arrays-to-be-unregistered)
+            (unregister-and-free-cuda-host-array-now cuda-host-array))
+          (return))))))
+
+(defun add-host-array-to-be-unregistered (cuda-pool cuda-host-array)
+  (loop
+    (let* ((old (host-arrays-to-be-unregistered cuda-pool))
+           (new (cons cuda-host-array old)))
+      (when (mgl-cube::compare-and-swap
+             (slot-value cuda-pool 'host-arrays-to-be-unregistered) old new)
+        (return)))))
+
 (defmacro with-cuda-pool (() &body body)
   `(progn
      (assert (null *cuda-pool*))
      (let ((*cuda-pool* (make-instance 'cuda-pool)))
        (unwind-protect (locally ,@body)
-         (maybe-free-pointers *cuda-pool*)))))
+         (process-pool *cuda-pool*)))))
 
 (defclass cuda-array (offset-pointer)
-  ((pool :initarg :pool :reader cuda-array-pool)))
+  ((pool :initarg :pool :reader cuda-pool)))
 
 (defun try-to-free-cuda-memory-1 ()
   ;; Force finalizations.
   (tg:gc)
-  (maybe-free-pointers *cuda-pool*))
+  (process-pool *cuda-pool*))
 
 (defun try-to-free-cuda-memory-2 ()
   ;; Force finalizations with a global gc.
   (tg:gc :full t)
-  (maybe-free-pointers *cuda-pool*))
+  (process-pool *cuda-pool*))
 
 (defun try-to-free-cuda-memory-3 ()
   ;; FIXME: Wait for finalizers to run. No guarantee that they
   ;; actually run. Even less guarantee that other pools free their
   ;; memory.
   (sleep 3)
-  (maybe-free-pointers *cuda-pool*))
+  (process-pool *cuda-pool*))
 
 (define-condition cuda-out-of-memory (storage-condition)
   ((n-bytes :initarg :n-bytes :reader n-bytes))
@@ -264,7 +297,7 @@
 
 (defun alloc-cuda-array (n-bytes)
   (assert *cuda-pool* () "No cuda memory pool. Use WITH-CUDA*.")
-  (maybe-free-pointers *cuda-pool*)
+  (process-pool *cuda-pool*)
   (cffi:with-foreign-object (device-ptr-ptr 'cl-cuda.driver-api:cu-device-ptr)
     (alloc-cuda-array-with-recovery device-ptr-ptr n-bytes
                                     (list #'try-to-free-cuda-memory-1
@@ -278,11 +311,37 @@
 
 (defun free-cuda-array (cuda-array)
   (when (base-pointer cuda-array)
-    (cond ((eq (cuda-array-pool cuda-array) *cuda-pool*)
+    (cond ((eq (cuda-pool cuda-array) *cuda-pool*)
            (let ((base-pointer (base-pointer cuda-array)))
              (assert base-pointer () "Double free detected on cuda array.")
              (setf (slot-value cuda-array 'base-pointer) nil)
              (cl-cuda.driver-api:cu-mem-free base-pointer)))
           (t
-           (add-array-to-be-freed (cuda-array-pool cuda-array) cuda-array)))
+           (add-array-to-be-freed (cuda-pool cuda-array) cuda-array)))
     t))
+
+(defun register-cuda-host-array (foreign-array n-bytes)
+  (assert *cuda-pool* () "No cuda memory pool. Use WITH-CUDA*.")
+  (assert (null (cuda-pool foreign-array)) ()
+          "CUDA host array already registered.")
+  (process-pool *cuda-pool*)
+  (cl-cuda.driver-api:cu-mem-host-register (base-pointer foreign-array)
+                                           n-bytes 0)
+  (setf (cuda-pool foreign-array) *cuda-pool*))
+
+(defun unregister-and-free-cuda-host-array (cuda-host-array)
+  (assert (cuda-pool cuda-host-array) () "Double unregister detected.")
+  (cond ((eq (cuda-pool cuda-host-array) *cuda-pool*)
+         (let ((base-pointer (base-pointer cuda-host-array)))
+           (assert base-pointer () "Can't unregister freed array.")
+           (unregister-and-free-cuda-host-array-now cuda-host-array)))
+        (t
+         (add-host-array-to-be-unregistered (cuda-pool cuda-host-array)
+                                            cuda-host-array))))
+
+(defun unregister-and-free-cuda-host-array-now (cuda-host-array)
+  (with-foreign-array-locked (cuda-host-array)
+    (assert (cuda-pool cuda-host-array) () "Double unregister detected.")
+    (cl-cuda.driver-api:cu-mem-host-unregister (base-pointer cuda-host-array))
+    (setf (cuda-pool cuda-host-array) nil)
+    (free-foreign-array cuda-host-array)))

@@ -4,9 +4,10 @@
 
 (defmacro do-foreign-array-strategies (() &body body)
   `(dolist (*foreign-array-strategy*
-            (if (pinning-supported-p)
-                (list :pin-backing-array :static-backing-array :dynamic)
-                (list :static-backing-array :dynamic)))
+            (append (if (pinning-supported-p) '(:pinned) ())
+                    '(:static)
+                    (if (use-cuda-p) '(:cuda-host) ())
+                    '(:dynamic)))
      ,@body))
 
 (defmacro do-cuda (() &body body)
@@ -20,11 +21,11 @@
      (format *trace-output* "* testing ~S~%" ',name)
      (dolist (*default-mat-ctype* ,ctypes)
        (format *trace-output* "** ctype: ~S~%" *default-mat-ctype*)
-       (do-foreign-array-strategies ()
-         (format *trace-output* "*** foreign array strategy: ~S~%"
-                 *foreign-array-strategy*)
-         (do-cuda ()
-           (format *trace-output* "**** cuda enabled: ~S~%" *cuda-enabled*)
+       (do-cuda ()
+         (format *trace-output* "*** cuda enabled: ~S~%" *cuda-enabled*)
+         (do-foreign-array-strategies ()
+           (format *trace-output* "**** foreign array strategy: ~S~%"
+                   *foreign-array-strategy*)
            ,@body)))))
 
 (defun ~= (x y)
@@ -447,6 +448,64 @@
             (assert (= (aref array i)
                        (coerce-to-ctype
                         (elt '(7 7 -1 -2 6 8 -15 -18 7) i))))))))))
+
+(defun test-with-syncing-cuda-facets ()
+  (with-cuda* ()
+    (when (use-cuda-p)
+      (let* ((n-mats 7)
+             (size 4096)
+             (dimensions (list 512 size))
+             (n-iterations 10)
+             (n-operations 1)
+             (mats (coerce (loop repeat n-mats collect (make-mat dimensions))
+                           'vector))
+             (*print-mat* nil))
+        (flet
+            ((plain ()
+               (time (progn
+                       (loop for i upfrom 0 below (* n-mats n-iterations)
+                             do ;; working on I, prepare the next,
+                                ;; destroy the previous
+                                (let ((i (mod i n-mats))
+                                      (i+1 (mod (1+ i) n-mats)))
+                                  (loop repeat n-operations do
+                                    (axpy! 2 (aref mats i) (aref mats i+1)))))
+                       (synchronize-context))))
+             (synced ()
+               (flet ((foo (i)
+                        ;; working on I, prepare the next, destroy the
+                        ;; previous
+                        (let ((i (mod i n-mats))
+                              (i-1 (mod (1- i) n-mats))
+                              (i+1 (mod (1+ i) n-mats))
+                              (i+2 (mod (+ i 2) n-mats)))
+                          (with-syncing-cuda-facets
+                              ((list (aref mats i+2) (aref mats i+2))
+                               (list (aref mats i-1) (aref mats i-1)))
+                            (loop repeat n-operations do
+                              (axpy! 2 (aref mats i) (aref mats i+1)))))
+                        (synchronize-context)))
+                 ;; warm up
+                 (loop for i upfrom 0 below (* n-mats 1)
+                       do (foo i))
+                 (time (loop for i upfrom 0 below (* n-mats n-iterations)
+                             do (foo i)
+                                (assert (= (count-barred-facets
+                                            'cuda-host-array :type 'mat)
+                                           n-mats))
+                                (assert (= (count-barred-facets
+                                            'cuda-array :type 'mat)
+                                           3)))))))
+          (plain)
+          (format t "cuda mats: ~S, copies: h->d: ~S, d->h: ~S~%"
+                  (count-barred-facets 'cuda-array :type 'mat)
+                  *n-memcpy-host-to-device*
+                  *n-memcpy-device-to-host*)
+          (synced)
+          (format t "cuda mats: ~S, copies: h->d: ~S, d->h: ~S~%"
+                  (count-barred-facets 'cuda-array :type 'mat)
+                  *n-memcpy-host-to-device*
+                  *n-memcpy-device-to-host*))))))
 
 (defun test ()
   (test-facet-sharing)

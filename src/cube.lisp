@@ -267,9 +267,13 @@
   (:method (cube to-name to-facet)
     (declare (ignore to-name to-facet))
     (find-up-to-date-facet-name cube))
-  (:documentation "Return a facet name selected from the up-to-date
-  views from which CUBE's data should be copied to TO-FACET. The
-  default method simply returns the first up-to-date view."))
+  (:documentation "Called when the facet with TO-NAME is about to be
+  updated by copying data from an up-to-date facet. Return the name of
+  the facet from which data shall be copied. Note that if the returned
+  facet is not up-to-date, then the returned facet will be updated
+  first and another SELECT-COPY-SOURCE-FOR-FACET* will take place, so
+  be careful not to get into endless recursion. The default method
+  simply returns the first up-to-date facet."))
 
 (defgeneric set-up-to-date-p* (cube facet-name view value)
   (:documentation "Set the VIEW-UP-TO-DATE-P slot of VIEW to VALUE.
@@ -348,9 +352,15 @@
       (when (and (not (eq direction :output))
                  (not (view-up-to-date-p view))
                  (find-up-to-date-view cube))
-        (let ((from (select-copy-source-for-facet* cube facet-name facet)))
-          (copy-facet* cube from (view-facet (find-view cube from))
-                       facet-name facet)))
+        (let ((from-facet-name
+                (select-copy-source-for-facet* cube facet-name facet)))
+          ;; Make sure FROM-FACET is up-to-date. This may call
+          ;; WATCH-FACET recursively.
+          (with-facet (a (cube from-facet-name :direction :input))
+            (declare (ignore a)))
+          (let ((from-view (find-view cube from-facet-name)))
+            (copy-facet* cube from-facet-name (view-facet from-view)
+                         facet-name facet))))
       (unless (eq direction :input)
         (dolist (view (views cube))
           (set-up-to-date-p* cube (view-facet-name view) view nil)))

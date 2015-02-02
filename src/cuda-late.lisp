@@ -31,7 +31,7 @@
   "Like WITH-CUDA*, but takes a no argument function instead of the
   macro's BODY."
   (cond ((boundp '*cuda-context*)
-         (with-facet-barrier ('mat '(array) '(cuda-array))
+         (with-facet-barrier ('mat '(array) '(cuda-host-array cuda-array))
            (funcall fn)))
         ((and *cuda-enabled* (cuda-available-p))
          (let ((*show-messages* nil)
@@ -47,7 +47,8 @@
                                   cl-cuda:*nvcc-options*))
                            cl-cuda:*nvcc-options*)))
                  (with-cuda-pool ()
-                   (with-facet-barrier ('mat '(array) '(cuda-array))
+                   (with-facet-barrier ('mat '(array)
+                                             '(cuda-array cuda-host-array))
                      (with-cublas-handle ()
                        (with-curand-state ((if random-seed
                                                (make-xorwow-state/simple
@@ -78,8 +79,8 @@
   fall back on blas and lisp kernels if there is none.
 
   If cuda is already initialized, then it sets up a facet barrier
-  which destroys CUDA-ARRAY facets after ensuring that the ARRAY facet
-  is up-to-date.
+  which destroys CUDA-ARRAY and CUDA-HOST-ARRAY facets after ensuring
+  that the ARRAY facet is up-to-date.
 
   Else, if cuda is available and ENABLED, then in addition to the
   facet barrier, a cuda context is set up, *N-MEMCPY-HOST-TO-DEVICE*,
