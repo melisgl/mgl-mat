@@ -810,13 +810,10 @@
 ;;; backing-array -> foreign-array
 (defmethod copy-facet* ((mat mat) (from-name (eql 'backing-array)) array
                         (to-name (eql 'foreign-array)) foreign-array)
-  (cond ((use-pinning-p)
+  (cond ((static-backing-array-p mat))
+        ((use-pinning-p)
          (lla::with-pinned-array (ptr array)
            (memcpy (base-pointer foreign-array) ptr (mat-n-bytes mat))))
-        ((static-backing-array-p mat)
-         (memcpy (base-pointer foreign-array)
-                 (static-vectors:static-vector-pointer array)
-                 (mat-n-bytes mat)))
         (t
          (lla::copy-array-to-memory array (base-pointer foreign-array)
                                     (ctype->lla-internal (mat-ctype mat))))))
@@ -824,12 +821,10 @@
 ;;; foreign-array -> backing-array
 (defmethod copy-facet* ((mat mat) (from-name (eql 'foreign-array)) foreign-array
                         (to-name (eql 'backing-array)) array)
-  (cond ((use-pinning-p)
+  (cond ((static-backing-array-p mat))
+        ((use-pinning-p)
          (lla::with-pinned-array (ptr array)
            (memcpy ptr (base-pointer foreign-array) (mat-n-bytes mat))))
-        ((static-backing-array-p mat)
-         (memcpy (static-vectors:static-vector-pointer array)
-                 (base-pointer foreign-array) (mat-n-bytes mat)))
         (t
          (lla::copy-array-from-memory array (base-pointer foreign-array)
                                       (ctype->lla-internal (mat-ctype mat))))))
