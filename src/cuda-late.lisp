@@ -11,11 +11,11 @@
 
 (defvar *n-memcpy-host-to-device* 0
   "Incremented each time a host to device copy is performed. Bound to
-0 by WITH-CUDA*. Useful for tracking down performance problems.")
+  0 by WITH-CUDA*. Useful for tracking down performance problems.")
 
 (defvar *n-memcpy-device-to-host* 0
   "Incremented each time a device to host copy is performed. Bound to
-0 by WITH-CUDA*. Useful for tracking down performance problems.")
+  0 by WITH-CUDA*. Useful for tracking down performance problems.")
 
 (defun remove-arch-nvcc-option (options)
   (remove-if (lambda (option)
@@ -29,7 +29,7 @@
                        (n-random-states *cuda-default-n-random-states*)
                        (override-arch-p t))
   "Like WITH-CUDA*, but takes a no argument function instead of the
-macro's BODY."
+  macro's BODY."
   (cond ((boundp '*cuda-context*)
          (with-facet-barrier ('mat '(array) '(cuda-array))
            (funcall fn)))
