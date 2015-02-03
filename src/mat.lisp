@@ -761,7 +761,8 @@
                (initial-element (mat-initial-element mat)))
           (reshape-and-displace-facet* mat facet-name array (mat-dimensions mat)
                                        (mat-displacement mat))
-          (when initial-element
+          (when (and initial-element
+                     (not (mgl-cube::find-up-to-date-view mat)))
             (dotimes (i (mat-max-size mat))
               (setf (cffi:mem-aref pointer ctype i) initial-element)))
           (values array nil t)))))
