@@ -187,5 +187,8 @@
                           ,lisp-parameters
                           ,(let ((params (convert-param-types params ctype)))
                              (cublas-call-form name ctype params))))
-       (defun ,(cublas-function-name name nil) (,@lisp-parameters)
+       (defun ,(cublas-function-name name nil) (,@lisp-parameters
+                                                (stream *cuda-stream*))
+         (cffi:foreign-funcall "cublasSetStream_v2" cublas-handle handle
+                               cl-cuda.driver-api:cu-stream stream)
          (call-cublas-function ,name ,in-params handle)))))
