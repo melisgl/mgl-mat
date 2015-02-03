@@ -22,6 +22,17 @@
                (zerop (search "-arch=" option)))
              options))
 
+(defmacro with-cuda-stream ((stream) &body body)
+  (alexandria:with-gensyms (stream-pointer)
+    `(cffi:with-foreign-objects
+         ((,stream-pointer 'cl-cuda.driver-api:cu-stream))
+       (cl-cuda.driver-api:cu-stream-create ,stream-pointer 0)
+       (let ((,stream (cffi:mem-ref ,stream-pointer
+                                    'cl-cuda.driver-api:cu-stream)))
+         (unwind-protect
+              (locally ,@body)
+           (cl-cuda.driver-api:cu-stream-destroy ,stream))))))
+
 (defun call-with-cuda (fn &key
                        ((:enabled *cuda-enabled*) *cuda-enabled*)
                        (device-id *cuda-default-device-id*)
@@ -47,14 +58,16 @@
                                   cl-cuda:*nvcc-options*))
                            cl-cuda:*nvcc-options*)))
                  (with-cuda-pool ()
-                   (with-facet-barrier ('mat '(array)
-                                             '(cuda-array cuda-host-array))
-                     (with-cublas-handle ()
-                       (with-curand-state ((if random-seed
-                                               (make-xorwow-state/simple
-                                                random-seed n-random-states)
-                                               *curand-state*))
-                         (funcall fn))))))))))
+                   (with-cuda-stream (*cuda-stream*)
+                     (with-cuda-stream (*cuda-copy-stream*)
+                       (with-facet-barrier ('mat '(array)
+                                                 '(cuda-array cuda-host-array))
+                         (with-cublas-handle ()
+                           (with-curand-state ((if random-seed
+                                                   (make-xorwow-state/simple
+                                                    random-seed n-random-states)
+                                                   *curand-state*))
+                             (funcall fn))))))))))))
         (t
          (funcall fn))))
 

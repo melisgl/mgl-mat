@@ -456,7 +456,10 @@
         (format stream "+~A" after)))))
 
 (defun mat-view-to-char (view)
-  (let ((char (aref (symbol-name (view-facet-name view)) 0)))
+  (let* ((name (view-facet-name view))
+         (char (if (eq name 'cuda-host-array)
+                   #\h
+                   (aref (symbol-name name) 0))))
     (if (view-up-to-date-p view)
         (char-upcase char)
         (char-downcase char))))
@@ -747,14 +750,6 @@
   (make-array-facet mat))
 
 (defmethod make-facet* ((mat mat) (facet-name (eql 'foreign-array)))
-  (assert (or (eq *foreign-array-strategy* :dynamic)
-              ;; It may be that this backing array was allocated when
-              ;; *FOREIGN-ARRAY-STRATEGY* was :PINNED so it is not
-              ;; static.
-              (and (member *foreign-array-strategy* '(:static :cuda-host))
-                   (let ((backing-array-view (find-view mat 'backing-array)))
-                     (or (null backing-array-view)
-                         (null (view-facet-description backing-array-view)))))))
   (let ((cuda-host-view (find-view mat 'cuda-host-array)))
     (if cuda-host-view
         (let ((foreign-array (view-facet cuda-host-view)))
@@ -875,17 +870,31 @@
 (defmethod copy-facet* ((mat mat) (from-name (eql 'foreign-array)) foreign-array
                         (to-name (eql 'cuda-array)) cuda-array)
   (incf *n-memcpy-host-to-device*)
-  (cl-cuda.driver-api::cu-memcpy-host-to-device (base-pointer cuda-array)
-                                                (base-pointer foreign-array)
-                                                (mat-n-bytes mat)))
+  #+nil
+  (unless *let-input-through-p*
+    (break))
+  (if (eq *cuda-stream* *cuda-copy-stream*)
+      (cl-cuda.driver-api:cu-memcpy-host-to-device-async
+       (base-pointer cuda-array) (base-pointer foreign-array) (mat-n-bytes mat)
+       *cuda-stream*)
+      (cl-cuda.driver-api::cu-memcpy-host-to-device (base-pointer cuda-array)
+                                                    (base-pointer foreign-array)
+                                                    (mat-n-bytes mat))))
 
 ;;; cuda-array -> foreign-array
 (defmethod copy-facet* ((mat mat) (from-name (eql 'cuda-array)) cuda-array
                         (to-name (eql 'foreign-array)) foreign-array)
   (incf *n-memcpy-device-to-host*)
-  (cl-cuda.driver-api::cu-memcpy-device-to-host (base-pointer foreign-array)
-                                                (base-pointer cuda-array)
-                                                (mat-n-bytes mat)))
+  #+nil
+  (unless *let-input-through-p*
+    (break))
+  (if (eq *cuda-stream* *cuda-copy-stream*)
+      (cl-cuda.driver-api:cu-memcpy-device-to-host-async
+       (base-pointer foreign-array) (base-pointer cuda-array) (mat-n-bytes mat)
+       *cuda-stream*)
+      (cl-cuda.driver-api::cu-memcpy-device-to-host (base-pointer foreign-array)
+                                                    (base-pointer cuda-array)
+                                                    (mat-n-bytes mat))))
 
 ;;; backing-array -> cuda-array
 (defmethod copy-facet* ((mat mat) (from-name (eql 'backing-array)) array

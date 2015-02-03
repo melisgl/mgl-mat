@@ -18,7 +18,8 @@
   (*cuda-default-random-seed* variable)
   (*cuda-default-n-random-states* variable)
   (@mat-cublas section)
-  (@mat-curand section))
+  (@mat-curand section)
+  (@mat-cuda-memory-management section))
 
 (defkernelmacro when (test &body body)
   `(if ,test
@@ -174,6 +175,105 @@
                            :min 1 :max *cuda-max-n-blocks*)))
       (values (list *cuda-warp-size* n-warps-per-block 1)
               (list 1 n-blocks 1)))))
+
+
+(defsection @mat-cuda-memory-management (:title "CUDA Memory Management")
+  "")
+
+(defmacro with-syncing-cuda-facets ((ensures destroys) &body body)
+  (alexandria:with-gensyms (token)
+    `(flet ((foo ()
+              ,@body))
+       (if (use-cuda-p)
+           (let ((,token (start-syncing-cuda-facets ,ensures ,destroys)))
+             (unwind-protect
+                  (foo)
+               (finish-syncing-cuda-facets ,token)))
+           (foo)))))
+
+(defvar *cuda-copy-stream*)
+
+(defclass sync-token ()
+  ((ensures :initarg :ensures :reader ensures)
+   (destroys :initarg :destroys :reader destroys)))
+
+(defvar *check-async-copy-p* t)
+
+(defun fake-writer (view)
+  (assert (eq (mgl-cube::view-direction view) :input))
+  (setf (mgl-cube::view-direction view) :output)
+  (incf (mgl-cube::view-n-watchers view))
+  (push :async (mgl-cube::view-watcher-threads view)))
+
+(defun remove-fake-writer (view)
+  (assert (eq (mgl-cube::view-direction view) :output))
+  (setf (mgl-cube::view-direction view) :input)
+  (decf (mgl-cube::view-n-watchers view))
+  (assert (eq :async (pop (mgl-cube::view-watcher-threads view)))))
+
+(defun start-syncing-cuda-facets (ensures destroys)
+  "Ensure that all matrices in ENSURES have a CUDA-ARRAY facet and
+  start copying data to them to ensure that they are up-to-date. Also,
+  ensure that matrices in DESTROYS have up-to-date facets other than
+  CUDA-ARRAY so that FINISH-SYNCING-CUDA-FACETS can remove these
+  facets. Returns an opaque object to be passed to
+  FINISH-SYNCING-CUDA-FACETS. Note that the matrices in ENSURES and
+  KILLS must not be accessed before FINISH-SYNCING-CUDA-FACETS
+  returns.
+
+  Copying is performed in a separate CUDA stream, so that it can
+  overlap with computation."
+  (when (or ensures destroys)
+    (cl-cuda.driver-api:cu-stream-synchronize *cuda-stream*)
+    (let ((*foreign-array-strategy* :cuda-host)
+          (cl-cuda:*cuda-stream* *cuda-copy-stream*)
+          (ensures-seen (make-hash-table))
+          (destroys-seen (make-hash-table))
+          (checkp *check-async-copy-p*))
+      (loop while (or ensures destroys)
+            do (when ensures
+                 (let ((mat (pop ensures)))
+                   (assert (not (gethash mat destroys-seen)))
+                   (unless (gethash mat ensures-seen)
+                     (with-facet (a (mat 'cuda-array :direction :input))
+                       (declare (ignore a)))
+                     (when checkp
+                       (fake-writer (find-view mat 'cuda-array)))
+                     (setf (gethash mat ensures-seen) t))))
+               (when destroys
+                 (let ((mat (pop destroys)))
+                   (assert (not (gethash mat ensures-seen)))
+                   (unless (gethash mat destroys-seen)
+                     (with-facet (a (mat 'cuda-host-array :direction :input))
+                       (declare (ignore a)))
+                     (when checkp
+                       (fake-writer (find-view mat 'cuda-host-array)))
+                     (setf (gethash mat destroys-seen) t)))))
+      (make-instance 'sync-token :ensures ensures-seen :destroys destroys-seen))))
+
+(defun finish-syncing-cuda-facets (sync-token)
+  "Wait until all the copying started by START-SYNCING-CUDA-FACETS is
+  done, then remove the CUDA-ARRAY facets of the CUDA-ARRAY facets
+  from all matrices in KILLS that was passed to
+  START-SYNCING-CUDA-FACETS."
+  (when sync-token
+    (cl-cuda.driver-api:cu-stream-synchronize *cuda-copy-stream*)
+    (let ((checkp *check-async-copy-p*))
+      (when checkp
+        (maphash (lambda (mat value)
+                   (declare (ignore value))
+                   (remove-fake-writer (find-view mat 'cuda-array))
+                   (assert (up-to-date-p* mat 'cuda-array
+                                          (find-view mat 'cuda-array))))
+                 (ensures sync-token)))
+      (maphash (lambda (mat value)
+                 (declare (ignore value))
+                 (when checkp
+                   (remove-fake-writer (find-view mat 'cuda-host-array))
+                   (assert (up-to-date-p* mat 'cuda-host-array
+                                          (find-view mat 'cuda-host-array))))
+                 (destroy-facet mat 'cuda-array))
+               (destroys sync-token)))))
 
 
 ;;;; Memory allocation on the GPU

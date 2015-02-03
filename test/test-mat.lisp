@@ -525,7 +525,8 @@
   (test-max-pool!)
   (test-uniform-random!)
   (test-pool)
-  (test-scale-rows!))
+  (test-scale-rows!)
+  (test-with-syncing-cuda-facets))
 
 #|
 
