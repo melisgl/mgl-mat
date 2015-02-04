@@ -782,7 +782,7 @@
   (let ((array (alloc-cuda-array (* (mat-max-size mat)
                                     (ctype-size (mat-ctype mat))))))
     (when (and (mat-initial-element mat)
-               (endp (views mat)))
+               (not (mgl-cube::find-up-to-date-view mat)))
       (cuda-fill!-2 (mat-ctype mat) (mat-initial-element mat)
                     array (mat-max-size mat)))
     (reshape-and-displace-facet* mat facet-name array (mat-dimensions mat)
