@@ -423,11 +423,11 @@
                          (loop until stop-gc-thread do
                            (tg:gc :full t)
                            (sleep 0.2))))))
-      (with-cuda* ()
-        ;; Allocate 8MiB worth of double floats 1000 times.
-        ;; Garbage should be collected.
-        (loop for i below 1000 do
-          (when (zerop (mod i 100))
+      (with-cuda* (:n-pool-bytes (* 500 (expt 2 20)))
+        ;; Allocate 8MiB worth of double floats 128 times. Garbage
+        ;; should be collected.
+        (loop for i below 128 do
+          (when (zerop (mod i 16))
             (format *trace-output* "allocated ~S arrays~%" i))
           (let ((m (make-mat (* 1 (expt 2 20)))))
             (with-facets ((m (m 'cuda-array :direction :output)))

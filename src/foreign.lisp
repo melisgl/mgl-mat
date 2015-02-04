@@ -18,7 +18,7 @@
    ;; FOREIGN-ARRAY facet to a cuda pool so that unregistering of
    ;; memory can be done from arbitrary threads. When the
    ;; CUDA-HOST-ARRAY facet is created this is set to the pool.
-   (pool :initform nil :initarg :pool :accessor cuda-pool))
+   (cuda-pool :initform nil :accessor cuda-pool))
   (:documentation "[FOREIGN-ARRAY][class] wraps a foreign pointer (in
   the sense of CFFI:POINTERP). That is, both OFFSET-POINTER and
   BASE-POINTER return a foreign pointer. There are no other public
@@ -31,7 +31,8 @@
 
 (defun alloc-foreign-array (type &key count)
   (make-instance 'foreign-array
-                 :base-pointer (cffi:foreign-alloc type :count count)))
+                 :base-pointer (cffi:foreign-alloc type :count count)
+                 :n-bytes (* count (ctype-size type))))
 
 (defun free-foreign-array (foreign-array)
   (with-foreign-array-locked (foreign-array)

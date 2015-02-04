@@ -184,7 +184,8 @@
 
 (defclass offset-pointer ()
   ((base-pointer :initarg :base-pointer :reader base-pointer)
-   (offset :initform 0 :initarg :offset :reader offset)))
+   (offset :initform 0 :initarg :offset :reader offset)
+   (n-bytes :initarg :n-bytes :reader pointer-n-bytes)))
 
 (defgeneric offset-pointer (offset-pointer)
   (:method ((array offset-pointer))

@@ -38,7 +38,8 @@
                        (device-id *cuda-default-device-id*)
                        (random-seed *cuda-default-random-seed*)
                        (n-random-states *cuda-default-n-random-states*)
-                       (override-arch-p t))
+                       (override-arch-p t)
+                       n-pool-bytes)
   "Like WITH-CUDA*, but takes a no argument function instead of the
   macro's BODY."
   (cond ((boundp '*cuda-context*)
@@ -57,7 +58,7 @@
                                  (remove-arch-nvcc-option
                                   cl-cuda:*nvcc-options*))
                            cl-cuda:*nvcc-options*)))
-                 (with-cuda-pool ()
+                 (with-cuda-pool (:n-bytes n-pool-bytes)
                    (with-cuda-stream (*cuda-stream*)
                      (with-cuda-stream (*cuda-copy-stream*)
                        (with-facet-barrier ('mat '(array)
@@ -84,28 +85,30 @@
                        (device-id *cuda-default-device-id*)
                        (random-seed *cuda-default-random-seed*)
                        (n-random-states *cuda-default-n-random-states*)
-                       (override-arch-p t))
+                       (override-arch-p t)
+                       n-pool-bytes)
                       &body body)
-  "Initializes cuda with with all bells and whistles before BODY and
+  "Initializes CUDA with with all bells and whistles before BODY and
   deinitializes it after. Simply wrapping WITH-CUDA* around a piece
-  code is enough to make use of the first available cuda device or
+  code is enough to make use of the first available CUDA device or
   fall back on blas and lisp kernels if there is none.
 
-  If cuda is already initialized, then it sets up a facet barrier
+  If CUDA is already initialized, then it sets up a facet barrier
   which destroys CUDA-ARRAY and CUDA-HOST-ARRAY facets after ensuring
   that the ARRAY facet is up-to-date.
 
-  Else, if cuda is available and ENABLED, then in addition to the
-  facet barrier, a cuda context is set up, *N-MEMCPY-HOST-TO-DEVICE*,
+  Else, if CUDA is available and ENABLED, then in addition to the
+  facet barrier, a CUDA context is set up, *N-MEMCPY-HOST-TO-DEVICE*,
   *N-MEMCPY-DEVICE-TO-HOST* are bound to zero, the highest possible
   -arch option for the device is added to *CL-CUDA:NVCC-OPTIONS* (if
   OVERRIDE-ARCH-P), a cublas handle created, and *CURAND-STATE* is
   bound to a CURAND-XORWOW-STATE with N-RANDOM-STATES, seeded with
-  RANDOM-SEED.
+  RANDOM-SEED, and allocation of device memory is limited to
+  N-POOL-BYTES (NIL means no limit).
 
-  Else - that is, if cuda is not available -, BODY is simply
-  executed."
+  Else - that is, if CUDA is not available, BODY is simply executed."
   `(call-with-cuda (lambda () ,@body) :enabled ,enabled
                    :device-id ,device-id :random-seed ,random-seed
                    :n-random-states ,n-random-states
-                   :override-arch-p ,override-arch-p))
+                   :override-arch-p ,override-arch-p
+                   :n-pool-bytes ,n-pool-bytes))

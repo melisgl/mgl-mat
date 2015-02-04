@@ -294,33 +294,97 @@
 
 (defvar *cuda-pool* nil)
 
+(defmacro with-cuda-pool-locked ((pool) &body body)
+  `(bordeaux-threads:with-recursive-lock-held ((lock ,pool))
+     ,@body))
+
+(defmacro with-cuda-pool ((&key n-bytes) &body body)
+  `(progn
+     (assert (null *cuda-pool*))
+     (let ((*cuda-pool*
+             (make-instance 'cuda-pool
+                            :n-bytes-free (or ,n-bytes most-positive-fixnum))))
+       (unwind-protect (locally ,@body)
+         (process-pool *cuda-pool*)
+         ;; free all
+         (free-some-reusables *cuda-pool* (n-bytes-reusable *cuda-pool*))
+         (assert (zerop (n-bytes-reusable *cuda-pool*)))
+         (assert (zerop (n-bytes-allocated *cuda-pool*)))
+         (assert (zerop (n-bytes-host-array-registered *cuda-pool*)))))))
+
+(defun alloc-cuda-array (n-bytes)
+  (assert *cuda-pool* () "No cuda memory pool. Use WITH-CUDA*.")
+  (process-pool *cuda-pool*)
+  (let ((pointer (alloc-cuda-array-with-recovery
+                  *cuda-pool* n-bytes (list #'free-some-reusables
+                                            #'try-to-free-cuda-memory-1
+                                            #'try-to-free-cuda-memory-2
+                                            #'try-to-free-cuda-memory-3
+                                            #'try-to-free-cuda-memory-3
+                                            #'try-to-free-cuda-memory-3))))
+    (make-instance 'cuda-array :base-pointer pointer :n-bytes n-bytes
+                   :cuda-pool *cuda-pool*)))
+
+(defun free-cuda-array (cuda-array)
+  (let ((base-pointer (base-pointer cuda-array)))
+    (assert base-pointer () "Double free detected on cuda array.")
+    (setf (slot-value cuda-array 'base-pointer) nil)
+    (return-to-pool (cuda-pool cuda-array) base-pointer
+                    (pointer-n-bytes cuda-array))))
+
+(defun register-cuda-host-array (foreign-array n-bytes)
+  (assert *cuda-pool* () "No cuda memory pool. Use WITH-CUDA*.")
+  (assert (null (cuda-pool foreign-array)) ()
+          "CUDA host array already registered.")
+  (process-pool *cuda-pool*)
+  (cl-cuda.driver-api:cu-mem-host-register (base-pointer foreign-array)
+                                           n-bytes 0)
+  (incf (n-bytes-host-array-registered *cuda-pool*) n-bytes)
+  (setf (cuda-pool foreign-array) *cuda-pool*))
+
+(defun unregister-and-free-cuda-host-array (cuda-host-array)
+  (assert (cuda-pool cuda-host-array) () "Double unregister detected.")
+  (cond ((eq (cuda-pool cuda-host-array) *cuda-pool*)
+         (let ((base-pointer (base-pointer cuda-host-array)))
+           (assert base-pointer () "Can't unregister freed array.")
+           (unregister-and-free-cuda-host-array-now cuda-host-array)))
+        (t
+         (add-host-array-to-be-unregistered (cuda-pool cuda-host-array)
+                                            cuda-host-array))))
+
+(defun unregister-and-free-cuda-host-array-now (cuda-host-array)
+  (with-foreign-array-locked (cuda-host-array)
+    (assert (cuda-pool cuda-host-array) () "Double unregister detected.")
+    (cl-cuda.driver-api:cu-mem-host-unregister (base-pointer cuda-host-array))
+    (decf (n-bytes-host-array-registered *cuda-pool*)
+          (pointer-n-bytes cuda-host-array))
+    (assert (not (minusp (n-bytes-host-array-registered *cuda-pool*))))
+    (setf (cuda-pool cuda-host-array) nil)
+    (free-foreign-array cuda-host-array)))
+
+(define-condition cuda-out-of-memory (storage-condition)
+  ((n-bytes :initarg :n-bytes :reader n-bytes))
+  (:report (lambda (condition stream)
+             (format stream "Could not allocate ~S bytes on the cuda device."
+                     (n-bytes condition)))))
+
+;;;; Implementation of CUDA pool
+
 (defclass cuda-pool ()
-  ((arrays-to-be-freed :initform () :accessor arrays-to-be-freed)
+  ((n-bytes-allocated :initform 0 :accessor n-bytes-allocated)
+   (n-bytes-reusable :initform 0 :accessor n-bytes-reusable)
+   (n-bytes-free :initarg :n-bytes-free :accessor n-bytes-free)
+   (reusables :initform (make-hash-table) :accessor reusables)
+   (lock :initform (bordeaux-threads:make-recursive-lock) :reader lock)
    (host-arrays-to-be-unregistered
     :initform ()
-    :accessor host-arrays-to-be-unregistered)))
+    :accessor host-arrays-to-be-unregistered)
+   (n-bytes-host-array-registered
+    :initform 0
+    :accessor n-bytes-host-array-registered)))
 
 (defun process-pool (cuda-pool)
-  (maybe-free-pointers cuda-pool)
   (maybe-unregister-pointers cuda-pool))
-
-(defun maybe-free-pointers (cuda-pool)
-  (when (arrays-to-be-freed cuda-pool)
-    (loop
-      (let ((arrays-to-be-freed (arrays-to-be-freed cuda-pool)))
-        (when (mgl-cube::compare-and-swap
-               (slot-value cuda-pool 'arrays-to-be-freed) arrays-to-be-freed ())
-          (dolist (cuda-array arrays-to-be-freed)
-            (free-cuda-array cuda-array))
-          (return))))))
-
-(defun add-array-to-be-freed (cuda-pool cuda-array)
-  (loop
-    (let* ((old (arrays-to-be-freed cuda-pool))
-           (new (cons cuda-array old)))
-      (when (mgl-cube::compare-and-swap
-             (slot-value cuda-pool 'arrays-to-be-freed) old new)
-        (return)))))
 
 (defun maybe-unregister-pointers (cuda-pool)
   (when (host-arrays-to-be-unregistered cuda-pool)
@@ -342,106 +406,107 @@
              (slot-value cuda-pool 'host-arrays-to-be-unregistered) old new)
         (return)))))
 
-(defmacro with-cuda-pool (() &body body)
-  `(progn
-     (assert (null *cuda-pool*))
-     (let ((*cuda-pool* (make-instance 'cuda-pool)))
-       (unwind-protect (locally ,@body)
-         (process-pool *cuda-pool*)))))
-
 (defclass cuda-array (offset-pointer)
-  ((pool :initarg :pool :reader cuda-pool)))
+  ((cuda-pool :initarg :cuda-pool :reader cuda-pool)))
 
-(defun try-to-free-cuda-memory-1 ()
+(defun try-to-free-cuda-memory-1 (pool n-bytes)
+  (declare (ignore n-bytes))
   ;; Force finalizations.
   (tg:gc)
-  (process-pool *cuda-pool*))
+  (process-pool pool))
 
-(defun try-to-free-cuda-memory-2 ()
+(defun try-to-free-cuda-memory-2 (pool n-bytes)
+  (declare (ignore n-bytes))
   ;; Force finalizations with a global gc.
   (tg:gc :full t)
-  (process-pool *cuda-pool*))
+  (process-pool pool))
 
-(defun try-to-free-cuda-memory-3 ()
+(defun try-to-free-cuda-memory-3 (pool n-bytes)
+  (declare (ignore n-bytes))
   ;; FIXME: Wait for finalizers to run. No guarantee that they
   ;; actually run. Even less guarantee that other pools free their
   ;; memory.
-  (sleep 3)
-  (process-pool *cuda-pool*))
+  (sleep 1)
+  (process-pool pool))
 
-(define-condition cuda-out-of-memory (storage-condition)
-  ((n-bytes :initarg :n-bytes :reader n-bytes))
-  (:report (lambda (condition stream)
-             (format stream "Could not allocate ~S bytes on the cuda device."
-                     (n-bytes condition)))))
-
-(defun alloc-cuda-array-with-recovery (device-ptr-ptr n-bytes recovery-fns)
+(defun alloc-cuda-array-with-recovery (pool n-bytes recovery-fns)
   (let ((remaining-recovery-fns recovery-fns))
     (loop
       (catch 'again
-        (handler-bind
-            ((error
-               (lambda (e)
-                 (when (search "CUDA_ERROR_OUT_OF_MEMORY" (princ-to-string e))
-                   (cond (remaining-recovery-fns
-                          (funcall (pop remaining-recovery-fns)))
-                         (t
-                          (restart-case
-                              (error 'cuda-out-of-memory :n-bytes n-bytes)
-                            (retry ()
-                              :report "Retry the allocation."))
-                          (setq remaining-recovery-fns recovery-fns)))
-                   (throw 'again nil)))))
-          (cl-cuda.driver-api:cu-mem-alloc device-ptr-ptr n-bytes)
-          (return))))))
+        (flet ((handle-it (condition)
+                 (declare (ignore condition))
+                 (cond (remaining-recovery-fns
+                        (funcall (pop remaining-recovery-fns) pool n-bytes))
+                       (t
+                        (restart-case
+                            (error 'cuda-out-of-memory :n-bytes n-bytes)
+                          (retry ()
+                            :report "Retry the allocation."))
+                        (setq remaining-recovery-fns recovery-fns)))
+                 (throw 'again nil)))
+          (handler-bind ((cuda-out-of-memory #'handle-it)
+                         (error (lambda (e)
+                                  (when (search "CUDA_ERROR_OUT_OF_MEMORY"
+                                                (princ-to-string e))
+                                    (handle-it e)))))
+            (return
+              (or
+               ;; try to find an allocation of exactly N-BYTES that
+               ;; was returned to the pool
+               (reallocate-from-pool pool n-bytes)
+               ;; try to grow the pool
+               (allocate-to-pool pool n-bytes)
+               (error 'cuda-out-of-memory :n-bytes n-bytes)))))))))
 
-(defun alloc-cuda-array (n-bytes)
-  (assert *cuda-pool* () "No cuda memory pool. Use WITH-CUDA*.")
-  (process-pool *cuda-pool*)
-  (cffi:with-foreign-object (device-ptr-ptr 'cl-cuda.driver-api:cu-device-ptr)
-    (alloc-cuda-array-with-recovery device-ptr-ptr n-bytes
-                                    (list #'try-to-free-cuda-memory-1
-                                          #'try-to-free-cuda-memory-2
-                                          #'try-to-free-cuda-memory-3))
-    (let* ((pointer (cffi:mem-ref device-ptr-ptr
-                                  'cl-cuda.driver-api:cu-device-ptr))
-           (cuda-array (make-instance 'cuda-array :base-pointer pointer
-                                      :pool *cuda-pool*)))
-      cuda-array)))
+;;; reusable -> allocated
+(defun reallocate-from-pool (pool n-bytes)
+  (with-cuda-pool-locked (pool)
+    (when (<= n-bytes (n-bytes-reusable pool))
+      (let ((reusable (pop (gethash n-bytes (reusables pool)))))
+        (when reusable
+          (decf (n-bytes-reusable pool) n-bytes)
+          (incf (n-bytes-allocated pool) n-bytes)
+          reusable)))))
 
-(defun free-cuda-array (cuda-array)
-  (when (base-pointer cuda-array)
-    (cond ((eq (cuda-pool cuda-array) *cuda-pool*)
-           (let ((base-pointer (base-pointer cuda-array)))
-             (assert base-pointer () "Double free detected on cuda array.")
-             (setf (slot-value cuda-array 'base-pointer) nil)
-             (cl-cuda.driver-api:cu-mem-free base-pointer)))
-          (t
-           (add-array-to-be-freed (cuda-pool cuda-array) cuda-array)))
-    t))
+;;; free -> allocated
+(defun allocate-to-pool (pool n-bytes)
+  (with-cuda-pool-locked (pool)
+    (when (<= n-bytes (n-bytes-free pool))
+      (let ((pointer (cffi:with-foreign-object
+                         (device-ptr-ptr 'cl-cuda.driver-api:cu-device-ptr)
+                       (cl-cuda.driver-api:cu-mem-alloc device-ptr-ptr n-bytes)
+                       (cffi:mem-ref device-ptr-ptr
+                                     'cl-cuda.driver-api:cu-device-ptr))))
+        (decf (n-bytes-free pool) n-bytes)
+        (incf (n-bytes-allocated pool) n-bytes)
+        pointer))))
 
-(defun register-cuda-host-array (foreign-array n-bytes)
-  (assert *cuda-pool* () "No cuda memory pool. Use WITH-CUDA*.")
-  (assert (null (cuda-pool foreign-array)) ()
-          "CUDA host array already registered.")
-  (process-pool *cuda-pool*)
-  (cl-cuda.driver-api:cu-mem-host-register (base-pointer foreign-array)
-                                           n-bytes 0)
-  (setf (cuda-pool foreign-array) *cuda-pool*))
+;;; reusable -> free
+(defun free-some-reusables (pool n-bytes-to-free)
+  (with-cuda-pool-locked (pool)
+    (let ((n-bytes-freed 0)
+          (reusables (reusables pool)))
+      (maphash (lambda (n-bytes pointers)
+                 (let ((left (- n-bytes-to-free n-bytes-freed)))
+                   (unless (plusp left)
+                     (return-from free-some-reusables n-bytes-freed))
+                   (let ((n (length pointers))
+                         (n-required (ceiling left n-bytes)))
+                     (cond ((<= n n-required)
+                            (remhash n-bytes reusables)
+                            (incf n-bytes-freed (* n n-bytes)))
+                           (t
+                            (setf (gethash n-bytes reusables)
+                                  (nthcdr n-required pointers))
+                            (incf n-bytes-freed (* n-required n-bytes)))))))
+               (reusables pool))
+      (decf (n-bytes-reusable pool) n-bytes-freed)
+      (incf (n-bytes-free pool) n-bytes-freed)
+      n-bytes-freed)))
 
-(defun unregister-and-free-cuda-host-array (cuda-host-array)
-  (assert (cuda-pool cuda-host-array) () "Double unregister detected.")
-  (cond ((eq (cuda-pool cuda-host-array) *cuda-pool*)
-         (let ((base-pointer (base-pointer cuda-host-array)))
-           (assert base-pointer () "Can't unregister freed array.")
-           (unregister-and-free-cuda-host-array-now cuda-host-array)))
-        (t
-         (add-host-array-to-be-unregistered (cuda-pool cuda-host-array)
-                                            cuda-host-array))))
-
-(defun unregister-and-free-cuda-host-array-now (cuda-host-array)
-  (with-foreign-array-locked (cuda-host-array)
-    (assert (cuda-pool cuda-host-array) () "Double unregister detected.")
-    (cl-cuda.driver-api:cu-mem-host-unregister (base-pointer cuda-host-array))
-    (setf (cuda-pool cuda-host-array) nil)
-    (free-foreign-array cuda-host-array)))
+;;; allocated -> reusable
+(defun return-to-pool (pool pointer n-bytes)
+  (with-cuda-pool-locked (pool)
+    (push pointer (gethash n-bytes (reusables pool)))
+    (decf (n-bytes-allocated pool) n-bytes)
+    (incf (n-bytes-reusable pool) n-bytes)))
