@@ -9,6 +9,35 @@
   (foreign-array-strategy type)
   (pinning-supported-p function))
 
+(defclass foreign-pool ()
+  ((n-foreign-arrays :initform 0 :accessor n-foreign-arrays)
+   (n-foreign-bytes-allocated :initform 0 :accessor n-foreign-bytes-allocated)
+   (n-static-arrays :initform 0 :accessor n-static-arrays)
+   (n-static-bytes-allocated :initform 0 :accessor n-static-bytes-allocated)
+   (lock :initform (bordeaux-threads:make-recursive-lock) :reader lock)))
+
+(defvar *foreign-pool* (make-instance 'foreign-pool))
+
+(defmacro with-foreign-pool-locked ((pool) &body body)
+  `(bordeaux-threads:with-recursive-lock-held ((lock ,pool))
+     ,@body))
+
+(defun foreign-room (&key (stream *standard-output*) (verbose t))
+  (if verbose
+      (format stream "Foreign memory usage:~%~
+                     foreign arrays: ~S (used bytes: ~:D)~%~
+                     static arrays: ~S (used bytes: ~:D)~%"
+              (n-foreign-arrays *foreign-pool*)
+              (n-foreign-bytes-allocated *foreign-pool*)
+              (n-static-arrays *foreign-pool*)
+              (n-static-bytes-allocated *foreign-pool*))
+      (format stream "f: ~S (~:D), s: ~S (~:D)~%"
+              (n-foreign-arrays *foreign-pool*)
+              (n-foreign-bytes-allocated *foreign-pool*)
+              (n-static-arrays *foreign-pool*)
+              (n-static-bytes-allocated *foreign-pool*))))
+
+
 ;;; FOREIGN-ARRAY is to CFFI:FOREIGN-POINTER what CUDA-ARRAY is to
 ;;; CU-DEVICE-PTR.
 (defclass foreign-array (offset-pointer)
@@ -30,9 +59,15 @@
      ,@body))
 
 (defun alloc-foreign-array (type &key count)
-  (make-instance 'foreign-array
-                 :base-pointer (cffi:foreign-alloc type :count count)
-                 :n-bytes (* count (ctype-size type))))
+  (let* ((n-bytes (* count (ctype-size type)))
+         (foreign-array
+           (make-instance 'foreign-array
+                          :base-pointer (cffi:foreign-alloc type :count count)
+                          :n-bytes n-bytes)))
+    (with-foreign-array-locked (*foreign-pool*)
+      (incf (n-foreign-arrays *foreign-pool*))
+      (incf (n-foreign-bytes-allocated *foreign-pool*) n-bytes))
+    foreign-array))
 
 (defun free-foreign-array (foreign-array)
   (with-foreign-array-locked (foreign-array)
@@ -45,7 +80,35 @@
       (let ((base-pointer (base-pointer foreign-array)))
         (assert base-pointer)
         (setf (slot-value foreign-array 'base-pointer) nil)
-        (cffi:foreign-free base-pointer)))))
+        (cffi:foreign-free base-pointer)
+        (with-foreign-array-locked (*foreign-pool*)
+          (decf (n-foreign-arrays *foreign-pool*))
+          (assert (not (minusp (n-foreign-arrays *foreign-pool*))))
+          (decf (n-foreign-bytes-allocated *foreign-pool*)
+                (pointer-n-bytes foreign-array)))))))
+
+(defun alloc-static-vector (ctype length initial-element)
+  (prog1
+      (if initial-element
+          (static-vectors:make-static-vector
+           length :element-type (ctype->lisp ctype)
+           :initial-element initial-element)
+          (static-vectors:make-static-vector
+           length :element-type (ctype->lisp ctype)))
+    (with-foreign-array-locked (*foreign-pool*)
+      (incf (n-static-arrays *foreign-pool*))
+      (incf (n-static-bytes-allocated *foreign-pool*)
+            (* length (ctype-size ctype))))))
+
+(defun free-static-vector (vector)
+  (let ((n-bytes (* (array-total-size vector)
+                    (ctype-size (lisp->ctype (array-element-type vector))))))
+    (static-vectors:free-static-vector vector)
+    (with-foreign-array-locked (*foreign-pool*)
+      (decf (n-static-arrays *foreign-pool*))
+      (assert (not (minusp (n-static-arrays *foreign-pool*))))
+      (decf (n-static-bytes-allocated *foreign-pool*) n-bytes)
+      (assert (not (minusp (n-static-bytes-allocated *foreign-pool*)))))))
 
 ;;;; Foreign array strategy
 

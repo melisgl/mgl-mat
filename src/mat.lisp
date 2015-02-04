@@ -205,13 +205,6 @@
    different representations of the same data. See @MAT-BASICS for a
    tuturialish treatment."))
 
-;;; Faster version of CFFI:FOREIGN-TYPE-SIZE.
-(declaim (inline ctype-size))
-(defun ctype-size (ctype)
-  (if (eq ctype :float)
-      4
-      8))
-
 (defmethod initialize-instance :after ((mat mat) &key initial-contents
                                        &allow-other-keys)
   (unless (listp (mat-dimensions mat))
@@ -722,29 +715,18 @@
     (and backing-array-view
          (eq (view-facet-description backing-array-view) :static))))
 
-;;; This is for debugging only.
-(defparameter *n-statics* 0)
-
 (defmethod make-facet* ((mat mat) (facet-name (eql 'backing-array)))
-  (flet ((allocate-static-vector ()
-           (if (mat-initial-element mat)
-               (static-vectors:make-static-vector
-                (mat-max-size mat)
-                :element-type (ctype->lisp (mat-ctype mat))
-                :initial-element (mat-initial-element mat))
-               (static-vectors:make-static-vector
-                (mat-max-size mat)
-                :element-type (ctype->lisp (mat-ctype mat))))))
-    (cond ((member *foreign-array-strategy* '(:static :cuda-host))
-           (incf *n-statics*)
-           (values (allocate-static-vector) *foreign-array-strategy* t))
-          ((mat-initial-element mat)
-           (make-array (mat-max-size mat)
-                       :element-type (ctype->lisp (mat-ctype mat))
-                       :initial-element (mat-initial-element mat)))
-          (t
-           (make-array (mat-max-size mat)
-                       :element-type (ctype->lisp (mat-ctype mat)))))))
+  (cond ((member *foreign-array-strategy* '(:static :cuda-host))
+         (values (alloc-static-vector (mat-ctype mat) (mat-max-size mat)
+                                      (mat-initial-element mat))
+                 *foreign-array-strategy* t))
+        ((mat-initial-element mat)
+         (make-array (mat-max-size mat)
+                     :element-type (ctype->lisp (mat-ctype mat))
+                     :initial-element (mat-initial-element mat)))
+        (t
+         (make-array (mat-max-size mat)
+                     :element-type (ctype->lisp (mat-ctype mat))))))
 
 (defmethod make-facet* ((mat mat) (facet-name (eql 'array)))
   (make-array-facet mat))
@@ -794,8 +776,7 @@
 
 (defmethod destroy-facet* ((facet-name (eql 'backing-array)) array description)
   (when (member description '(:static :cuda-host))
-    (decf *n-statics*)
-    (static-vectors:free-static-vector array)))
+    (free-static-vector array)))
 
 (defmethod destroy-facet* (facet-name (array foreign-array) description)
   (declare (ignore facet-name description))
@@ -2047,7 +2028,12 @@
 
   Another thing that tends to come up is figuring out where memory is
   used."
+  (mat-room function)
   (with-mat-counters macro))
+
+(defun mat-room (&key (stream *standard-output*) (verbose t))
+  (foreign-room :stream stream :verbose verbose)
+  (cuda-room :stream stream :verbose verbose))
 
 (defvar *counters* ())
 
@@ -2088,4 +2074,3 @@
   (loop for counter in *counters*
         do (incf (first counter) n)
            (incf (second counter))))
-

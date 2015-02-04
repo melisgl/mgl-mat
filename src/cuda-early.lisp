@@ -178,7 +178,8 @@
 
 
 (defsection @mat-cuda-memory-management (:title "CUDA Memory Management")
-  "")
+  ""
+  (cuda-room function))
 
 (defmacro with-syncing-cuda-facets ((ensures destroys) &body body)
   (alexandria:with-gensyms (token)

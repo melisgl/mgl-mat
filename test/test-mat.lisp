@@ -26,7 +26,8 @@
          (do-foreign-array-strategies ()
            (format *trace-output* "**** foreign array strategy: ~S~%"
                    *foreign-array-strategy*)
-           ,@body)))))
+           ,@body
+           (mat-room :verbose nil))))))
 
 (defun ~= (x y)
   (< (abs (- x y)) 0.00001))
@@ -497,15 +498,9 @@
                                             'cuda-array :type 'mat)
                                            3)))))))
           (plain)
-          (format t "cuda mats: ~S, copies: h->d: ~S, d->h: ~S~%"
-                  (count-barred-facets 'cuda-array :type 'mat)
-                  *n-memcpy-host-to-device*
-                  *n-memcpy-device-to-host*)
+          (cuda-room :verbose nil)
           (synced)
-          (format t "cuda mats: ~S, copies: h->d: ~S, d->h: ~S~%"
-                  (count-barred-facets 'cuda-array :type 'mat)
-                  *n-memcpy-host-to-device*
-                  *n-memcpy-device-to-host*))))))
+          (cuda-room :verbose nil))))))
 
 (defun test ()
   (test-facet-sharing)
@@ -526,7 +521,10 @@
   (test-uniform-random!)
   (test-pool)
   (test-scale-rows!)
-  (test-with-syncing-cuda-facets))
+  (test-with-syncing-cuda-facets)
+  #+sbcl
+  (sb-ext:gc :full t)
+  (mat-room))
 
 #|
 

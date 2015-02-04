@@ -17,6 +17,29 @@
   "Incremented each time a device to host copy is performed. Bound to
   0 by WITH-CUDA*. Useful for tracking down performance problems.")
 
+(defun cuda-room (&key (stream *standard-output*) (verbose t))
+  (when (use-cuda-p)
+    (if verbose
+        (format stream "CUDA memory usage:~%~
+                       device arrays: ~S (used bytes: ~:D, pooled bytes: ~:D)~%~
+                       host arrays: ~S (used bytes: ~:D)~%~
+                       host->device copies: ~S, device->host copies: ~S~%"
+                (count-barred-facets 'cuda-array :type 'mat)
+                (n-bytes-allocated *cuda-pool*)
+                (n-bytes-reusable *cuda-pool*)
+                (count-barred-facets 'cuda-host-array :type 'mat)
+                (n-bytes-host-array-registered *cuda-pool*)
+                *n-memcpy-host-to-device*
+                *n-memcpy-device-to-host*)
+        (format stream "d: ~S (~:D + ~:D), h: ~S (~:D), h->d: ~S, d->h: ~S~%"
+                (count-barred-facets 'cuda-array :type 'mat)
+                (n-bytes-allocated *cuda-pool*)
+                (n-bytes-reusable *cuda-pool*)
+                (count-barred-facets 'cuda-host-array :type 'mat)
+                (n-bytes-host-array-registered *cuda-pool*)
+                *n-memcpy-host-to-device*
+                *n-memcpy-device-to-host*))))
+
 (defun remove-arch-nvcc-option (options)
   (remove-if (lambda (option)
                (zerop (search "-arch=" option)))

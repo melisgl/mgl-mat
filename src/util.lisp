@@ -236,6 +236,13 @@ or :DOUBLE (the default).")
   (ecase ctype
     ((:float) (float x 0.0))
     ((:double) (float x 0d0))))
+
+;;; Faster version of CFFI:FOREIGN-TYPE-SIZE.
+(declaim (inline ctype-size))
+(defun ctype-size (ctype)
+  (if (eq ctype :float)
+      4
+      8))
 
 
 ;;;; Misc
