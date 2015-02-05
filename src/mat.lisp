@@ -159,12 +159,7 @@
   "The default for [CUDA-ENABLED][(accessor mat)].")
 
 (defclass mat (cube)
-  ((ctype
-    :type ctype :initform *default-mat-ctype*
-    :initarg :ctype :reader mat-ctype
-    :documentation "One of *SUPPORTED-CTYPES*. The matrix can hold
-    only values of this type.")
-   (displacement
+  ((displacement
     :initform 0 :initarg :displacement :reader mat-displacement
     :documentation "A value in the [0,MAX-SIZE] interval. This is like
     the DISPLACED-INDEX-OFFSET of a lisp array.")
@@ -172,22 +167,11 @@
     :initarg :dimensions :reader mat-dimensions
     :documentation "Like ARRAY-DIMENSIONS. It holds a list of
     dimensions, but it is allowed to pass in scalars too.")
-   (initial-element
-    :initform 0 :initarg :initial-element
-    :reader mat-initial-element
-    :documentation "If non-nil, then when a facet is created, it is
-    filled with INITIAL-ELEMENT coerced to the appropriate numeric
-    type. If NIL, then no initialization is performed.")
    (size
     :reader mat-size
     :documentation "The number of elements in the visible portion of
     the array. This is always the product of the elements
     MAT-DIMENSIONS and is similar to ARRAY-TOTAL-SIZE.")
-   (max-size
-    :initarg :max-size :reader mat-max-size
-    :documentation "The total size can be larger than MAT-SIZE, but
-    cannot change. Also DISPLACEMENT + SIZE must not exceed it. This
-    is not")
    (cuda-enabled
     :initform *default-mat-cuda-enabled*
     :initarg cuda-enabled :accessor cuda-enabled
@@ -197,32 +181,59 @@
     to this flag will not create or access the CUDA-ARRAY facet.
     Implementationally speaking, this is easily accomplished by using
     USE-CUDA-P.")
-   ;; The number of bytes MAX-SIZE number of elements take.
-   (n-bytes :reader mat-n-bytes))
+   ;; VEC is a CUBE to which we delegate most work and which has
+   ;; LISP-VECTOR, STATIC-VECTOR and CUDA-ARRAY facets.
+   (vec :initarg :vec :reader vec)
+   ;; The rest of the slots here are fake, and redefined below in
+   ;; DEFMETHOD forms to fetch values from VEC. By listing them here
+   ;; we can document them without giving away implementation details.
+   (ctype
+    :type ctype :initform *default-mat-ctype*
+    :initarg :ctype :reader mat-ctype
+    :documentation "One of *SUPPORTED-CTYPES*. The matrix can hold
+    only values of this type.")
+   (initial-element
+    :initform 0 :initarg :initial-element
+    :reader mat-initial-element
+    :documentation "If non-nil, then when a facet is created, it is
+    filled with INITIAL-ELEMENT coerced to the appropriate numeric
+    type. If NIL, then no initialization is performed.")
+   (max-size
+    :initarg :max-size :reader mat-max-size
+    :documentation "The total size can be larger than MAT-SIZE, but
+    cannot change. Also DISPLACEMENT + SIZE must not exceed it. This
+    is not"))
   (:documentation "A MAT is a data CUBE that is much like a lisp
    array, it supports DISPLACEMENT, arbitrary DIMENSIONS and
    INITIAL-ELEMENT with the usual semantics. However, a MAT supports
    different representations of the same data. See @MAT-BASICS for a
    tuturialish treatment."))
 
+(defmethod mat-ctype ((mat mat))
+  (vec-ctype (vec mat)))
+
+(defmethod mat-initial-element ((mat mat))
+  (vec-initial-element (vec mat)))
+
+(defmethod mat-max-size ((mat mat))
+  (vec-size (vec mat)))
+
 (defmethod initialize-instance :after ((mat mat) &key initial-contents
+                                       (ctype *default-mat-ctype*)
+                                       (initial-element 0)
+                                       max-size
                                        &allow-other-keys)
   (unless (listp (mat-dimensions mat))
     (setf (slot-value mat 'dimensions)
           (list (mat-dimensions mat))))
   (setf (slot-value mat 'size) (mat-size-from-dimensions (mat-dimensions mat)))
-  (unless (slot-boundp mat 'max-size)
-    (setf (slot-value mat 'max-size)
-          (+ (mat-displacement mat) (mat-size mat))))
+  (setf (slot-value mat 'vec)
+        (make-instance 'vec :ctype ctype :initial-element initial-element
+                       :size (or max-size
+                                 (+ (mat-displacement mat) (mat-size mat)))))
   (assert (<= (+ (mat-displacement mat) (mat-size mat)) (mat-max-size mat)))
-  (setf (slot-value mat 'n-bytes)
-        (* (mat-max-size mat) (ctype-size (mat-ctype mat))))
-  (when (mat-initial-element mat)
-    (setf (slot-value mat 'initial-element)
-          (coerce-to-ctype (mat-initial-element mat) :ctype (mat-ctype mat))))
   (when initial-contents
-    (replace! mat initial-contents))
-  (note-allocation (mat-n-bytes mat)))
+    (replace! mat initial-contents)))
 
 ;;; Optimized version of (REDUCE #'* DIMENSIONS).
 (defun mat-size-from-dimensions (dimensions)
@@ -372,7 +383,7 @@
   (let ((value (coerce-to-ctype value :ctype (mat-ctype mat))))
     (cond ((and (use-cuda-p mat)
                 (let ((view (find-view mat 'cuda-array)))
-                  (or (and view (view-up-to-date-p view))
+                  (or (and view (up-to-date-p* mat 'cuda-array view))
                       (endp (views mat)))))
            (assert (and (<= 0 index) (< index (mat-size mat)))
                    () "Index ~S out of bounds for ~S." index mat)
@@ -448,17 +459,19 @@
       (when displacedp
         (format stream "+~A" after)))))
 
-(defun mat-view-to-char (view)
+(defun mat-view-to-char (mat view)
   (let* ((name (view-facet-name view))
          (char (if (eq name 'cuda-host-array)
                    #\h
                    (aref (symbol-name name) 0))))
-    (if (view-up-to-date-p view)
+    (if (up-to-date-p* mat name view)
         (char-upcase char)
         (char-downcase char))))
 
 (defun print-mat-facets (mat stream)
-  (let ((chars (mapcar #'mat-view-to-char (views mat))))
+  (let ((chars (mapcar (lambda (view)
+                         (mat-view-to-char mat view))
+                       (views mat))))
     (if chars
         (format stream "~{~A~}" (sort chars #'char-lessp))
         (format stream "-"))))
@@ -697,295 +710,235 @@
                         :io
                         direction)))
 
-(defun make-array-facet (mat)
-  (with-facet (backing-array (mat 'backing-array :direction :input))
-    (if (and (zerop (mat-displacement mat))
-             (= (mat-size mat) (mat-max-size mat))
-             (= 1 (length (mat-dimensions mat))))
-        backing-array
-        (make-array (mat-dimensions mat)
-                    :element-type (ctype->lisp (mat-ctype mat))
-                    :displaced-to backing-array
-                    :displaced-index-offset (mat-displacement mat)))))
-
 ;;; Unfortunately we can't generally tell whether an array is static
 ;;; so we must store this information in the VIEW-FACET-DESCRIPTION.
+#+nil
 (defun static-backing-array-p (mat)
   (let ((backing-array-view (find-view mat 'backing-array)))
     (and backing-array-view
          (eq (view-facet-description backing-array-view) :static))))
 
-(defmethod make-facet* ((mat mat) (facet-name (eql 'backing-array)))
-  (cond ((member *foreign-array-strategy* '(:static :cuda-host))
-         (values (alloc-static-vector (mat-ctype mat) (mat-max-size mat)
-                                      (mat-initial-element mat))
-                 *foreign-array-strategy* t))
-        ((mat-initial-element mat)
-         (make-array (mat-max-size mat)
-                     :element-type (ctype->lisp (mat-ctype mat))
-                     :initial-element (mat-initial-element mat)))
-        (t
-         (make-array (mat-max-size mat)
-                     :element-type (ctype->lisp (mat-ctype mat))))))
+(defun vec-view (mat facet-name)
+  (cdr (view-facet-description (find-view mat facet-name))))
+
+(defun vec-facet-name (mat facet-name)
+  (view-facet-name (cdr (view-facet-description (find-view mat facet-name)))))
+
+(defun make-array-facet (mat vector)
+  (if (and (zerop (mat-displacement mat))
+           (= (mat-size mat) (mat-max-size mat))
+           (= 1 (length (mat-dimensions mat))))
+      vector
+      (make-array (mat-dimensions mat)
+                  :element-type (ctype->lisp (mat-ctype mat))
+                  :displaced-to vector
+                  :displaced-index-offset (mat-displacement mat))))
 
 (defmethod make-facet* ((mat mat) (facet-name (eql 'array)))
-  (make-array-facet mat))
+  (let* ((vec (vec mat))
+         (vec-view
+           (if (or (member *foreign-array-strategy* '(:static :cuda-host))
+                   (find-view vec 'static-vector))
+               (add-facet-reference (vec mat) 'static-vector)
+               (add-facet-reference (vec mat) 'lisp-vector))))
+    (values nil (cons vec vec-view) nil)))
+
+(defmethod make-facet* ((mat mat) (facet-name (eql 'backing-array)))
+  (let* ((vec (vec mat))
+         (vec-view
+           (if (or (member *foreign-array-strategy* '(:static :cuda-host))
+                   (find-view vec 'static-vector))
+               (add-facet-reference (vec mat) 'static-vector)
+               (add-facet-reference (vec mat) 'lisp-vector))))
+    (values nil (cons vec vec-view) nil)))
 
 (defmethod make-facet* ((mat mat) (facet-name (eql 'foreign-array)))
-  (let ((cuda-host-view (find-view mat 'cuda-host-array)))
-    (if cuda-host-view
-        (let ((foreign-array (view-facet cuda-host-view)))
-          (incf (n-references foreign-array))
-          (values foreign-array nil t))
-        (let* ((ctype (mat-ctype mat))
-               (array (alloc-foreign-array ctype :count (mat-max-size mat)))
-               (pointer (base-pointer array))
-               (initial-element (mat-initial-element mat)))
-          (reshape-and-displace-facet* mat facet-name array (mat-dimensions mat)
-                                       (mat-displacement mat))
-          (when (and initial-element
-                     (not (mgl-cube::find-up-to-date-view mat)))
-            (dotimes (i (mat-max-size mat))
-              (setf (cffi:mem-aref pointer ctype i) initial-element)))
-          (values array nil t)))))
-
-(defmethod make-facet* ((mat mat) (facet-name (eql 'cuda-host-array)))
-  (assert (use-cuda-p mat))
-  (let* ((foreign-view (find-view mat 'foreign-array))
-         (foreign-array (if foreign-view
-                            (let ((foreign-array (view-facet foreign-view)))
-                              (incf (n-references foreign-array))
-                              foreign-array)
-                            (make-facet* mat 'foreign-array))))
-    (register-cuda-host-array foreign-array (mat-n-bytes mat))
-    (values foreign-array nil t)))
+  (let* ((vec (vec mat))
+         (vec-view (if (and (use-pinning-p)
+                            (not (find-view vec 'static-vector)))
+                       (add-facet-reference vec 'lisp-vector)
+                       (add-facet-reference vec 'static-vector))))
+    (values nil (cons vec vec-view) nil)))
 
 (defmethod make-facet* ((mat mat) (facet-name (eql 'cuda-array)))
-  (let ((array (alloc-cuda-array (* (mat-max-size mat)
-                                    (ctype-size (mat-ctype mat))))))
-    (when (and (mat-initial-element mat)
-               (not (mgl-cube::find-up-to-date-view mat)))
-      (cuda-fill!-2 (mat-ctype mat) (mat-initial-element mat)
-                    array (mat-max-size mat)))
-    (reshape-and-displace-facet* mat facet-name array (mat-dimensions mat)
-                                 (mat-displacement mat))
-    (values array nil t)))
+  (let* ((vec (vec mat))
+         (vec-view (add-facet-reference vec 'cuda-vector)))
+    (values nil (cons vec vec-view) nil)))
 
-(defmethod destroy-facet* ((facet-name (eql 'array)) array description)
-  (declare (ignore array description)))
+(defmethod make-facet* ((mat mat) (facet-name (eql 'cuda-host-array)))
+  (let* ((vec (vec mat))
+         (vec-view (add-facet-reference vec 'static-vector))
+         (static-vector (view-facet vec-view)))
+    (values (register-cuda-host-array (static-vector-pointer static-vector)
+                                      (vec-n-bytes vec))
+            (cons vec vec-view)
+            ;; Ask for a finalizer, because we need to unregister
+            ;; memory.
+            t)))
 
-(defmethod destroy-facet* ((facet-name (eql 'backing-array)) array description)
-  (when (member description '(:static :cuda-host))
-    (free-static-vector array)))
+(defmethod call-with-facet* ((mat mat) (facet-name (eql 'array))
+                             direction fn)
+  ;; CALL-NEXT-METHOD ensures that the ARRAY facets exists.
+  (call-next-method
+   mat facet-name direction
+   ;; Delegate to VEC.
+   (lambda (facet)
+     (declare (ignore facet))
+     (let* ((vec (vec mat))
+            (view (find-view mat 'array))
+            (vec-view (cdr (view-facet-description view)))
+            (vec-facet-name (view-facet-name vec-view))
+            ;; Create the array lazily (this might be right after
+            ;; MAKE-FACET*, or VIEW-FACET was NIL in
+            ;; RESHAPE-AND-DISPLACE-FACET*.
+            (facet (or (view-facet view)
+                       (setf (view-facet view)
+                             (make-array-facet mat (view-facet vec-view))))))
+       ;; We could call fn with FACET directly, but doing it via
+       ;; CALL-WITH-FACET* enables VEC to detect reader/writer
+       ;; conflicts.
+       (call-with-facet* vec vec-facet-name direction
+                         (lambda (vec-facet)
+                           (declare (ignore vec-facet))
+                           (funcall fn facet)))))))
 
-(defmethod destroy-facet* (facet-name (array foreign-array) description)
-  (declare (ignore facet-name description))
-  (free-foreign-array array))
+(defun maybe-rewire-to (mat vec facet-name vec-facet-name)
+  (declare (ignore vec vec-facet-name))
+  (let ((vec-view (vec-view mat facet-name)))
+    ;; FIXME: we should actually change to VEC-FACET-NAME if exists
+    vec-view))
+
+;;; Just use STATIC-VECTOR or LISP-VECTOR directly.
+(defmethod call-with-facet* ((mat mat) (facet-name (eql 'backing-array))
+                             direction fn)
+  (call-next-method
+   mat facet-name direction
+   (lambda (facet)
+     (declare (ignore facet))
+     (let* ((vec (vec mat))
+            (vec-facet-name (view-facet-name
+                             (maybe-rewire-to mat vec
+                                              facet-name 'static-vector))))
+       (call-with-facet* vec vec-facet-name direction fn)))))
+
+;;; Use the pinned LISP-VECTOR if there is no STATIC-VECTOR facet and
+;;; pinning is supported, else use STATIC-VECTOR.
+(defmethod call-with-facet* ((mat mat) (facet-name (eql 'foreign-array))
+                             direction fn)
+  (call-next-method
+   mat facet-name direction
+   (lambda (facet)
+     (declare (ignore facet))
+     (let* ((vec (vec mat))
+            (vec-facet-name (view-facet-name
+                             (maybe-rewire-to mat vec
+                                              facet-name 'static-vector))))
+       (call-with-facet*
+        vec vec-facet-name direction
+        (lambda (facet)
+          (if (eq facet-name 'lisp-vector)
+              (lla::with-pinned-array (lisp-pointer facet)
+                (funcall fn (make-instance
+                             'foreign-array
+                             :base-pointer lisp-pointer
+                             :offset (displacement-bytes mat))))
+              (funcall fn (make-instance
+                           'foreign-array
+                           :base-pointer (static-vector-pointer
+                                          facet)
+                           :offset (displacement-bytes mat))))))))))
+
+(defmethod call-with-facet* ((mat mat) (facet-name (eql 'cuda-array))
+                             direction fn)
+  (call-next-method
+   mat facet-name direction
+   (lambda (cuda-array)
+     (let* ((vec (vec mat))
+            (vec-facet-name (view-facet-name
+                             (maybe-rewire-to mat vec
+                                              facet-name 'static-vector))))
+       (call-with-facet*
+        vec vec-facet-name direction
+        (lambda (cuda-vector)
+          (unless cuda-array
+            (let ((view (find-view mat 'cuda-array)))
+              (setq cuda-array
+                    (make-instance 'cuda-array
+                                   :base-pointer (base-pointer cuda-vector)
+                                   :offset (displacement-bytes mat)))
+              (setf (view-facet view) cuda-array)))
+          (funcall fn cuda-array)))))))
+
+(defmethod call-with-facet* ((mat mat) (facet-name (eql 'cuda-host-array))
+                             direction fn)
+  (call-next-method
+   mat facet-name direction
+   (lambda (foreign-array)
+     (let* ((vec (vec mat))
+            (vec-facet-name (vec-facet-name mat facet-name)))
+       (call-with-facet*
+        vec vec-facet-name direction
+        (lambda (static-vector)
+          (assert (cffi:pointer-eq (static-vector-pointer static-vector)
+                                   (base-pointer foreign-array)))
+          (funcall fn foreign-array)))))))
+
+(defmethod copy-facet* ((mat mat) from-facet-name from-facet
+                        to-facet-name to-facet)
+  (let ((vec-from-view (vec-view mat from-facet-name))
+        (vec-to-view (vec-view mat to-facet-name)))
+    (copy-facet* (vec mat)
+                 (view-facet-name vec-from-view) (view-facet vec-from-view)
+                 (view-facet-name vec-to-view) (view-facet vec-to-view))))
+
+(defmethod destroy-facet* ((facet-name (eql 'array)) array vec-and-view)
+  (destructuring-bind (vec . vec-view) vec-and-view
+    (remove-view-reference vec-view)
+    (destroy-facet vec (view-facet-name vec-view))))
+
+(defmethod destroy-facet* ((facet-name (eql 'backing-array)) vector
+                           vec-and-view)
+  (destructuring-bind (vec . vec-view) vec-and-view
+    (remove-view-reference vec-view)
+    (destroy-facet vec (view-facet-name vec-view))))
+
+(defmethod destroy-facet* ((facet-name (eql 'foreign-array)) pointer
+                           vec-and-view)
+  (destructuring-bind (vec . vec-view) vec-and-view
+    (remove-view-reference vec-view)
+    (destroy-facet vec (view-facet-name vec-view))))
+
+(defmethod destroy-facet* ((facet-name (eql 'cuda-array)) pointer vec-and-view)
+  (destructuring-bind (vec . vec-view) vec-and-view
+    (remove-view-reference vec-view)
+    (destroy-facet vec (view-facet-name vec-view))))
 
 (defmethod destroy-facet* ((facet-name (eql 'cuda-host-array))
-                           (array foreign-array) description)
-  (declare (ignore description))
-  ;; Dragons. If this is called from a finalizer running in a non-cuda
-  ;; thread, then unregistering will be deferred. For unregistering to
-  ;; be safe, the foreign memory must be still be held, so we leave
-  ;; the responsability of freeing it to the [CUDA-POOL][class]. The
-  ;; pool will only decrement N-REFERENCES of ARRAY after the memory
-  ;; is unregistered from CUDA so we are mostly fine.
-  ;;
-  ;; Note, that if CUDA-HOST-ARRAY is destroyed explicitly by the user
-  ;; from a non-cuda thread and CUDA-HOST-ARRAY is recreated (from a
-  ;; CUDA thread, necessarily), then the creation can fail in
-  ;; REGISTER-CUDA-HOST-ARRAY because CUDA-POOL of the array is not
-  ;; NIL. This is also fine, CUDA-ARRAY facets are not thread safe to
-  ;; begin with.
-  (unregister-and-free-cuda-host-array array))
-
-(defmethod destroy-facet* (facet-name (cuda-array cuda-array) description)
-  (declare (ignore facet-name description))
-  (free-cuda-array cuda-array))
-
-(cffi:defcfun memcpy :void
-  (dest :pointer)
-  (src :pointer)
-  (n cl-cuda.driver-api:size-t))
-
-;;; array -> *
-(defmethod copy-facet* ((mat mat) (from-name (eql 'array)) array
-                        to-name to-facet)
-  (declare (ignore array))
-  (unless (eq to-name 'backing-array)
-    (copy-facet* mat 'backing-array
-                 (view-facet (find-view mat 'backing-array))
-                 to-name to-facet)))
-
-;;; * -> array
-(defmethod copy-facet* ((mat mat) from-name from-facet
-                        (to-name (eql 'array)) array)
-  (declare (ignore array))
-  (unless (eq from-name 'backing-array)
-    (copy-facet* mat from-name from-facet 'backing-array
-                 (view-facet (find-view mat 'backing-array)))))
-
-;;; backing-array -> foreign-array
-(defmethod copy-facet* ((mat mat) (from-name (eql 'backing-array)) array
-                        (to-name (eql 'foreign-array)) foreign-array)
-  (cond ((static-backing-array-p mat))
-        ((use-pinning-p)
-         (lla::with-pinned-array (ptr array)
-           (memcpy (base-pointer foreign-array) ptr (mat-n-bytes mat))))
-        (t
-         (lla::copy-array-to-memory array (base-pointer foreign-array)
-                                    (ctype->lla-internal (mat-ctype mat))))))
-
-;;; foreign-array -> backing-array
-(defmethod copy-facet* ((mat mat) (from-name (eql 'foreign-array)) foreign-array
-                        (to-name (eql 'backing-array)) array)
-  (cond ((static-backing-array-p mat))
-        ((use-pinning-p)
-         (lla::with-pinned-array (ptr array)
-           (memcpy ptr (base-pointer foreign-array) (mat-n-bytes mat))))
-        (t
-         (lla::copy-array-from-memory array (base-pointer foreign-array)
-                                      (ctype->lla-internal (mat-ctype mat))))))
-
-;;; foreign-array -> cuda-array
-(defmethod copy-facet* ((mat mat) (from-name (eql 'foreign-array)) foreign-array
-                        (to-name (eql 'cuda-array)) cuda-array)
-  (incf *n-memcpy-host-to-device*)
-  #+nil
-  (unless *let-input-through-p*
-    (break))
-  (if (eq *cuda-stream* *cuda-copy-stream*)
-      (cl-cuda.driver-api:cu-memcpy-host-to-device-async
-       (base-pointer cuda-array) (base-pointer foreign-array) (mat-n-bytes mat)
-       *cuda-stream*)
-      (cl-cuda.driver-api::cu-memcpy-host-to-device (base-pointer cuda-array)
-                                                    (base-pointer foreign-array)
-                                                    (mat-n-bytes mat))))
-
-;;; cuda-array -> foreign-array
-(defmethod copy-facet* ((mat mat) (from-name (eql 'cuda-array)) cuda-array
-                        (to-name (eql 'foreign-array)) foreign-array)
-  (incf *n-memcpy-device-to-host*)
-  #+nil
-  (unless *let-input-through-p*
-    (break))
-  (if (eq *cuda-stream* *cuda-copy-stream*)
-      (cl-cuda.driver-api:cu-memcpy-device-to-host-async
-       (base-pointer foreign-array) (base-pointer cuda-array) (mat-n-bytes mat)
-       *cuda-stream*)
-      (cl-cuda.driver-api::cu-memcpy-device-to-host (base-pointer foreign-array)
-                                                    (base-pointer cuda-array)
-                                                    (mat-n-bytes mat))))
-
-;;; backing-array -> cuda-array
-(defmethod copy-facet* ((mat mat) (from-name (eql 'backing-array)) array
-                        (to-name (eql 'cuda-array)) cuda-array)
-  (declare (ignorable array))
-  (incf *n-memcpy-host-to-device*)
-  (cond ((use-pinning-p)
-         (lla::with-pinned-array (ptr array)
-           (cl-cuda.driver-api::cu-memcpy-host-to-device
-            (base-pointer cuda-array) ptr
-            (mat-n-bytes mat))))
-        ((static-backing-array-p mat)
-         (cl-cuda.driver-api::cu-memcpy-host-to-device
-          (base-pointer cuda-array)
-          (static-vectors:static-vector-pointer array)
-          (mat-n-bytes mat)))
-        (t
-         (with-facet (foreign-array (mat 'foreign-array :direction :input))
-           (cl-cuda.driver-api::cu-memcpy-host-to-device
-            (base-pointer cuda-array)
-            (base-pointer foreign-array)
-            (mat-n-bytes mat))))))
-
-;;; cuda-array -> backing-array
-(defmethod copy-facet* ((mat mat) (from-name (eql 'cuda-array)) cuda-array
-                        (to-name (eql 'backing-array)) array)
-  (declare (ignorable cuda-array))
-  (incf *n-memcpy-device-to-host*)
-  (cond ((use-pinning-p)
-         (lla::with-pinned-array (ptr array)
-           (cl-cuda.driver-api::cu-memcpy-device-to-host
-            ptr (base-pointer cuda-array)
-            (mat-n-bytes mat))))
-        ((static-backing-array-p mat)
-         (cl-cuda.driver-api::cu-memcpy-device-to-host
-          (static-vectors:static-vector-pointer array)
-          (base-pointer cuda-array)
-          (mat-n-bytes mat)))
-        (t
-         (with-facet (foreign-array (mat 'foreign-array :direction :input))
-           (copy-facet* mat 'foreign-array foreign-array
-                        'backing-array array)))))
-
-;;; foreign-array -> cuda-host-array
-(defmethod copy-facet* ((mat mat) (from-name (eql 'foreign-array)) foreign-array
-                        (to-name (eql 'cuda-host-array)) cuda-host-array)
-  ;; The FOREIGN-ARRAY and CUDA-HOST-ARRAY share storage. Nothing to
-  ;; do.
-  (assert (eq foreign-array cuda-host-array)))
-
-;;; cuda-host-array -> foreign-array
-(defmethod copy-facet* ((mat mat) (from-name (eql 'cuda-host-array))
-                        cuda-host-array
-                        (to-name (eql 'foreign-array)) foreign-array)
-  (assert (eq cuda-host-array foreign-array)))
-
-;;; * -> cuda-host-array
-(defmethod copy-facet* ((mat mat) from-name from-array
-                        (to-name (eql 'cuda-host-array)) cuda-host-array)
-  (copy-facet* mat from-name from-array 'foreign-array cuda-host-array))
-
-;;; cuda-host-array -> *
-(defmethod copy-facet* ((mat mat) (from-name (eql 'cuda-host-array))
-                        cuda-host-array to-name to-array)
-  (copy-facet* mat 'foreign-array cuda-host-array to-name to-array))
+                           cuda-host-array vec-and-view)
+  (unregister-cuda-host-array
+   cuda-host-array (lambda ()
+                     (destructuring-bind (vec . vec-view) vec-and-view
+                       (remove-view-reference vec-view)
+                       (destroy-facet vec (view-facet-name vec-view))))))
 
 (defun displacement-bytes (mat)
   (* (mat-displacement mat) (ctype-size (mat-ctype mat))))
 
-(defmethod reshape-and-displace-facet* ((mat mat) facet-name
-                                        (facet offset-pointer)
+(defmethod reshape-and-displace-facet* ((mat mat) facet-name facet
                                         dimensions displacement)
-  (declare (ignore facet-name dimensions displacement))
-  (setf (slot-value facet 'offset) (displacement-bytes mat)))
+  (declare (ignore facet-name facet dimensions displacement)))
 
 (defmethod reshape-and-displace-facet* ((mat mat) (facet-name (eql 'array))
                                         facet dimensions displacement)
   (declare (ignore facet dimensions displacement))
-  (when (view-up-to-date-p (find-view mat 'array))
-    (setf (view-up-to-date-p (find-view mat 'backing-array)) t))
-  (destroy-facet mat 'array))
+  (let ((array-view (find-view mat 'array)))
+    (setf (view-facet array-view) nil)))
 
-(defmethod call-with-facet* ((mat mat) (facet-name (eql 'foreign-array))
-                             direction fn)
-  (let ((backing-array-view (find-view mat 'backing-array))
-        (foreign-array-view (find-view mat 'foreign-array)))
-    (cond ((and (use-pinning-p)
-                (or (not foreign-array-view)
-                    (not (view-up-to-date-p foreign-array-view))))
-           (with-facet (array (mat 'backing-array :direction direction))
-             (declare (ignorable array))
-             (lla::with-pinned-array (pointer array)
-               (funcall fn (make-instance 'foreign-array
-                                          :base-pointer pointer
-                                          :offset (displacement-bytes mat))))))
-          ((and (or (and (null backing-array-view)
-                         (eq *foreign-array-strategy* :static))
-                    (and backing-array-view
-                         (eq (view-facet-description backing-array-view)
-                             :static)))
-                (or (not foreign-array-view)
-                    (not (view-up-to-date-p foreign-array-view))))
-           (with-facet (array (mat 'backing-array :direction direction))
-             (let ((pointer (static-vectors:static-vector-pointer array)))
-               (funcall fn (make-instance 'foreign-array
-                                          :base-pointer pointer
-                                          :offset (displacement-bytes mat))))))
-          (t
-           (call-next-method)))))
+(defmethod reshape-and-displace-facet* ((mat mat) (facet-name (eql 'cuda-array))
+                                        facet dimensions displacement)
+  (declare (ignore facet dimensions displacement))
+  (let ((cuda-view (find-view mat 'cuda-array)))
+    (setf (view-facet cuda-view) nil)))
 
 (defmethod select-copy-source-for-facet* ((mat mat) (to-name (eql 'cuda-array))
                                           cuda-array)
@@ -993,36 +946,11 @@
       'cuda-host-array
       (call-next-method)))
 
-(defmethod set-up-to-date-p* ((mat mat) (facet-name (eql 'array)) view value)
-  (unless (eq (view-up-to-date-p view) value)
-    (setf (view-up-to-date-p view) value)
-    (let ((backing-array-view (find-view mat 'backing-array)))
-      (when backing-array-view
-        (setf (view-up-to-date-p backing-array-view) value)))))
+(defmethod up-to-date-p* ((mat mat) facet-name view)
+  (view-up-to-date-p (cdr (view-facet-description view))))
 
-(defmethod set-up-to-date-p* ((mat mat) (facet-name (eql 'backing-array))
-                              view value)
-  (unless (eq (view-up-to-date-p view) value)
-    (setf (view-up-to-date-p view) value)
-    (let ((array-view (find-view mat 'array)))
-      (when array-view
-        (setf (view-up-to-date-p array-view) value)))))
-
-(defmethod set-up-to-date-p* ((mat mat) (facet-name (eql 'foreign-array))
-                              view value)
-  (unless (eq (view-up-to-date-p view) value)
-    (setf (view-up-to-date-p view) value)
-    (let ((cuda-host-array-view (find-view mat 'cuda-host-array)))
-      (when cuda-host-array-view
-        (setf (view-up-to-date-p cuda-host-array-view) value)))))
-
-(defmethod set-up-to-date-p* ((mat mat) (facet-name (eql 'cuda-host-array))
-                              view value)
-  (unless (eq (view-up-to-date-p view) value)
-    (setf (view-up-to-date-p view) value)
-    (let ((foreign-array-view (find-view mat 'foreign-array)))
-      (when foreign-array-view
-        (setf (view-up-to-date-p foreign-array-view) value)))))
+(defmethod set-up-to-date-p* ((mat mat) facet-name view value)
+  (setf (view-up-to-date-p (cdr (view-facet-description view))) value))
 
 
 ;;;; Utilities for defining the high[er] level api

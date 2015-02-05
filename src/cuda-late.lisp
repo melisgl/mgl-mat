@@ -84,14 +84,16 @@
                  (with-cuda-pool (:n-bytes n-pool-bytes)
                    (with-cuda-stream (*cuda-stream*)
                      (with-cuda-stream (*cuda-copy-stream*)
-                       (with-facet-barrier ('mat '(array)
-                                                 '(cuda-array cuda-host-array))
-                         (with-cublas-handle ()
-                           (with-curand-state ((if random-seed
-                                                   (make-xorwow-state/simple
-                                                    random-seed n-random-states)
-                                                   *curand-state*))
-                             (funcall fn))))))))))))
+                       (with-facet-barrier ('vec '(lisp-vector) '(cuda-vector))
+                         (with-facet-barrier ('mat '(array) '(cuda-array
+                                                              cuda-host-array))
+                           (with-cublas-handle ()
+                             (with-curand-state
+                                 ((if random-seed
+                                      (make-xorwow-state/simple
+                                       random-seed n-random-states)
+                                      *curand-state*))
+                               (funcall fn)))))))))))))
         (t
          (funcall fn))))
 

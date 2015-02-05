@@ -280,10 +280,10 @@
 ;;;; Memory allocation on the GPU
 ;;;;
 ;;;; In a nutshell, all allocations must be performed within
-;;;; WITH-CUDA-POOL with ALLOC-CUDA-ARRAY. In return, FREE-CUDA-ARRAY
+;;;; WITH-CUDA-POOL with ALLOC-CUDA-VECTOR. In return, FREE-CUDA-VECTOR
 ;;;; can be legally called from all threads which is a big no-no with
 ;;;; cuMemFree. This allows finalizers to work although the freeing is
-;;;; deferred until the next call to ALLOC-CUDA-ARRAY.
+;;;; deferred until the next call to ALLOC-CUDA-VECTOR.
 ;;;;
 ;;;; Similarly, all host memory must be registered within
 ;;;; WITH-CUDA-POOL with REGISTER-CUDA-HOST-ARRAY (instead of
@@ -306,62 +306,69 @@
              (make-instance 'cuda-pool
                             :n-bytes-free (or ,n-bytes most-positive-fixnum))))
        (unwind-protect (locally ,@body)
-         (process-pool *cuda-pool*)
+         ;; The WITH-FACET-BARRIER in CALL-WITH-CUDA destroyed the
+         ;; CUDA-VECTOR facets of live VEC objects. But if
+         ;; finalization has started for a garbage VEC then we must
+         ;; wait for it to finish, hence the loop.
+         (loop until (with-cuda-pool-locked (*cuda-pool*)
+                       (and (zerop (n-bytes-host-array-registered *cuda-pool*))
+                            (zerop (n-bytes-allocated *cuda-pool*))))
+               do (process-pool *cuda-pool*)
+                  (sleep 0.01))
          ;; free all
          (free-some-reusables *cuda-pool* (n-bytes-reusable *cuda-pool*))
-         (assert (zerop (n-bytes-reusable *cuda-pool*)))
-         (assert (zerop (n-bytes-allocated *cuda-pool*)))
-         (assert (zerop (n-bytes-host-array-registered *cuda-pool*)))))))
+         (with-cuda-pool-locked (*cuda-pool*)
+           (assert (zerop (n-bytes-allocated *cuda-pool*)))
+           (assert (zerop (n-bytes-reusable *cuda-pool*)))
+           (assert (zerop (n-bytes-host-array-registered *cuda-pool*))))))))
 
-(defun alloc-cuda-array (n-bytes)
+(defun alloc-cuda-vector (n-bytes)
   (assert *cuda-pool* () "No cuda memory pool. Use WITH-CUDA*.")
   (process-pool *cuda-pool*)
-  (let ((pointer (alloc-cuda-array-with-recovery
+  (let ((pointer (alloc-cuda-vector-with-recovery
                   *cuda-pool* n-bytes (list #'free-some-reusables
                                             #'try-to-free-cuda-memory-1
                                             #'try-to-free-cuda-memory-2
                                             #'try-to-free-cuda-memory-3
                                             #'try-to-free-cuda-memory-3
                                             #'try-to-free-cuda-memory-3))))
-    (make-instance 'cuda-array :base-pointer pointer :n-bytes n-bytes
-                   :cuda-pool *cuda-pool*)))
+    (make-instance 'cuda-vector :base-pointer pointer :n-bytes n-bytes)))
 
-(defun free-cuda-array (cuda-array)
-  (let ((base-pointer (base-pointer cuda-array)))
+(defun free-cuda-vector (cuda-vector)
+  (let ((base-pointer (base-pointer cuda-vector)))
     (assert base-pointer () "Double free detected on cuda array.")
-    (setf (slot-value cuda-array 'base-pointer) nil)
-    (return-to-pool (cuda-pool cuda-array) base-pointer
-                    (pointer-n-bytes cuda-array))))
+    (setf (slot-value cuda-vector 'base-pointer) nil)
+    (return-to-pool (cuda-pool cuda-vector) base-pointer
+                    (pointer-n-bytes cuda-vector))))
 
-(defun register-cuda-host-array (foreign-array n-bytes)
+(defun register-cuda-host-array (pointer n-bytes)
   (assert *cuda-pool* () "No cuda memory pool. Use WITH-CUDA*.")
-  (assert (null (cuda-pool foreign-array)) ()
-          "CUDA host array already registered.")
   (process-pool *cuda-pool*)
-  (cl-cuda.driver-api:cu-mem-host-register (base-pointer foreign-array)
-                                           n-bytes 0)
-  (incf (n-bytes-host-array-registered *cuda-pool*) n-bytes)
-  (setf (cuda-pool foreign-array) *cuda-pool*))
+  (with-cuda-pool-locked (*cuda-pool*)
+    (cl-cuda.driver-api:cu-mem-host-register pointer n-bytes 0)
+    (incf (n-bytes-host-array-registered *cuda-pool*) n-bytes))
+  (make-instance 'cuda-host-array :base-pointer pointer :n-bytes n-bytes))
 
-(defun unregister-and-free-cuda-host-array (cuda-host-array)
+(defun unregister-cuda-host-array (cuda-host-array callback)
   (assert (cuda-pool cuda-host-array) () "Double unregister detected.")
   (cond ((eq (cuda-pool cuda-host-array) *cuda-pool*)
          (let ((base-pointer (base-pointer cuda-host-array)))
            (assert base-pointer () "Can't unregister freed array.")
-           (unregister-and-free-cuda-host-array-now cuda-host-array)))
+           (unregister-cuda-host-array-now cuda-host-array callback)))
         (t
          (add-host-array-to-be-unregistered (cuda-pool cuda-host-array)
-                                            cuda-host-array))))
+                                            cuda-host-array callback))))
 
-(defun unregister-and-free-cuda-host-array-now (cuda-host-array)
-  (with-foreign-array-locked (cuda-host-array)
-    (assert (cuda-pool cuda-host-array) () "Double unregister detected.")
-    (cl-cuda.driver-api:cu-mem-host-unregister (base-pointer cuda-host-array))
+(defun unregister-cuda-host-array-now (cuda-host-array callback)
+  (assert (eq *cuda-pool* (cuda-pool cuda-host-array)))
+  (cl-cuda.driver-api:cu-mem-host-unregister (base-pointer cuda-host-array))
+  (with-cuda-pool-locked (*cuda-pool*)
     (decf (n-bytes-host-array-registered *cuda-pool*)
           (pointer-n-bytes cuda-host-array))
-    (assert (not (minusp (n-bytes-host-array-registered *cuda-pool*))))
-    (setf (cuda-pool cuda-host-array) nil)
-    (free-foreign-array cuda-host-array)))
+    (assert (not (minusp (n-bytes-host-array-registered *cuda-pool*)))))
+  (setf (cuda-pool cuda-host-array) nil)
+  (when callback
+    (funcall callback)))
 
 (define-condition cuda-out-of-memory (storage-condition)
   ((n-bytes :initarg :n-bytes :reader n-bytes))
@@ -395,42 +402,53 @@
         (when (mgl-cube::compare-and-swap
                (slot-value cuda-pool 'host-arrays-to-be-unregistered)
                host-arrays-to-be-unregistered ())
-          (dolist (cuda-host-array host-arrays-to-be-unregistered)
-            (unregister-and-free-cuda-host-array-now cuda-host-array))
+          (dolist (cuda-host-array-and-callback host-arrays-to-be-unregistered)
+            (destructuring-bind (cuda-host-array . callback)
+                cuda-host-array-and-callback
+              (unregister-cuda-host-array-now cuda-host-array callback)))
           (return))))))
 
-(defun add-host-array-to-be-unregistered (cuda-pool cuda-host-array)
+(defun add-host-array-to-be-unregistered (cuda-pool cuda-host-array callback)
   (loop
     (let* ((old (host-arrays-to-be-unregistered cuda-pool))
-           (new (cons cuda-host-array old)))
+           (new (cons (cons cuda-host-array callback) old)))
       (when (mgl-cube::compare-and-swap
              (slot-value cuda-pool 'host-arrays-to-be-unregistered) old new)
         (return)))))
 
+(defclass cuda-vector (offset-pointer)
+  ((cuda-pool :initform *cuda-pool* :reader cuda-pool)))
+
 (defclass cuda-array (offset-pointer)
-  ((cuda-pool :initarg :cuda-pool :reader cuda-pool)))
+  ())
+
+(defclass cuda-host-array (offset-pointer)
+  ((cuda-pool :initform *cuda-pool* :accessor cuda-pool)))
 
 (defun try-to-free-cuda-memory-1 (pool n-bytes)
   (declare (ignore n-bytes))
+  (assert (eq pool *cuda-pool*))
   ;; Force finalizations.
   (tg:gc)
   (process-pool pool))
 
 (defun try-to-free-cuda-memory-2 (pool n-bytes)
   (declare (ignore n-bytes))
+  (assert (eq pool *cuda-pool*))
   ;; Force finalizations with a global gc.
   (tg:gc :full t)
   (process-pool pool))
 
 (defun try-to-free-cuda-memory-3 (pool n-bytes)
   (declare (ignore n-bytes))
+  (assert (eq pool *cuda-pool*))
   ;; FIXME: Wait for finalizers to run. No guarantee that they
   ;; actually run. Even less guarantee that other pools free their
   ;; memory.
   (sleep 1)
   (process-pool pool))
 
-(defun alloc-cuda-array-with-recovery (pool n-bytes recovery-fns)
+(defun alloc-cuda-vector-with-recovery (pool n-bytes recovery-fns)
   (let ((remaining-recovery-fns recovery-fns))
     (loop
       (catch 'again

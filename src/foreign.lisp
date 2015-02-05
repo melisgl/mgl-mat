@@ -10,9 +10,7 @@
   (pinning-supported-p function))
 
 (defclass foreign-pool ()
-  ((n-foreign-arrays :initform 0 :accessor n-foreign-arrays)
-   (n-foreign-bytes-allocated :initform 0 :accessor n-foreign-bytes-allocated)
-   (n-static-arrays :initform 0 :accessor n-static-arrays)
+  ((n-static-arrays :initform 0 :accessor n-static-arrays)
    (n-static-bytes-allocated :initform 0 :accessor n-static-bytes-allocated)
    (lock :initform (bordeaux-threads:make-recursive-lock) :reader lock)))
 
@@ -25,15 +23,10 @@
 (defun foreign-room (&key (stream *standard-output*) (verbose t))
   (if verbose
       (format stream "Foreign memory usage:~%~
-                     foreign arrays: ~S (used bytes: ~:D)~%~
                      static arrays: ~S (used bytes: ~:D)~%"
-              (n-foreign-arrays *foreign-pool*)
-              (n-foreign-bytes-allocated *foreign-pool*)
               (n-static-arrays *foreign-pool*)
               (n-static-bytes-allocated *foreign-pool*))
-      (format stream "f: ~S (~:D), s: ~S (~:D)~%"
-              (n-foreign-arrays *foreign-pool*)
-              (n-foreign-bytes-allocated *foreign-pool*)
+      (format stream "s: ~S (~:D)~%"
               (n-static-arrays *foreign-pool*)
               (n-static-bytes-allocated *foreign-pool*))))
 
@@ -57,35 +50,6 @@
 (defmacro with-foreign-array-locked ((foreign-array) &body body)
   `(bordeaux-threads:with-recursive-lock-held ((lock ,foreign-array))
      ,@body))
-
-(defun alloc-foreign-array (type &key count)
-  (let* ((n-bytes (* count (ctype-size type)))
-         (foreign-array
-           (make-instance 'foreign-array
-                          :base-pointer (cffi:foreign-alloc type :count count)
-                          :n-bytes n-bytes)))
-    (with-foreign-array-locked (*foreign-pool*)
-      (incf (n-foreign-arrays *foreign-pool*))
-      (incf (n-foreign-bytes-allocated *foreign-pool*) n-bytes))
-    foreign-array))
-
-(defun free-foreign-array (foreign-array)
-  (with-foreign-array-locked (foreign-array)
-    (assert (plusp (n-references foreign-array)) ()
-            "Can't free already freed FOREIGN-ARRAY.")
-    (decf (n-references foreign-array))
-    (when (zerop (n-references foreign-array))
-      (assert (null (cuda-pool foreign-array)) ()
-              "Can't free foreign array while it's registered in CUDA.")
-      (let ((base-pointer (base-pointer foreign-array)))
-        (assert base-pointer)
-        (setf (slot-value foreign-array 'base-pointer) nil)
-        (cffi:foreign-free base-pointer)
-        (with-foreign-array-locked (*foreign-pool*)
-          (decf (n-foreign-arrays *foreign-pool*))
-          (assert (not (minusp (n-foreign-arrays *foreign-pool*))))
-          (decf (n-foreign-bytes-allocated *foreign-pool*)
-                (pointer-n-bytes foreign-array)))))))
 
 (defun alloc-static-vector (ctype length initial-element)
   (prog1
@@ -113,9 +77,9 @@
 ;;;; Foreign array strategy
 
 (deftype foreign-array-strategy ()
-  "One of :PINNED, :STATIC, :CUDA-HOST and :DYNAMIC. See
+  "One of :PINNED, :STATIC and :CUDA-HOST. See
   *FOREIGN-ARRAY-STRATEGY* for their semantics."
-  '(member :pinned :static :cuda-host :dynamic))
+  '(member :pinned :static :cuda-host))
 
 (defun pinning-supported-p ()
   "Return true iff the lisp implementation efficiently supports
@@ -129,7 +93,7 @@ SBCL gencgc platforms."
   (if (pinning-supported-p)
       :pinned
       :static)
-  "One of :PINNED, :STATIC and :DYNAMIC (see type
+  "One of :PINNED, :STATIC and :CUDA-HOST (see type
   FOREIGN-ARRAY-STRATEGY). This variable controls how foreign arrays
   are handled and it can be changed at any time.
 
@@ -144,12 +108,9 @@ SBCL gencgc platforms."
 
   :CUDA-HOST is the same as :STATIC, but any copies to/from the
   GPU (i.e. the CUDA-ARRAY facet) will be done via the CUDA-HOST-ARRAY
-  facet whose memory pages are locked in will also be locked and
-  registered with cuMemHostRegister which allows quicker and
-  asynchronous copying to and from CUDA land.
-
-  If it's :DYNAMIC, then each time the foreign array is needed, it's
-  allocated and freed dynamically.
+  facet whose memory pages will also be locked and registered with
+  cuMemHostRegister which allows quicker and asynchronous copying to
+  and from CUDA land.
 
   The default is :PINNED if available, because it's the most
   efficient. If pinning is not available, then it's :STATIC.")

@@ -6,8 +6,7 @@
   `(dolist (*foreign-array-strategy*
             (append (if (pinning-supported-p) '(:pinned) ())
                     '(:static)
-                    (if (use-cuda-p) '(:cuda-host) ())
-                    '(:dynamic)))
+                    (if (use-cuda-p) '(:cuda-host) ())))
      ,@body))
 
 (defmacro do-cuda (() &body body)
@@ -528,7 +527,9 @@
 
 #|
 
-(time (test))
+(loop for i upfrom 0
+      do (format t "TEST ~S~%" i)
+         (time (test)))
 
 ;;; Test only without cuda even if it seems available.
 (let ((*cuda-enabled* nil))

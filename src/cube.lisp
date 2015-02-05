@@ -226,6 +226,7 @@
   (destroy-facet* generic-function)
   (copy-facet* generic-function)
   (call-with-facet* generic-function)
+  (up-to-date-p* generic-function)
   (set-up-to-date-p* generic-function)
   (select-copy-source-for-facet* generic-function)
   "Also see @DEFAULT-CALL-WITH-FACET*.")
@@ -275,6 +276,8 @@
   be careful not to get into endless recursion. The default method
   simply returns the first up-to-date facet."))
 
+(defgeneric up-to-date-p* (cube facet-name view))
+
 (defgeneric set-up-to-date-p* (cube facet-name view value)
   (:documentation "Set the VIEW-UP-TO-DATE-P slot of VIEW to VALUE.
   The default implementation simply SETFs it. This being a generic
@@ -308,7 +311,7 @@
   which holds the data in a particular representation is the facet. A
   VIEW holds one such facet and some metadata pertaining to it: its
   name (VIEW-FACET-NAME), whether it's up-to-date (VIEW-UP-TO-DATE-P),
-  etc. VIEW ojbects are never seen when simply using a cube, they are
+  etc. VIEW ojbects are never seen when simply using a cube, they aref
   for implementing the @FACET-EXTENSION-API."
   facet-name
   facet
@@ -317,11 +320,14 @@
   (n-watchers 0)
   (watcher-threads ())
   (direction nil :type direction)
-  ;; Destruction can be initiated by finalizers running in other
-  ;; threads, and also by both a FACET-BARRIER and a finalizer on some
-  ;; platforms. Hence, we CAS T onto the CAR of this token before
-  ;; destroying a facet.
-  (permission-to-destroy (cons nil nil)))
+  ;; This is basically the number of references callers of
+  ;; ADD-FACET-REFERENCE and REMOVE-FACET-REFERENCE have totalled on
+  ;; this view. If it's non-zero, then this view is protected against
+  ;; DESTROY-FACET. Since we are at the mercy the callers of these
+  ;; functions, we must also make sure that finalizers destroy the
+  ;; view regardless of the number of references. When the view is
+  ;; about to be destroyed we CAS NIL onto the CAR of this token.
+  (references-cons (cons 0 nil)))
 
 (defmethod call-with-facet* ((cube cube) facet-name direction fn)
   "The default implementation of CALL-WITH-FACET* is defined in terms
@@ -330,18 +336,20 @@
   ;; If WATCH-FACET fails, don't unwatch it. Also, disable interrupts
   ;; in an effort to prevent async unwinds (C-c and similar) from
   ;; leaving inconsistent state around.
-  (let ((facet nil))
+  (let ((facet nil)
+        (facet-watched-p nil))
     (unwind-protect
          (progn
            (with-cube-locked (cube)
-             (setq facet (watch-facet cube facet-name direction)))
+             (setq facet (watch-facet cube facet-name direction))
+             (setq facet-watched-p t))
            (funcall fn facet))
       ;; The first thing we do in the cleanup is a WITHOUT-INTERRUPTS
       ;; which should minimize the chance for races and may be
       ;; entirely free of races on a good, safepoint base
       ;; implementation.
       (with-cube-locked (cube)
-        (when facet
+        (when facet-watched-p
           (unwatch-facet cube facet-name))))))
 
 (defgeneric watch-facet (cube facet-name direction)
@@ -350,7 +358,7 @@
     (let* ((view (ensure-view cube facet-name direction))
            (facet (view-facet view)))
       (when (and (not (eq direction :output))
-                 (not (view-up-to-date-p view))
+                 (not (up-to-date-p* cube facet-name view))
                  (find-up-to-date-view cube))
         (let ((from-facet-name
                 (select-copy-source-for-facet* cube facet-name facet)))
@@ -461,6 +469,10 @@
   such view exists."
   (find facet-name (views cube) :key #'view-facet-name))
 
+(defmethod up-to-date-p* (cube facet-name view)
+  (declare (ignore cube facet-name))
+  (view-up-to-date-p view))
+
 (defmethod set-up-to-date-p* (cube facet-name view value)
   (declare (ignore cube facet-name))
   (setf (view-up-to-date-p view) value))
@@ -473,23 +485,79 @@
   DESTROY-FACET and DESTROY-CUBE, respectively. Also see
   @FACET-BARRIER."
   (destroy-facet function)
-  (destroy-cube function))
+  (destroy-cube function)
+  "In some cases it is useful to the intent to use a facet in the
+  future to prevent its destruction. Hence every facet has reference
+  count that starts from 0. The reference count is incremented and
+  decremented by ADD-FACET-REFERENCE and REMOVE-FACET-REFERENCE,
+  respectively. If it is positive, then the facet will not be
+  destroyed by explicit DESTROY-FACET and DESTROY-CUBE calls, but it
+  will still be destroyed by the finalizer to prevent resource leaks
+  caused by stray references."
+  (add-facet-reference function)
+  (remove-facet-reference function)
+  (remove-view-reference function))
 
 (defun destroy-facet (cube facet-name)
   "Free resources associated with the facet with FACET-NAME and remove
   it from VIEWS of CUBE."
-  (let ((view (remove-view cube facet-name)))
-    (when (and view
-               (get-permission-to-destroy (view-permission-to-destroy view)))
+  (let ((view nil))
+    (with-cube-locked (cube)
+      (check-no-watchers cube nil "Cannot remove facet ~S" facet-name)
+      (let ((v (find-view cube facet-name)))
+        (when (and v (get-permission-to-destroy (view-references-cons v)))
+          (setf (cdr (slot-value cube 'views)) (remove v (views cube)))
+          (deregister-cube-facet cube facet-name)
+          (setq view v))))
+    (when view
       (destroy-facet* facet-name (view-facet view)
                       (view-facet-description view))
-      (setf (view-facet view) nil))))
+      (setf (view-facet view) nil)
+      (setf (view-facet-description view) nil)
+      t)))
 
 (defun destroy-cube (cube)
   "Destroy all facets of CUBE with DESTROY-FACET."
   (loop for view = (first (views cube))
         while view
         do (destroy-facet cube (view-facet-name view))))
+
+(defun add-facet-reference (cube facet-name)
+  "Make sure FACET-NAME exists on CUBE and increment its reference
+  count. Return the VIEW behind FACET-NAME."
+  ;; Keep retrying if the view gets destroyed before the reference
+  ;; count is incremented.
+  (loop
+    (let ((view (with-cube-locked (cube)
+                  (ensure-view cube facet-name nil))))
+      (when (incf-references (view-references-cons view) 1)
+        (return view)))))
+
+(defun remove-facet-reference (cube facet-name)
+  "Decrement the reference count of the facet with facet-name of CUBE.
+  It is an error if the view does not exists or if the reference count
+  becomes negative."
+  (let ((view (with-cube-locked (cube)
+                ;; This is under the lock only to prevent races with
+                ;; regards to view creation.
+                (find-view cube facet-name))))
+    (assert view)
+    (assert (not (minusp (incf-references (view-references-cons view) -1))))
+    view))
+
+(defun remove-view-reference (view)
+  "Decrement the reference count of VIEW. It is an error if the view
+  is already destroyed or if the reference count becomes negative.
+  This function has the same purpose as REMOVE-FACET-REFERENCE, but by
+  having a VIEW object, it's more suited for use in finalizers because
+  it does not keep the whole CUBE alive."
+  (check-type view view)
+  (let ((new-n-references (incf-references (view-references-cons view) -1)))
+    (assert new-n-references ()
+            "Can't decrement reference count on a destroyed view.")
+    (assert (not (minusp new-n-references)) ()
+            "Reference count became negative: ~S." new-n-references)
+    new-n-references))
 
 
 (defsection @facet-barrier (:title "Facet barriers")
@@ -561,7 +629,8 @@
 (defun cleanup-cube (cube ensures destroys)
   (when (and ensures (notany (lambda (facet-name)
                                (let ((view (find-view cube facet-name)))
-                                 (and view (view-up-to-date-p view))))
+                                 (and view
+                                      (up-to-date-p* cube facet-name view))))
                              ensures))
     (with-facet (facet (cube (first ensures) :direction :input))
       (declare (ignore facet))))
@@ -598,12 +667,28 @@ destroyed by a facet barrier."
 
 ;;;; Implementation 
 
-(defun get-permission-to-destroy (permission)
+(defun get-permission-to-destroy (references-cons &key being-finalized)
   (loop
-    (when (car permission)
-      (return nil))
-    (when (compare-and-swap (car permission) nil t)
-      (return t))))
+    (let ((n-references (car references-cons)))
+      (when (null n-references)
+        ;; already destroyed
+        (return nil))
+      (when (and (not being-finalized) (plusp n-references))
+        (return nil))
+      ;; The remaining references if any must belong to a garbage
+      ;; object.
+      (when (compare-and-swap (car references-cons) n-references nil)
+        (return t)))))
+
+(defun incf-references (references-cons delta)
+  (loop
+    (let ((n-references (car references-cons)))
+      (when (null n-references)
+        ;; already destroyed
+        (return nil))
+      (when (compare-and-swap (car references-cons) n-references
+                              (+ n-references delta))
+        (return (+ n-references delta))))))
 
 (defun ensure-cube-finalized (cube)
   (unless (has-finalizer-p cube)
@@ -613,11 +698,13 @@ destroyed by a facet barrier."
                    (lambda ()
                      (dolist (view (cdr views))
                        (when (get-permission-to-destroy
-                              (view-permission-to-destroy view))
+                              (view-references-cons view)
+                              :being-finalized t)
                          (destroy-facet* (view-facet-name view)
                                          (view-facet view)
                                          (view-facet-description view))
-                         (setf (view-facet view) nil))))))))
+                         (setf (view-facet view) nil)
+                         (setf (view-facet-description view) nil))))))))
 
 (defun add-view (cube facet-name facet facet-description direction)
   (register-cube-facet cube facet-name)
@@ -627,15 +714,6 @@ destroyed by a facet barrier."
     (push view (cdr (slot-value cube 'views)))
     view))
 
-(defun remove-view (cube facet-name)
-  (with-cube-locked (cube)
-    (let ((view (find-view cube facet-name)))
-      (check-no-watchers cube nil "Cannot remove facet ~S" facet-name)
-      (setf (cdr (slot-value cube 'views))
-            (remove facet-name (views cube) :key #'view-facet-name))
-      (deregister-cube-facet cube facet-name)
-      view)))
-
 (defun has-watchers-p (view)
   (plusp (view-n-watchers view)))
 
@@ -643,71 +721,80 @@ destroyed by a facet barrier."
   (and (has-watchers-p view)
        (not (eq :input (view-direction view)))))
 
+;;; caller must hold CUBE locked
 (defun ensure-view (cube facet-name direction)
   (let ((view (find-view cube facet-name)))
     ;; First check that there are no conflicting views for other
     ;; facets.
-    (if (eq direction :input)
-        (unless *let-input-through-p*
-          (check-no-writers cube facet-name
-                            "Cannot create view for ~S in direction ~S"
-                            facet-name direction))
-        (unless *let-output-through-p*
-          (check-no-watchers cube facet-name
-                             "Cannot create view for ~S in direction ~S"
-                             facet-name direction)))
-    (if (null view)
-        (multiple-value-bind (facet facet-description must-be-destroyed-p)
-            (make-facet* cube facet-name)
-          (when must-be-destroyed-p
-            (ensure-cube-finalized cube))
-          (add-view cube facet-name facet facet-description direction))
-        (let ((watchers (view-watcher-threads view))
-              (view-direction (view-direction view)))
-          (cond
-            ;; If there are no other watchers, we can just reuse VIEW
-            ;; since there are no conflicting views either.
-            ((endp watchers)
-             (setf (view-direction view) direction))
-            ;; There are watchers but they are :INPUT and we also want
-            ;; to create an :INPUT facet. Nothing to do.
-            ((and watchers (eq direction :input) (eq view-direction :input)))
-            ;; There are watchers, and at least one of DIRECTION and
-            ;; VIEW-DIRECTION is :IO or :OUTPUT so we have a
-            ;; reader/writer conflict. Still, let the view be shared
-            ;; if the only watcher is the current thread.
-            ((and (every (let ((current-thread
-                                 (bordeaux-threads:current-thread)))
-                           (lambda (watcher)
-                             (eq watcher current-thread)))
-                         watchers))
-             ;; Make sure VIEW-DIRECTION is not :INPUT (it doesn't
-             ;; matter whether it's :IO or :OUTPUT).
-             (setf (view-direction view) :io))
-            ;; There are no conflicting views, but there are watchers,
-            ;; VIEW-DIRECTION is not :INPUT, and other threads are
-            ;; watching VIEW.
-            ((eq direction :input)
-             (unless *let-input-through-p*
-               (error "Cannot create nested view for ~S in direction ~S ~
+    (cond ((eq direction :input)
+           (unless *let-input-through-p*
+             (check-no-writers cube facet-name
+                               "Cannot create view for ~S in direction ~S"
+                               facet-name direction)))
+          (direction
+           (unless *let-output-through-p*
+             (check-no-watchers cube facet-name
+                                "Cannot create view for ~S in direction ~S"
+                                facet-name direction))))
+    (cond ((null view)
+           (multiple-value-bind (facet facet-description must-be-destroyed-p)
+               (make-facet* cube facet-name)
+             (when must-be-destroyed-p
+               (ensure-cube-finalized cube))
+             (add-view cube facet-name facet facet-description
+                       (or direction :input))))
+          (direction
+           (let ((watchers (view-watcher-threads view))
+                 (view-direction (view-direction view)))
+             (cond
+               ;; If there are no other watchers, we can just reuse VIEW
+               ;; since there are no conflicting views either.
+               ((endp watchers)
+                (setf (view-direction view) direction))
+               ;; There are watchers but they are :INPUT and we also want
+               ;; to create an :INPUT facet. Nothing to do.
+               ((and watchers (eq direction :input) (eq view-direction :input)))
+               ;; There are watchers, and at least one of DIRECTION and
+               ;; VIEW-DIRECTION is :IO or :OUTPUT so we have a
+               ;; reader/writer conflict. Still, let the view be shared
+               ;; if the only watcher is the current thread.
+               ((and (every (let ((current-thread
+                                    (bordeaux-threads:current-thread)))
+                              (lambda (watcher)
+                                (eq watcher current-thread)))
+                            watchers))
+                ;; Make sure VIEW-DIRECTION is not :INPUT (it doesn't
+                ;; matter whether it's :IO or :OUTPUT).
+                (setf (view-direction view) :io))
+               ;; There are no conflicting views, but there are watchers,
+               ;; VIEW-DIRECTION is not :INPUT, and other threads are
+               ;; watching VIEW.
+               ((eq direction :input)
+                (unless *let-input-through-p*
+                  (error "Cannot create nested view for ~S in direction ~S ~
                       because there are other threads writing the same ~
                       facet." facet-name direction))
-             (setf (view-direction view) :io))
-            ;; There are no conflicting views, but there are watchers,
-            ;; VIEW-DIRECTION may be :INPUT, and other threads are
-            ;; watching VIEW.
-            (t
-             (unless *let-output-through-p*
-               (error "Cannot create nested view for ~S in direction ~S ~
+                (setf (view-direction view) :io))
+               ;; There are no conflicting views, but there are watchers,
+               ;; VIEW-DIRECTION may be :INPUT, and other threads are
+               ;; watching VIEW.
+               (t
+                (unless *let-output-through-p*
+                  (error "Cannot create nested view for ~S in direction ~S ~
                       because there are other threads using the same ~
                       facet." facet-name direction))))
-          view))))
+             view))
+          (t view))))
 
 (defun find-up-to-date-view (cube)
-  (find-if #'view-up-to-date-p (views cube)))
+  (find-if (lambda (view)
+             (up-to-date-p* cube (view-facet-name view) view))
+           (views cube)))
 
 (defun find-up-to-date-facet-name (cube)
-  (let ((view (find-if #'view-up-to-date-p (views cube))))
+  (let ((view (find-if (lambda (view)
+                         (up-to-date-p* cube (view-facet-name view) view))
+                       (views cube))))
     (if view
         (view-facet-name view)
         nil)))

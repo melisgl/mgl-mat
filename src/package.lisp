@@ -4,4 +4,5 @@
 
 (mgl-pax:define-package :mgl-mat
   (:documentation "See MGL-MAT:@MAT-MANUAL.")
-  (:use #:common-lisp #:mgl-pax #:mgl-cube #:cl-cuda))
+  (:use #:common-lisp #:mgl-pax #:mgl-cube #:cl-cuda)
+  (:import-from #:static-vectors #:static-vector #:static-vector-pointer))

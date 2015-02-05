@@ -34,6 +34,7 @@
                              (:file "lisp-kernel")
                              (:file "curand")
                              (:file "cuda-late")
+                             (:file "vec")
                              (:file "mat")
                              (:file "convolve")
                              (:file "max-pool")))))

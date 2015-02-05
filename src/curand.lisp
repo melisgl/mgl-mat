@@ -48,7 +48,7 @@
 
 (defun make-xorwow-state/simple (seed n-states)
   (let* ((n-states (sanitize-n-random-states n-states))
-         (states (alloc-cuda-array
+         (states (alloc-cuda-vector
                   (* n-states
                      (cffi:foreign-type-size
                       '(:struct cl-cuda.lang.data::curand-state-xorwow))))))
@@ -113,7 +113,7 @@
 
 (defmethod copy-curand-state ((state curand-xorwow-state))
   (let* ((n-states (n-states state))
-         (states (alloc-cuda-array
+         (states (alloc-cuda-vector
                   (* n-states
                      (cffi:foreign-type-size
                       '(:struct curand-state-xorwow))))))
@@ -126,5 +126,5 @@
                    :states states)))
 
 (defmethod destroy-curand-state ((state curand-xorwow-state))
-  (free-cuda-array (states state))
+  (free-cuda-vector (states state))
   (setf (slot-value state 'states) nil))

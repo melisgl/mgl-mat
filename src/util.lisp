@@ -299,3 +299,8 @@ or :DOUBLE (the default).")
 
 (defun round-up (number divisor)
   (* (ceiling number divisor) divisor))
+
+(cffi:defcfun memcpy :void
+  (dest :pointer)
+  (src :pointer)
+  (n cl-cuda.driver-api:size-t))
