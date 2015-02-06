@@ -66,15 +66,17 @@
   with MAT objects and can define the same function for multiple
   CTYPES. Example:
 
-      (define-lisp-kernel (lisp-.+!)
-          ((alpha single-float) (x :mat :input) (start-x index) (n index))
-        (loop for xi of-type index upfrom start-x
-                below (the! index (+ start-x n))
-              do (incf (aref x xi) alpha)))
+  ```commonlisp
+  (define-lisp-kernel (lisp-.+!)
+      ((alpha single-float) (x :mat :input) (start-x index) (n index))
+    (loop for xi of-type index upfrom start-x
+            below (the! index (+ start-x n))
+          do (incf (aref x xi) alpha)))
+  ```
 
   Parameters are either of the form `(<NAME> <LISP-TYPE)`
   or `(<NAME> :MAT <DIRECTION>)`. In the latter case, the appropriate
-  CFFI:POINTER is passed to the kernel. `<DIRECTION>` is passed on to
+  CFFI pointer is passed to the kernel. `<DIRECTION>` is passed on to
   the WITH-FACET that's used to acquire the foreign array. Note that
   the return type is not declared.
 

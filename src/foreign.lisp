@@ -105,12 +105,13 @@ SBCL gencgc platforms."
   statically via the static-vectors library. On some implementations,
   explicit freeing of static vectors is necessary, this is taken care
   of by finalizers or can be controlled with WITH-FACET-BARRIER.
+  DESTROY-CUBE and DESTROY-FACET may also be of help.
 
   :CUDA-HOST is the same as :STATIC, but any copies to/from the
-  GPU (i.e. the CUDA-ARRAY facet) will be done via the CUDA-HOST-ARRAY
-  facet whose memory pages will also be locked and registered with
-  cuMemHostRegister which allows quicker and asynchronous copying to
-  and from CUDA land.
+  GPU (i.e. the [CUDA-ARRAY][facet-name] facet) will be done via the
+  [CUDA-HOST-ARRAY][facet-name] facet whose memory pages will also be
+  locked and registered with `cuMemHostRegister` which allows quicker
+  and asynchronous copying to and from CUDA land.
 
   The default is :PINNED if available, because it's the most
   efficient. If pinning is not available, then it's :STATIC.")

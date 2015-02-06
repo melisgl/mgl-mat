@@ -66,6 +66,7 @@
   "Like WITH-CUDA*, but takes a no argument function instead of the
   macro's BODY."
   (cond ((boundp '*cuda-context*)
+         ;; FIXME: is this sane semantics?
          (with-facet-barrier ('mat '(array) '(cuda-host-array cuda-array))
            (funcall fn)))
         ((and *cuda-enabled* (cuda-available-p))

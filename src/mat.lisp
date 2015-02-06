@@ -15,16 +15,14 @@
   (@mat-shaping section)
   (@mat-assembling section)
   (@mat-caching section)
-  (@mat-foreign section)
-  (@mat-cuda section)
   (@mat-blas section)
   (@mat-destructive-api section)
   (@mat-non-destructive-api section)
   (@mat-mappings section)
   (@mat-random section)
   (@mat-io section)
-  (@mat-extension-api section)
-  (@mat-debugging section))
+  (@mat-debugging section)
+  (@mat-low-level section))
 
 (defsection @mat-introduction (:title "Introduction")
   (@mat-what-is-it section)
@@ -54,14 +52,6 @@
   from github.")
 
 (defsection @mat-basics (:title "Basics")
-  "A MAT is a CUBE (see @CUBE-MANUAL) whose facets are different
-  representations of numeric arrays. These facets can be accessed with
-  WITH-FACETS with one of the following [FACET-NAME][]s:"
-  (backing-array facet-name)
-  (array facet-name)
-  (foreign-array facet-name)
-  (cuda-host-array facet-name)
-  (cuda-array facet-name)
   (mat class)
   (mat-ctype (reader mat))
   (mat-displacement (reader mat))
@@ -76,84 +66,6 @@
   (replace! function)
   (mref function)
   (row-major-mref function))
-
-(export 'with-facet)
-(export 'with-facets)
-
-(define-facet-name backing-array ()
-  "The corresponding facet is a one dimensional lisp array.")
-
-(define-facet-name array ()
-  "Same as BACKING-ARRAY if the matrix is one-dimensional, all
-  elements are visible (see @MAT-SHAPING), else it's a lisp array
-  displaced to the backing array.")
-
-(define-facet-name foreign-array ()
-  "The facet is a [FOREIGN-ARRAY][class] which is an OFFSET-POINTER
-  wrapping a CFFI:POINTER. See *FOREIGN-ARRAY-STRATEGY*.")
-
-(define-facet-name cuda-host-array ()
-  "This facet is a basically the same as FOREIGN-ARRAY. In fact, they
-  share storage. The difference is that accessing CUDA-HOST-ARRAY
-  ensures that the memory is page locked and registered with
-  CL-CUDA.DRIVER-API:CU-MEM-HOST-REGISTER. See FIXDOC.")
-
-(define-facet-name cuda-array ()
-  "The facet is CUDA-ARRAY which is an OFFSET-POINTER wrapping a
-  CL-CUDA.DRIVER-API:CU-DEVICE-PTR, allocated with CU-MEM-ALLOC and
-  freed automatically.
-
-  Facets bound by with WITH-FACETS are to be treated as dynamic
-  extent: it is not allowed to keep a reference to them beyond the
-  dynamic scope of WITH-FACETS.
-
-  For example, to fill matrix X of CTYPE :DOUBLE with ones it most
-  convenient to work with the one dimensional BACKING-ARRAY:
-
-  ```
-  (let ((displacement (mat-displacement x))
-        (size (mat-size x)))
-   (with-facets ((x* (x 'backing-array :direction :output)))
-     (fill x* 1d0 :start displacement :end (+ displacement size))))
-  ```
-
-  DIRECTION is :OUTPUT because we clobber all values in X. Armed with
-  this knowledge about the direction, WITH-FACETS will not copy data
-  from another facet if the backing array is not up-to-date.
-
-  To transpose a 2d matrix with the ARRAY facet:
-
-  ```
-  (destructuring-bind (n-rows n-columns) (mat-dimensions x)
-    (with-facets ((x* (x 'array :direction :io)))
-      (dotimes (row n-rows)
-        (dotimes (column n-columns)
-          (setf (aref x* row column) (aref x* column row))))))
-  ```
-
-  Note that DIRECTION is :IO, because we need the data in this facet
-  to be up-to-date (that's the input part) and we are invalidating all
-  other facets by changing values (that's the output part).
-
-  To sum the values of a matrix using the FOREIGN-ARRAY facet:
-
-  ```
-  (let ((sum 0))
-    (with-facets ((x* (x 'foreign-array :direction :input)))
-      (let ((pointer (offset-pointer x*)))
-        (loop for index below (mat-size x)
-              do (incf sum (cffi:mem-aref pointer (mat-ctype x) index)))))
-    sum)
-  ```
-
-  See DIRECTION for a complete description of :INPUT, :OUTPUT and :IO.
-  For MAT objects, that needs to be refined. If a MAT is reshaped
-  and/or displaced in a way that not all elements are visible then
-  those elements are always kept intact and copied around. This is
-  accomplished by turning :OUTPUT into :IO automatically on such MATs.
-
-  Most operations automatically use CUDA, if available and
-  initialized. See WITH-CUDA* for detail.")
 
 (defvar *default-mat-cuda-enabled* t
   "The default for [CUDA-ENABLED][(accessor mat)].")
@@ -350,7 +262,7 @@
   with COERCE-TO-CTYPE. Note that currently MREF always operates on
   the BACKING-ARRAY facet so it can trigger copying of facets. When
   it's SETF'ed, however, it will update the CUDA-ARRAY if cuda is
-  enabled and it is up-to-date or there are no views at all."
+  enabled and it is up-to-date or there are no facets at all."
   (declare (dynamic-extent indices))
   (let ((index (apply #'mat-row-major-index mat indices)))
     (with-facets ((a (mat 'backing-array :direction :input)))
@@ -375,16 +287,16 @@
   ROW-MAJOR-MREF always operates on the BACKING-ARRAY facet so it can
   trigger copying of facets. When it's SETF'ed, however, it will
   update the CUDA-ARRAY if cuda is enabled and it is up-to-date or
-  there are no views at all."
+  there are no facets at all."
   (with-facets ((a (mat 'backing-array :direction :input)))
     (row-major-aref a (+ (mat-displacement mat) index))))
 
 (defun set-row-major-mref (mat index value)
   (let ((value (coerce-to-ctype value :ctype (mat-ctype mat))))
     (cond ((and (use-cuda-p mat)
-                (let ((view (find-view mat 'cuda-array)))
-                  (or (and view (up-to-date-p* mat 'cuda-array view))
-                      (endp (views mat)))))
+                (let ((facet (find-facet mat 'cuda-array)))
+                  (or (and facet (facet-up-to-date-p* mat 'cuda-array facet))
+                      (endp (facets mat)))))
            (assert (and (<= 0 index) (< index (mat-size mat)))
                    () "Index ~S out of bounds for ~S." index mat)
            (cuda-setf-mref mat index value
@@ -402,7 +314,7 @@
   (declare (optimize speed)
            (dynamic-extent subscripts))
   ;; Can't call ARRAY-ROW-MAJOR-INDEX because we may not have an ARRAY
-  ;; view.
+  ;; facet.
   (let ((sum 0)
         (multiplier (mat-size mat)))
     (declare (optimize speed)
@@ -423,12 +335,13 @@
   array (subject to the standard printer control variables).")
 
 (defvar *print-mat-facets* t
-  "Controls whether a summary of existing and up-to-date views is
-  printed whe a MAT object is printed. The summary that looks like
-  `ABcfh` indicates that all four facets (ARRAY, BACKING-ARRAY,
-  CUDA-ARRAY, FOREIGN-ARRAY, CUDA-HOST-ARRAY) are present and the
-  first two are up-to-date. A summary of a single #\- indicates that
-  there are no facets.")
+  "Controls whether a summary of existing and up-to-date facets is
+  printed when a MAT object is printed. The summary that looks like
+  `ABcfh` indicates that all five facets ([ARRAY][facet-name],
+  [BACKING-ARRAY][facet-name], [CUDA-ARRAY][facet-name],
+  [FOREIGN-ARRAY][facet-name], [CUDA-HOST-ARRAY][facet-name]) are
+  present and the first two are up-to-date. A summary of a single #\-
+  indicates that there are no facets.")
 
 (defmethod print-object ((mat mat) stream)
   (print-unreadable-object (mat stream :type t :identity (not *print-mat*))
@@ -459,19 +372,19 @@
       (when displacedp
         (format stream "+~A" after)))))
 
-(defun mat-view-to-char (mat view)
-  (let* ((name (view-facet-name view))
+(defun mat-facet-to-char (mat facet)
+  (let* ((name (facet-name facet))
          (char (if (eq name 'cuda-host-array)
                    #\h
                    (aref (symbol-name name) 0))))
-    (if (up-to-date-p* mat name view)
+    (if (facet-up-to-date-p* mat name facet)
         (char-upcase char)
         (char-downcase char))))
 
 (defun print-mat-facets (mat stream)
-  (let ((chars (mapcar (lambda (view)
-                         (mat-view-to-char mat view))
-                       (views mat))))
+  (let ((chars (mapcar (lambda (facet)
+                         (mat-facet-to-char mat facet))
+                       (facets mat))))
     (if chars
         (format stream "~{~A~}" (sort chars #'char-lessp))
         (format stream "-"))))
@@ -488,9 +401,10 @@
   facets, this means creating a new lisp array displaced to the
   backing array. The backing array stays the same, clients are
   supposed to observe MAT-DISPLACEMENT, MAT-DIMENSIONS or MAT-SIZE.
-  The FOREIGN-ARRAY and CUDA-ARRAY facets are OFFSET-POINTER's so
-  displacement is done by changing the offset. Clients need to observe
-  MAT-DIMENSIONS in any case."
+  The [FOREIGN-ARRAY][facet-name] and [CUDA-ARRAY][facet-name] facets
+  are [OFFSET-POINTER][class] objects so displacement is done by
+  changing the offset. Clients need to observe MAT-DIMENSIONS in any
+  case."
   (reshape-and-displace! function)
   (reshape! function)
   (displace! function)
@@ -520,9 +434,8 @@
         (setf (slot-value mat 'dimensions) dimensions)
         (setf (slot-value mat 'displacement) displacement)
         (setf (slot-value mat 'size) size)
-        (dolist (view (views mat))
-          (reshape-and-displace-facet* mat (view-facet-name view)
-                                       (view-facet view)
+        (dolist (facet (facets mat))
+          (reshape-and-displace-facet* mat (facet-name facet) facet
                                        dimensions displacement))))
     mat))
 
@@ -695,262 +608,6 @@
      ;; update the cached object if BODY changes the binding.
      (let ((,var ,var))
        ,@body)))
-
-
-;;;; Implementing @FACET-EXTENSION-API
-
-(defmethod watch-facet ((mat mat) facet-name direction)
-  (call-next-method mat facet-name
-                    ;; If the reshaped array doesn't cover the whole
-                    ;; index range, then make sure that the `hidden'
-                    ;; elements survive even if they have to be copied
-                    ;; from another facet.
-                    (if (and (eq direction :output)
-                             (< (mat-size mat) (mat-max-size mat)))
-                        :io
-                        direction)))
-
-;;; Unfortunately we can't generally tell whether an array is static
-;;; so we must store this information in the VIEW-FACET-DESCRIPTION.
-#+nil
-(defun static-backing-array-p (mat)
-  (let ((backing-array-view (find-view mat 'backing-array)))
-    (and backing-array-view
-         (eq (view-facet-description backing-array-view) :static))))
-
-(defun vec-view (mat facet-name)
-  (cdr (view-facet-description (find-view mat facet-name))))
-
-(defun vec-facet-name (mat facet-name)
-  (view-facet-name (cdr (view-facet-description (find-view mat facet-name)))))
-
-(defun make-array-facet (mat vector)
-  (if (and (zerop (mat-displacement mat))
-           (= (mat-size mat) (mat-max-size mat))
-           (= 1 (length (mat-dimensions mat))))
-      vector
-      (make-array (mat-dimensions mat)
-                  :element-type (ctype->lisp (mat-ctype mat))
-                  :displaced-to vector
-                  :displaced-index-offset (mat-displacement mat))))
-
-(defmethod make-facet* ((mat mat) (facet-name (eql 'array)))
-  (let* ((vec (vec mat))
-         (vec-view
-           (if (or (member *foreign-array-strategy* '(:static :cuda-host))
-                   (find-view vec 'static-vector))
-               (add-facet-reference (vec mat) 'static-vector)
-               (add-facet-reference (vec mat) 'lisp-vector))))
-    (values nil (cons vec vec-view) nil)))
-
-(defmethod make-facet* ((mat mat) (facet-name (eql 'backing-array)))
-  (let* ((vec (vec mat))
-         (vec-view
-           (if (or (member *foreign-array-strategy* '(:static :cuda-host))
-                   (find-view vec 'static-vector))
-               (add-facet-reference (vec mat) 'static-vector)
-               (add-facet-reference (vec mat) 'lisp-vector))))
-    (values nil (cons vec vec-view) nil)))
-
-(defmethod make-facet* ((mat mat) (facet-name (eql 'foreign-array)))
-  (let* ((vec (vec mat))
-         (vec-view (if (and (use-pinning-p)
-                            (not (find-view vec 'static-vector)))
-                       (add-facet-reference vec 'lisp-vector)
-                       (add-facet-reference vec 'static-vector))))
-    (values nil (cons vec vec-view) nil)))
-
-(defmethod make-facet* ((mat mat) (facet-name (eql 'cuda-array)))
-  (let* ((vec (vec mat))
-         (vec-view (add-facet-reference vec 'cuda-vector)))
-    (values nil (cons vec vec-view) nil)))
-
-(defmethod make-facet* ((mat mat) (facet-name (eql 'cuda-host-array)))
-  (let* ((vec (vec mat))
-         (vec-view (add-facet-reference vec 'static-vector))
-         (static-vector (view-facet vec-view)))
-    (values (register-cuda-host-array (static-vector-pointer static-vector)
-                                      (vec-n-bytes vec))
-            (cons vec vec-view)
-            ;; Ask for a finalizer, because we need to unregister
-            ;; memory.
-            t)))
-
-(defmethod call-with-facet* ((mat mat) (facet-name (eql 'array))
-                             direction fn)
-  ;; CALL-NEXT-METHOD ensures that the ARRAY facets exists.
-  (call-next-method
-   mat facet-name direction
-   ;; Delegate to VEC.
-   (lambda (facet)
-     (declare (ignore facet))
-     (let* ((vec (vec mat))
-            (view (find-view mat 'array))
-            (vec-view (cdr (view-facet-description view)))
-            (vec-facet-name (view-facet-name vec-view))
-            ;; Create the array lazily (this might be right after
-            ;; MAKE-FACET*, or VIEW-FACET was NIL in
-            ;; RESHAPE-AND-DISPLACE-FACET*.
-            (facet (or (view-facet view)
-                       (setf (view-facet view)
-                             (make-array-facet mat (view-facet vec-view))))))
-       ;; We could call fn with FACET directly, but doing it via
-       ;; CALL-WITH-FACET* enables VEC to detect reader/writer
-       ;; conflicts.
-       (call-with-facet* vec vec-facet-name direction
-                         (lambda (vec-facet)
-                           (declare (ignore vec-facet))
-                           (funcall fn facet)))))))
-
-(defun maybe-rewire-to (mat vec facet-name vec-facet-name)
-  (declare (ignore vec vec-facet-name))
-  (let ((vec-view (vec-view mat facet-name)))
-    ;; FIXME: we should actually change to VEC-FACET-NAME if exists
-    vec-view))
-
-;;; Just use STATIC-VECTOR or LISP-VECTOR directly.
-(defmethod call-with-facet* ((mat mat) (facet-name (eql 'backing-array))
-                             direction fn)
-  (call-next-method
-   mat facet-name direction
-   (lambda (facet)
-     (declare (ignore facet))
-     (let* ((vec (vec mat))
-            (vec-facet-name (view-facet-name
-                             (maybe-rewire-to mat vec
-                                              facet-name 'static-vector))))
-       (call-with-facet* vec vec-facet-name direction fn)))))
-
-;;; Use the pinned LISP-VECTOR if there is no STATIC-VECTOR facet and
-;;; pinning is supported, else use STATIC-VECTOR.
-(defmethod call-with-facet* ((mat mat) (facet-name (eql 'foreign-array))
-                             direction fn)
-  (call-next-method
-   mat facet-name direction
-   (lambda (facet)
-     (declare (ignore facet))
-     (let* ((vec (vec mat))
-            (vec-facet-name (view-facet-name
-                             (maybe-rewire-to mat vec
-                                              facet-name 'static-vector))))
-       (call-with-facet*
-        vec vec-facet-name direction
-        (lambda (facet)
-          (if (eq facet-name 'lisp-vector)
-              (lla::with-pinned-array (lisp-pointer facet)
-                (funcall fn (make-instance
-                             'foreign-array
-                             :base-pointer lisp-pointer
-                             :offset (displacement-bytes mat))))
-              (funcall fn (make-instance
-                           'foreign-array
-                           :base-pointer (static-vector-pointer
-                                          facet)
-                           :offset (displacement-bytes mat))))))))))
-
-(defmethod call-with-facet* ((mat mat) (facet-name (eql 'cuda-array))
-                             direction fn)
-  (call-next-method
-   mat facet-name direction
-   (lambda (cuda-array)
-     (let* ((vec (vec mat))
-            (vec-facet-name (view-facet-name
-                             (maybe-rewire-to mat vec
-                                              facet-name 'static-vector))))
-       (call-with-facet*
-        vec vec-facet-name direction
-        (lambda (cuda-vector)
-          (unless cuda-array
-            (let ((view (find-view mat 'cuda-array)))
-              (setq cuda-array
-                    (make-instance 'cuda-array
-                                   :base-pointer (base-pointer cuda-vector)
-                                   :offset (displacement-bytes mat)))
-              (setf (view-facet view) cuda-array)))
-          (funcall fn cuda-array)))))))
-
-(defmethod call-with-facet* ((mat mat) (facet-name (eql 'cuda-host-array))
-                             direction fn)
-  (call-next-method
-   mat facet-name direction
-   (lambda (foreign-array)
-     (let* ((vec (vec mat))
-            (vec-facet-name (vec-facet-name mat facet-name)))
-       (call-with-facet*
-        vec vec-facet-name direction
-        (lambda (static-vector)
-          (assert (cffi:pointer-eq (static-vector-pointer static-vector)
-                                   (base-pointer foreign-array)))
-          (funcall fn foreign-array)))))))
-
-(defmethod copy-facet* ((mat mat) from-facet-name from-facet
-                        to-facet-name to-facet)
-  (let ((vec-from-view (vec-view mat from-facet-name))
-        (vec-to-view (vec-view mat to-facet-name)))
-    (copy-facet* (vec mat)
-                 (view-facet-name vec-from-view) (view-facet vec-from-view)
-                 (view-facet-name vec-to-view) (view-facet vec-to-view))))
-
-(defmethod destroy-facet* ((facet-name (eql 'array)) array vec-and-view)
-  (destructuring-bind (vec . vec-view) vec-and-view
-    (remove-view-reference vec-view)
-    (destroy-facet vec (view-facet-name vec-view))))
-
-(defmethod destroy-facet* ((facet-name (eql 'backing-array)) vector
-                           vec-and-view)
-  (destructuring-bind (vec . vec-view) vec-and-view
-    (remove-view-reference vec-view)
-    (destroy-facet vec (view-facet-name vec-view))))
-
-(defmethod destroy-facet* ((facet-name (eql 'foreign-array)) pointer
-                           vec-and-view)
-  (destructuring-bind (vec . vec-view) vec-and-view
-    (remove-view-reference vec-view)
-    (destroy-facet vec (view-facet-name vec-view))))
-
-(defmethod destroy-facet* ((facet-name (eql 'cuda-array)) pointer vec-and-view)
-  (destructuring-bind (vec . vec-view) vec-and-view
-    (remove-view-reference vec-view)
-    (destroy-facet vec (view-facet-name vec-view))))
-
-(defmethod destroy-facet* ((facet-name (eql 'cuda-host-array))
-                           cuda-host-array vec-and-view)
-  (unregister-cuda-host-array
-   cuda-host-array (lambda ()
-                     (destructuring-bind (vec . vec-view) vec-and-view
-                       (remove-view-reference vec-view)
-                       (destroy-facet vec (view-facet-name vec-view))))))
-
-(defun displacement-bytes (mat)
-  (* (mat-displacement mat) (ctype-size (mat-ctype mat))))
-
-(defmethod reshape-and-displace-facet* ((mat mat) facet-name facet
-                                        dimensions displacement)
-  (declare (ignore facet-name facet dimensions displacement)))
-
-(defmethod reshape-and-displace-facet* ((mat mat) (facet-name (eql 'array))
-                                        facet dimensions displacement)
-  (declare (ignore facet dimensions displacement))
-  (let ((array-view (find-view mat 'array)))
-    (setf (view-facet array-view) nil)))
-
-(defmethod reshape-and-displace-facet* ((mat mat) (facet-name (eql 'cuda-array))
-                                        facet dimensions displacement)
-  (declare (ignore facet dimensions displacement))
-  (let ((cuda-view (find-view mat 'cuda-array)))
-    (setf (view-facet cuda-view) nil)))
-
-(defmethod select-copy-source-for-facet* ((mat mat) (to-name (eql 'cuda-array))
-                                          cuda-array)
-  (if (eq *foreign-array-strategy* :cuda-host)
-      'cuda-host-array
-      (call-next-method)))
-
-(defmethod up-to-date-p* ((mat mat) facet-name view)
-  (view-up-to-date-p (cdr (view-facet-description view))))
-
-(defmethod set-up-to-date-p* ((mat mat) facet-name view value)
-  (setf (view-up-to-date-p (cdr (view-facet-description view))) value))
 
 
 ;;;; Utilities for defining the high[er] level api
@@ -1934,15 +1591,6 @@
   may return without error even if STREAM contains garbage."))
 
 
-(defsection @mat-extension-api (:title "Extension API")
-  "Macros for defining cuda and lisp kernels. Typically operations
-  have a cuda and a lisp implementations and decide which to use with
-  USE-CUDA-P. These are provided to help writing new operations."
-  (define-lisp-kernel macro)
-  (*default-lisp-kernel-declarations* variable)
-  (define-cuda-kernel macro))
-
-
 (defsection @mat-debugging (:title "Debugging")
   "The largest class of bugs has to do with synchronization of facets
   being broken. This is almost always caused by an operation that
@@ -2002,3 +1650,362 @@
   (loop for counter in *counters*
         do (incf (first counter) n)
            (incf (second counter))))
+
+
+(defsection @mat-low-level (:title "Low-level API")
+  (@mat-facets section)
+  (@mat-foreign section)
+  (@mat-cuda section)
+  (@mat-extension-api section))
+
+(defsection @mat-facets (:title "Facets")
+  "A MAT is a CUBE (see @CUBE-MANUAL) whose facets are different
+  representations of numeric arrays. These facets can be accessed with
+  WITH-FACETS with one of the following [FACET-NAME][locative]
+  locatives:"
+  (backing-array facet-name)
+  (array facet-name)
+  (foreign-array facet-name)
+  (cuda-host-array facet-name)
+  (cuda-array facet-name)
+  "Facets bound by with WITH-FACETS are to be treated as dynamic
+  extent: it is not allowed to keep a reference to them beyond the
+  dynamic scope of WITH-FACETS.
+
+  For example, to implement the FILL! operation using only the
+  BACKING-ARRAY, one could do this:
+
+  ```commonlisp
+  (let ((displacement (mat-displacement x))
+        (size (mat-size x)))
+   (with-facets ((x* (x 'backing-array :direction :output)))
+     (fill x* 1 :start displacement :end (+ displacement size))))
+  ```
+ 
+  DIRECTION is :OUTPUT because we clobber all values in `X`. Armed
+  with this knowledge about the direction, WITH-FACETS will not copy
+  data from another facet if the backing array is not up-to-date.
+
+  To transpose a 2d matrix with the ARRAY facet:
+
+  ```
+  (destructuring-bind (n-rows n-columns) (mat-dimensions x)
+    (with-facets ((x* (x 'array :direction :io)))
+      (dotimes (row n-rows)
+        (dotimes (column n-columns)
+          (setf (aref x* row column) (aref x* column row))))))
+  ```
+
+  Note that DIRECTION is :IO, because we need the data in this facet
+  to be up-to-date (that's the input part) and we are invalidating all
+  other facets by changing values (that's the output part).
+
+  To sum the values of a matrix using the [FOREIGN-ARRAY][facet-name]
+  facet:
+
+  ```
+  (let ((sum 0))
+    (with-facets ((x* (x 'foreign-array :direction :input)))
+      (let ((pointer (offset-pointer x*)))
+        (loop for index below (mat-size x)
+              do (incf sum (cffi:mem-aref pointer (mat-ctype x) index)))))
+    sum)
+  ```
+
+  See DIRECTION for a complete description of :INPUT, :OUTPUT and :IO.
+  For MAT objects, that needs to be refined. If a MAT is reshaped
+  and/or displaced in a way that not all elements are visible then
+  those elements are always kept intact and copied around. This is
+  accomplished by turning :OUTPUT into :IO automatically on such MATs.
+
+  We have finished our introduction to the various facets. It must be
+  said though that one can do anything without ever accessing a facet
+  directly or even being aware of them as most operations on `MAT`s
+  take care of choosing the most appropriate facet behind the scenes.
+  In particular, most operations automatically use CUDA, if available
+  and initialized. See WITH-CUDA* for detail.")
+
+(export 'with-facet)
+(export 'with-facets)
+
+(define-facet-name backing-array ()
+  "The corresponding facet's value is a one dimensional lisp array or
+  a static vector that also looks exactly like a lisp array but is
+  allocated in foreign memory. See *FOREIGN-ARRAY-STRATEGY*.")
+
+(define-facet-name array ()
+  "Same as BACKING-ARRAY if the matrix is one-dimensional, all
+  elements are visible (see @MAT-SHAPING), else it's a lisp array
+  displaced to the backing array.")
+
+(define-facet-name foreign-array ()
+  "The facet's value is a [FOREIGN-ARRAY][class] which is an
+  OFFSET-POINTER wrapping a CFFI pointer. See
+  *FOREIGN-ARRAY-STRATEGY*.")
+
+(define-facet-name cuda-host-array ()
+  "This facet's value is a basically the same as that of
+  [FOREIGN-ARRAY][facet-name]. In fact, they share storage. The
+  difference is that accessing [CUDA-HOST-ARRAY][facet-name] ensures
+  that the foreign memory region is page-locked and registered with
+  the CUDA Driver API function cuMemHostRegister(). Copying between
+  GPU memory ([CUDA-ARRAY][facet-name]) and registered memory is
+  significantly faster than with non-registered memory and also allows
+  overlapping copying with computation. See
+  WITH-SYNCING-CUDA-FACETS.")
+
+(define-facet-name cuda-array ()
+  "The facet's value is a CUDA-ARRAY which is an OFFSET-POINTER
+  wrapping a CL-CUDA.DRIVER-API:CU-DEVICE-PTR, allocated with
+  CL-CUDA.DRIVER-API:CU-MEM-ALLOC and freed automatically.")
+
+(defmethod watch-facet ((mat mat) facet-name direction)
+  (call-next-method mat facet-name
+                    ;; If the reshaped array doesn't cover the whole
+                    ;; index range, then make sure that the `hidden'
+                    ;; elements survive even if they have to be copied
+                    ;; from another facet.
+                    (if (and (eq direction :output)
+                             (< (mat-size mat) (mat-max-size mat)))
+                        :io
+                        direction)))
+
+(defun vec-facet (facet)
+  (cdr (facet-description facet)))
+
+(defun vec-facet-name (facet)
+  (facet-name (cdr (facet-description facet))))
+
+(defun make-array-facet (mat vector)
+  (if (and (zerop (mat-displacement mat))
+           (= (mat-size mat) (mat-max-size mat))
+           (= 1 (length (mat-dimensions mat))))
+      vector
+      (make-array (mat-dimensions mat)
+                  :element-type (ctype->lisp (mat-ctype mat))
+                  :displaced-to vector
+                  :displaced-index-offset (mat-displacement mat))))
+
+(defmethod make-facet* ((mat mat) (facet-name (eql 'array)))
+  (let* ((vec (vec mat))
+         (vec-facet
+           (if (or (member *foreign-array-strategy* '(:static :cuda-host))
+                   (find-facet vec 'static-vector))
+               (add-facet-reference-by-name (vec mat) 'static-vector)
+               (add-facet-reference-by-name (vec mat) 'lisp-vector))))
+    ;; FACET-DESCRIPTION will be this cons. VEC is necessary for
+    ;; DESTROY-FACET*, because it has no access to MAT.
+    (values nil (cons vec vec-facet) nil)))
+
+(defmethod make-facet* ((mat mat) (facet-name (eql 'backing-array)))
+  (let* ((vec (vec mat))
+         (vec-facet
+           (if (or (member *foreign-array-strategy* '(:static :cuda-host))
+                   (find-facet vec 'static-vector))
+               (add-facet-reference-by-name (vec mat) 'static-vector)
+               (add-facet-reference-by-name (vec mat) 'lisp-vector))))
+    (values nil (cons vec vec-facet) nil)))
+
+(defmethod make-facet* ((mat mat) (facet-name (eql 'foreign-array)))
+  (let* ((vec (vec mat))
+         (vec-facet (if (and (use-pinning-p)
+                            (not (find-facet vec 'static-vector)))
+                       (add-facet-reference-by-name vec 'lisp-vector)
+                       (add-facet-reference-by-name vec 'static-vector))))
+    (values nil (cons vec vec-facet) nil)))
+
+(defmethod make-facet* ((mat mat) (facet-name (eql 'cuda-array)))
+  (let* ((vec (vec mat))
+         (vec-facet (add-facet-reference-by-name vec 'cuda-vector)))
+    (values nil (cons vec vec-facet) nil)))
+
+(defmethod make-facet* ((mat mat) (facet-name (eql 'cuda-host-array)))
+  (let* ((vec (vec mat))
+         (vec-facet (add-facet-reference-by-name vec 'static-vector))
+         (static-vector (facet-value vec-facet)))
+    (values (register-cuda-host-array (static-vector-pointer static-vector)
+                                      (vec-n-bytes vec))
+            (cons vec vec-facet)
+            ;; Ask for a finalizer, because we need to unregister
+            ;; memory.
+            t)))
+
+(defmethod call-with-facet* ((mat mat) (facet-name (eql 'array))
+                             direction fn)
+  ;; CALL-NEXT-METHOD ensures that the ARRAY facets exists.
+  (call-next-method
+   mat facet-name direction
+   ;; Delegate to VEC.
+   (lambda (facet)
+     (declare (ignore facet))
+     (let* ((vec (vec mat))
+            (facet (find-facet mat 'array))
+            (vec-facet (vec-facet facet))
+            (vec-facet-name (facet-name vec-facet))
+            ;; Create the array lazily (this might be right after
+            ;; MAKE-FACET*, or FACET-VALUE was NIL in
+            ;; RESHAPE-AND-DISPLACE-FACET*.
+            (facet (or (facet-value facet)
+                       (setf (facet-value facet)
+                             (make-array-facet mat (facet-value vec-facet))))))
+       ;; We could call fn with FACET directly, but doing it via
+       ;; CALL-WITH-FACET* enables VEC to detect reader/writer
+       ;; conflicts.
+       (call-with-facet* vec vec-facet-name direction
+                         (lambda (vec-facet)
+                           (declare (ignore vec-facet))
+                           (funcall fn facet)))))))
+
+(defun maybe-rewire-to (mat vec facet-name vec-facet-name)
+  (declare (ignore vec vec-facet-name))
+  (let ((vec-facet (vec-facet (find-facet mat facet-name))))
+    ;; FIXME: we should actually change to VEC-FACET-NAME if exists
+    vec-facet))
+
+;;; Just use STATIC-VECTOR or LISP-VECTOR directly.
+(defmethod call-with-facet* ((mat mat) (facet-name (eql 'backing-array))
+                             direction fn)
+  (call-next-method
+   mat facet-name direction
+   (lambda (facet)
+     (declare (ignore facet))
+     (let* ((vec (vec mat))
+            (vec-facet-name (facet-name
+                             (maybe-rewire-to mat vec
+                                              facet-name 'static-vector))))
+       (call-with-facet* vec vec-facet-name direction fn)))))
+
+;;; Use the pinned LISP-VECTOR if there is no STATIC-VECTOR facet and
+;;; pinning is supported, else use STATIC-VECTOR.
+(defmethod call-with-facet* ((mat mat) (facet-name (eql 'foreign-array))
+                             direction fn)
+  (call-next-method
+   mat facet-name direction
+   (lambda (facet)
+     (declare (ignore facet))
+     (let* ((vec (vec mat))
+            (vec-facet-name (facet-name
+                             (maybe-rewire-to mat vec
+                                              facet-name 'static-vector))))
+       (call-with-facet*
+        vec vec-facet-name direction
+        (lambda (facet)
+          (if (eq facet-name 'lisp-vector)
+              (lla::with-pinned-array (lisp-pointer facet)
+                (funcall fn (make-instance
+                             'foreign-array
+                             :base-pointer lisp-pointer
+                             :offset (displacement-bytes mat))))
+              (funcall fn (make-instance
+                           'foreign-array
+                           :base-pointer (static-vector-pointer
+                                          facet)
+                           :offset (displacement-bytes mat))))))))))
+
+(defmethod call-with-facet* ((mat mat) (facet-name (eql 'cuda-array))
+                             direction fn)
+  (call-next-method
+   mat facet-name direction
+   (lambda (cuda-array)
+     (let* ((vec (vec mat))
+            (vec-facet-name (facet-name
+                             (maybe-rewire-to mat vec
+                                              facet-name 'static-vector))))
+       (call-with-facet*
+        vec vec-facet-name direction
+        (lambda (cuda-vector)
+          (unless cuda-array
+            (let ((facet (find-facet mat 'cuda-array)))
+              (setq cuda-array
+                    (make-instance 'cuda-array
+                                   :base-pointer (base-pointer cuda-vector)
+                                   :offset (displacement-bytes mat)))
+              (setf (facet-value facet) cuda-array)))
+          (funcall fn cuda-array)))))))
+
+(defmethod call-with-facet* ((mat mat) (facet-name (eql 'cuda-host-array))
+                             direction fn)
+  (call-next-method
+   mat facet-name direction
+   (lambda (foreign-array)
+     (let* ((vec (vec mat))
+            (vec-facet-name (vec-facet-name (find-facet mat facet-name))))
+       (call-with-facet*
+        vec vec-facet-name direction
+        (lambda (static-vector)
+          (assert (cffi:pointer-eq (static-vector-pointer static-vector)
+                                   (base-pointer foreign-array)))
+          (funcall fn foreign-array)))))))
+
+(defmethod copy-facet* ((mat mat) from-facet-name from-facet
+                        to-facet-name to-facet)
+  (let ((vec-from-facet (vec-facet from-facet))
+        (vec-to-facet (vec-facet to-facet)))
+    (copy-facet* (vec mat)
+                 (facet-name vec-from-facet) vec-from-facet
+                 (facet-name vec-to-facet) vec-to-facet)))
+
+(defmethod destroy-facet* ((facet-name (eql 'array)) facet)
+  (destructuring-bind (vec . vec-facet) (facet-description facet)
+    (remove-facet-reference vec-facet)
+    (destroy-facet vec (facet-name vec-facet))))
+
+(defmethod destroy-facet* ((facet-name (eql 'backing-array)) facet)
+  (destructuring-bind (vec . vec-facet) (facet-description facet)
+    (remove-facet-reference vec-facet)
+    (destroy-facet vec (facet-name vec-facet))))
+
+(defmethod destroy-facet* ((facet-name (eql 'foreign-array)) facet)
+  (destructuring-bind (vec . vec-facet) (facet-description facet)
+    (remove-facet-reference vec-facet)
+    (destroy-facet vec (facet-name vec-facet))))
+
+(defmethod destroy-facet* ((facet-name (eql 'cuda-array)) facet)
+  (destructuring-bind (vec . vec-facet) (facet-description facet)
+    (remove-facet-reference vec-facet)
+    (destroy-facet vec (facet-name vec-facet))))
+
+(defmethod destroy-facet* ((facet-name (eql 'cuda-host-array)) facet)
+  (destructuring-bind (vec . vec-facet) (facet-description facet)
+    (unregister-cuda-host-array
+     (facet-value facet) (lambda ()
+                           (remove-facet-reference vec-facet)
+                           (destroy-facet vec (facet-name vec-facet))))))
+
+(defun displacement-bytes (mat)
+  (* (mat-displacement mat) (ctype-size (mat-ctype mat))))
+
+;;; The BACKING-ARRAY, CUDA-HOST-ARRAY are not displaced and
+;;; FOREIGN-ARRAY creates and OFFSET-POINTER on the fly.
+(defmethod reshape-and-displace-facet* ((mat mat) facet-name facet
+                                        dimensions displacement)
+  (declare (ignore facet-name facet dimensions displacement)))
+
+(defmethod reshape-and-displace-facet* ((mat mat) (facet-name (eql 'array))
+                                        facet dimensions displacement)
+  (declare (ignore dimensions displacement))
+  (setf (facet-value facet) nil))
+
+(defmethod reshape-and-displace-facet* ((mat mat) (facet-name (eql 'cuda-array))
+                                        facet dimensions displacement)
+  (declare (ignore dimensions displacement))
+  (setf (facet-value facet) nil))
+
+(defmethod select-copy-source-for-facet* ((mat mat) (to-name (eql 'cuda-array))
+                                          facet)
+  (declare (ignore facet))
+  (if (eq *foreign-array-strategy* :cuda-host)
+      'cuda-host-array
+      (call-next-method)))
+
+(defmethod facet-up-to-date-p* ((mat mat) facet-name facet)
+  (facet-up-to-date-p (cdr (facet-description facet))))
+
+
+(defsection @mat-extension-api (:title "Extension API")
+  "Macros for defining cuda and lisp kernels. Typically operations
+  have a cuda and a lisp implementations and decide which to use with
+  USE-CUDA-P. These are provided to help writing new operations."
+  (define-lisp-kernel macro)
+  (*default-lisp-kernel-declarations* variable)
+  (define-cuda-kernel macro))

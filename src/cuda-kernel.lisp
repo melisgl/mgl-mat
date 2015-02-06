@@ -65,13 +65,15 @@
   with MAT objects and can define the same function for multiple
   CTYPES. Example:
 
-      (define-cuda-kernel (cuda-.+!)
-          (void ((alpha float) (x :mat :input) (n int)))
-        (let ((stride (* block-dim-x grid-dim-x)))
-          (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
-                  (+ i stride)))
-              ((>= i n))
-            (set (aref x i) (+ (aref x i) alpha)))))
+  ```commonlisp
+  (define-cuda-kernel (cuda-.+!)
+      (void ((alpha float) (x :mat :input) (n int)))
+    (let ((stride (* block-dim-x grid-dim-x)))
+      (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+              (+ i stride)))
+          ((>= i n))
+        (set (aref x i) (+ (aref x i) alpha)))))
+  ```
 
   The signature looks pretty much like in CL-CUDA:DEFKERNEL, but
   parameters can take the form of `(<NAME> :MAT <DIRECTION>)` too, in

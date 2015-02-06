@@ -179,7 +179,8 @@
 
 (defsection @mat-cuda-memory-management (:title "CUDA Memory Management")
   ""
-  (cuda-room function))
+  (cuda-room function)
+  (with-syncing-cuda-facets macro))
 
 (defmacro with-syncing-cuda-facets ((ensures destroys) &body body)
   (alexandria:with-gensyms (token)
@@ -200,17 +201,17 @@
 
 (defvar *check-async-copy-p* t)
 
-(defun fake-writer (view)
-  (assert (eq (mgl-cube::view-direction view) :input))
-  (setf (mgl-cube::view-direction view) :output)
-  (incf (mgl-cube::view-n-watchers view))
-  (push :async (mgl-cube::view-watcher-threads view)))
+(defun fake-writer (facet fake-thread)
+  (assert (eq (mgl-cube:facet-direction facet) :input))
+  (setf (mgl-cube:facet-direction facet) :output)
+  (incf (mgl-cube:facet-n-watchers facet))
+  (push fake-thread (mgl-cube:facet-watcher-threads facet)))
 
-(defun remove-fake-writer (view)
-  (assert (eq (mgl-cube::view-direction view) :output))
-  (setf (mgl-cube::view-direction view) :input)
-  (decf (mgl-cube::view-n-watchers view))
-  (assert (eq :async (pop (mgl-cube::view-watcher-threads view)))))
+(defun remove-fake-writer (facet fake-thread)
+  (assert (eq (mgl-cube:facet-direction facet) :output))
+  (setf (mgl-cube:facet-direction facet) :input)
+  (decf (mgl-cube:facet-n-watchers facet))
+  (assert (equal fake-thread (pop (mgl-cube:facet-watcher-threads facet)))))
 
 (defun start-syncing-cuda-facets (ensures destroys)
   "Ensure that all matrices in ENSURES have a CUDA-ARRAY facet and
@@ -226,31 +227,38 @@
   overlap with computation."
   (when (or ensures destroys)
     (cl-cuda.driver-api:cu-stream-synchronize *cuda-stream*)
-    (let ((*foreign-array-strategy* :cuda-host)
-          (cl-cuda:*cuda-stream* *cuda-copy-stream*)
-          (ensures-seen (make-hash-table))
-          (destroys-seen (make-hash-table))
-          (checkp *check-async-copy-p*))
+    (let* ((*foreign-array-strategy* :cuda-host)
+           (*cuda-stream* *cuda-copy-stream*)
+           (ensures-seen (make-hash-table))
+           (destroys-seen (make-hash-table))
+           (checkp *check-async-copy-p*)
+           (fake-thread (when checkp
+                          (cons 'async (bordeaux-threads:current-thread)))))
       (loop while (or ensures destroys)
             do (when ensures
                  (let ((mat (pop ensures)))
                    (assert (not (gethash mat destroys-seen)))
                    (unless (gethash mat ensures-seen)
                      (with-facet (a (mat 'cuda-array :direction :input))
-                       (declare (ignore a)))
-                     (when checkp
-                       (fake-writer (find-view mat 'cuda-array)))
+                       (declare (ignore a))
+                       ;; Add a watcher inside WITH-FACET so that
+                       ;; there is no race with other threads.
+                       (when checkp
+                         (fake-writer (find-facet mat 'cuda-array)
+                                      fake-thread)))
                      (setf (gethash mat ensures-seen) t))))
                (when destroys
                  (let ((mat (pop destroys)))
                    (assert (not (gethash mat ensures-seen)))
                    (unless (gethash mat destroys-seen)
                      (with-facet (a (mat 'cuda-host-array :direction :input))
-                       (declare (ignore a)))
-                     (when checkp
-                       (fake-writer (find-view mat 'cuda-host-array)))
+                       (declare (ignore a))
+                       (when checkp
+                         (fake-writer (find-facet mat 'cuda-host-array)
+                                      fake-thread)))
                      (setf (gethash mat destroys-seen) t)))))
-      (make-instance 'sync-token :ensures ensures-seen :destroys destroys-seen))))
+      (make-instance 'sync-token :ensures ensures-seen
+                     :destroys destroys-seen))))
 
 (defun finish-syncing-cuda-facets (sync-token)
   "Wait until all the copying started by START-SYNCING-CUDA-FACETS is
@@ -259,20 +267,22 @@
   START-SYNCING-CUDA-FACETS."
   (when sync-token
     (cl-cuda.driver-api:cu-stream-synchronize *cuda-copy-stream*)
-    (let ((checkp *check-async-copy-p*))
+    (let* ((checkp *check-async-copy-p*)
+           (fake-thread (when checkp
+                          (cons 'async (bordeaux-threads:current-thread)))))
       (when checkp
         (maphash (lambda (mat value)
                    (declare (ignore value))
-                   (remove-fake-writer (find-view mat 'cuda-array))
-                   (assert (up-to-date-p* mat 'cuda-array
-                                          (find-view mat 'cuda-array))))
+                   (let ((facet (find-facet mat 'cuda-array)))
+                     (remove-fake-writer facet fake-thread)
+                     (assert (facet-up-to-date-p* mat 'cuda-array facet))))
                  (ensures sync-token)))
       (maphash (lambda (mat value)
                  (declare (ignore value))
                  (when checkp
-                   (remove-fake-writer (find-view mat 'cuda-host-array))
-                   (assert (up-to-date-p* mat 'cuda-host-array
-                                          (find-view mat 'cuda-host-array))))
+                   (let ((facet (find-facet mat 'cuda-host-array)))
+                     (remove-fake-writer facet fake-thread)
+                     (assert (facet-up-to-date-p* mat 'cuda-host-array facet))))
                  (destroy-facet mat 'cuda-array))
                (destroys sync-token)))))
 

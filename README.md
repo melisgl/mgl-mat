@@ -15,18 +15,21 @@
 - [6 Shaping][8866]
 - [7 Assembling][8816]
 - [8 Caching][e8e7]
-- [9 Foreign arrays][4d1e]
-- [10 CUDA][f291]
-    - [10.1 CUBLAS][afa0]
-    - [10.2 CURAND][caa5]
-- [11 BLAS][0386]
-- [12 Destructive API][e71c]
-- [13 Non-destructive API][9984]
-- [14 Mappings][7388]
-- [15 Random numbers][ef83]
-- [16 I/O][78d7]
-- [17 Extension API][8b4f]
-- [18 Debugging][fe72]
+- [9 BLAS][0386]
+- [10 Destructive API][e71c]
+- [11 Non-destructive API][9984]
+- [12 Mappings][7388]
+- [13 Random numbers][ef83]
+- [14 I/O][78d7]
+- [15 Debugging][fe72]
+- [16 Low-level API][f603]
+    - [16.1 Facets][9ddc]
+    - [16.2 Foreign arrays][4d1e]
+    - [16.3 CUDA][f291]
+        - [16.3.1 CUBLAS][afa0]
+        - [16.3.2 CURAND][caa5]
+        - [16.3.3 CUDA Memory Management][7191]
+    - [16.4 Extension API][8b4f]
 
 ###### \[in package MGL-MAT\]
 <a name='x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29'></a>
@@ -79,91 +82,6 @@ from github.
 <a name='x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29'></a>
 
 ## 3 Basics
-
-A [`MAT`][773f] is a [`CUBE`][9fcc] (see [Cube Manual][7de8]) whose facets are different
-representations of numeric arrays. These facets can be accessed with
-[`WITH-FACETS`][b61b] with one of the following [`FACET-NAME`][21a4]s:
-
-<a name='x-28MGL-MAT-3ABACKING-ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
-
-- [facet-name] **BACKING-ARRAY**
-
-    The corresponding facet is a one dimensional lisp array.
-
-<a name='x-28ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
-
-- [facet-name] **ARRAY**
-
-    Same as [`BACKING-ARRAY`][e3f0] if the matrix is one-dimensional, all
-    elements are visible (see [Shaping][8866]), else it's a lisp array
-    displaced to the backing array.
-
-<a name='x-28MGL-MAT-3AFOREIGN-ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
-
-- [facet-name] **FOREIGN-ARRAY**
-
-    The facet is a [`FOREIGN-ARRAY`][7043] which is an `OFFSET-POINTER`
-    wrapping a CFFI:POINTER. See [`*FOREIGN-ARRAY-STRATEGY*`][373b].
-
-<a name='x-28MGL-MAT-3ACUDA-ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
-
-- [facet-name] **CUDA-ARRAY**
-
-    The facet is [`CUDA-ARRAY`][84c3] which is an `OFFSET-POINTER` wrapping a
-    `CL-CUDA.DRIVER-API:CU-DEVICE-PTR`, allocated with CU-MEM-ALLOC and
-    freed automatically.
-    
-    Facets bound by with [`WITH-FACETS`][b61b] are to be treated as dynamic
-    extent: it is not allowed to keep a reference to them beyond the
-    dynamic scope of [`WITH-FACETS`][b61b].
-    
-    For example, to fill matrix X of [`CTYPE`][867d] `:DOUBLE` with ones it most
-    convenient to work with the one dimensional [`BACKING-ARRAY`][e3f0]:
-    
-    ```
-    (let ((displacement (mat-displacement x))
-          (size (mat-size x)))
-     (with-facets ((x* (x 'backing-array :direction :output)))
-       (fill x* 1d0 :start displacement :end (+ displacement size))))
-    ```
-    
-    [`DIRECTION`][298b] is `:OUTPUT` because we clobber all values in X. Armed with
-    this knowledge about the direction, [`WITH-FACETS`][b61b] will not copy data
-    from another facet if the backing array is not up-to-date.
-    
-    To transpose a 2d matrix with the [`ARRAY`][ba88] facet:
-    
-    ```
-    (destructuring-bind (n-rows n-columns) (mat-dimensions x)
-      (with-facets ((x* (x 'array :direction :io)))
-        (dotimes (row n-rows)
-          (dotimes (column n-columns)
-            (setf (aref x* row column) (aref x* column row))))))
-    ```
-    
-    Note that [`DIRECTION`][298b] is `:IO`, because we need the data in this facet
-    to be up-to-date (that's the input part) and we are invalidating all
-    other facets by changing values (that's the output part).
-    
-    To sum the values of a matrix using the `FOREIGN-ARRAY`([`0`][7043] [`1`][12c9]) facet:
-    
-    ```
-    (let ((sum 0))
-      (with-facets ((x* (x 'foreign-array :direction :input)))
-        (let ((pointer (offset-pointer x*)))
-          (loop for index below (mat-size x)
-                do (incf sum (cffi:mem-aref pointer (mat-ctype x) index)))))
-      sum)
-    ```
-    
-    See [`DIRECTION`][298b] for a complete description of `:INPUT`, `:OUTPUT` and `:IO`.
-    For [`MAT`][773f] objects, that needs to be refined. If a [`MAT`][773f] is reshaped
-    and/or displaced in a way that not all elements are visible then
-    those elements are always kept intact and copied around. This is
-    accomplished by turning `:OUTPUT` into `:IO` automatically on such MATs.
-    
-    Most operations automatically use CUDA, if available and
-    initialized. See [`WITH-CUDA*`][c00b] for detail.
 
 <a name='x-28MGL-MAT-3AMAT-20CLASS-29'></a>
 
@@ -282,7 +200,7 @@ representations of numeric arrays. These facets can be accessed with
     with [`COERCE-TO-CTYPE`][ad5b]. Note that currently [`MREF`][28eb] always operates on
     the [`BACKING-ARRAY`][e3f0] facet so it can trigger copying of facets. When
     it's `SETF`'ed, however, it will update the [`CUDA-ARRAY`][84c3] if cuda is
-    enabled and it is up-to-date or there are no views at all.
+    enabled and it is up-to-date or there are no facets at all.
 
 <a name='x-28MGL-MAT-3AROW-MAJOR-MREF-20FUNCTION-29'></a>
 
@@ -294,7 +212,7 @@ representations of numeric arrays. These facets can be accessed with
     [`ROW-MAJOR-MREF`][0ee2] always operates on the [`BACKING-ARRAY`][e3f0] facet so it can
     trigger copying of facets. When it's `SETF`'ed, however, it will
     update the [`CUDA-ARRAY`][84c3] if cuda is enabled and it is up-to-date or
-    there are no views at all.
+    there are no facets at all.
 
 <a name='x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29'></a>
 
@@ -336,12 +254,13 @@ representations of numeric arrays. These facets can be accessed with
 
 - [variable] **\*PRINT-MAT-FACETS\*** *T*
 
-    Controls whether a summary of existing and up-to-date views is
-    printed whe a [`MAT`][773f] object is printed. The summary that looks like
-    `ABcf` indicates that all four facets ([`ARRAY`][ba88], [`BACKING-ARRAY`][e3f0],
-    [`CUDA-ARRAY`][84c3], `FOREIGN-ARRAY`([`0`][7043] [`1`][12c9])) are present and the first two are
-    up-to-date. A summary of a single #- indicates that there are no
-    facets.
+    Controls whether a summary of existing and up-to-date facets is
+    printed when a [`MAT`][773f] object is printed. The summary that looks like
+    `ABcfh` indicates that all five facets ([`ARRAY`][ba88],
+    [`BACKING-ARRAY`][e3f0], [`CUDA-ARRAY`][84c3],
+    [`FOREIGN-ARRAY`][12c9], [`CUDA-HOST-ARRAY`][1944]) are
+    present and the first two are up-to-date. A summary of a single #-
+    indicates that there are no facets.
 
 <a name='x-28MGL-MAT-3A-40MAT-SHAPING-20MGL-PAX-3ASECTION-29'></a>
 
@@ -357,9 +276,10 @@ Existing facets are adjusted by all operations. For LISP-ARRAY
 facets, this means creating a new lisp array displaced to the
 backing array. The backing array stays the same, clients are
 supposed to observe [`MAT-DISPLACEMENT`][0521], [`MAT-DIMENSIONS`][f5c1] or [`MAT-SIZE`][1caf].
-The `FOREIGN-ARRAY`([`0`][7043] [`1`][12c9]) and [`CUDA-ARRAY`][84c3] facets are `OFFSET-POINTER`'s so
-displacement is done by changing the offset. Clients need to observe
-[`MAT-DIMENSIONS`][f5c1] in any case.
+The [`FOREIGN-ARRAY`][12c9] and [`CUDA-ARRAY`][84c3] facets
+are [OFFSET-POINTER][class] objects so displacement is done by
+changing the offset. Clients need to observe [`MAT-DIMENSIONS`][f5c1] in any
+case.
 
 <a name='x-28MGL-MAT-3ARESHAPE-AND-DISPLACE-21-20FUNCTION-29'></a>
 
@@ -480,9 +400,642 @@ particularly efficient but at least it's safe.
     Bind `VAR` to a matrix of `DIMENSIONS` whose every element is 1. The
     matrix is cached for efficiency.
 
+<a name='x-28MGL-MAT-3A-40MAT-BLAS-20MGL-PAX-3ASECTION-29'></a>
+
+## 9 BLAS
+
+Only some BLAS functions are implemented, but it should be easy to
+add more as needed. All of them default to using CUDA, if it is
+initialized and enabled (see [`USE-CUDA-P`][51e4]).
+
+Level 1 BLAS operations
+
+<a name='x-28MGL-MAT-3AASUM-20FUNCTION-29'></a>
+
+- [function] **ASUM** *X &KEY (N (MAT-SIZE X)) (INCX 1)*
+
+    Return the l1 norm of `X`, that is, sum of the absolute values of its
+    elements.
+
+<a name='x-28MGL-MAT-3AAXPY-21-20FUNCTION-29'></a>
+
+- [function] **AXPY!** *ALPHA X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)*
+
+    Set `Y` to `ALPHA` \* `X` + `Y`. Return `Y`.
+
+<a name='x-28MGL-MAT-3ACOPY-21-20FUNCTION-29'></a>
+
+- [function] **COPY!** *X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)*
+
+    Copy `X` into `Y`. Return `Y`.
+
+<a name='x-28CL-CUDA-2ELANG-2EBUILT-IN-3ADOT-20FUNCTION-29'></a>
+
+- [function] **DOT** *X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)*
+
+    Return the dot product of `X` and `Y`.
+
+<a name='x-28MGL-MAT-3ANRM2-20FUNCTION-29'></a>
+
+- [function] **NRM2** *X &KEY (N (MAT-SIZE X)) (INCX 1)*
+
+    Return the l2 norm of `X`, which is the square root of the sum of the
+    squares of its elements.
+
+<a name='x-28MGL-MAT-3ASCAL-21-20FUNCTION-29'></a>
+
+- [function] **SCAL!** *ALPHA X &KEY (N (MAT-SIZE X)) (INCX 1)*
+
+    Set `X` to `ALPHA` \* `X`. Return `X`.
+
+Level 3 BLAS operations
+
+<a name='x-28MGL-MAT-3AGEMM-21-20FUNCTION-29'></a>
+
+- [function] **GEMM!** *ALPHA A B BETA C &KEY TRANSPOSE-A? TRANSPOSE-B? M N K LDA LDB LDC*
+
+    Basically `C` = `ALPHA` \* `A`' \* `B`' + `BETA` \* `C`. `A`' is `A` or its transpose
+    depending on `TRANSPOSE-A?`. `B`' is `B` or its transpose depending on
+    `TRANSPOSE-B?`. Returns `C`.
+    
+    `A`' is an MxK matrix. `B`' is a KxN matrix. `C` is an MxN matrix.
+    
+    `LDA` is the width of the matrix `A` (not of `A`'). If `A` is not transposed,
+    then `K` <= `LDA`, if it's transposed then `M` <= `LDA`.
+    
+    `LDB` is the width of the matrix `B` (not of `B`'). If `B` is not transposed,
+    then `N` <= `LDB`, if it's transposed then `K` <= `LDB`.
+    
+    In the example below M=3, N=2, K=5, LDA=6, LDB=3, LDC=4. The cells
+    marked with + do not feature in the calculation.
+    
+                   N
+                  --+
+                  --+
+                K -B+
+                  --+
+                  --+
+                  +++
+            K
+          -----+  --++
+        M --A--+  -C++
+          -----+  --++
+          ++++++  ++++
+
+
+<a name='x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29'></a>
+
+## 10 Destructive API
+
+<a name='x-28MGL-MAT-3A-2ESQUARE-21-20FUNCTION-29'></a>
+
+- [function] **.SQUARE!** *X &KEY (N (MAT-SIZE X))*
+
+    Set `X` to its elementwise square. Return `X`.
+
+<a name='x-28MGL-MAT-3A-2ESQRT-21-20FUNCTION-29'></a>
+
+- [function] **.SQRT!** *X &KEY (N (MAT-SIZE X))*
+
+    Set `X` to its elementwise square root. Return `X`.
+
+<a name='x-28MGL-MAT-3A-2ELOG-21-20FUNCTION-29'></a>
+
+- [function] **.LOG!** *X &KEY (N (MAT-SIZE X))*
+
+    Set `X` to its elementwise natural logarithm. Return `X`.
+
+<a name='x-28MGL-MAT-3A-2EEXP-21-20FUNCTION-29'></a>
+
+- [function] **.EXP!** *X &KEY (N (MAT-SIZE X))*
+
+    Apply `EXP` elementwise to `X` in a destructive manner. Return `X`.
+
+<a name='x-28MGL-MAT-3A-2ELOGISTIC-21-20FUNCTION-29'></a>
+
+- [function] **.LOGISTIC!** *X &KEY (N (MAT-SIZE X))*
+
+    Destructively apply the logistic function to `X` in an elementwise
+    manner. Return `X`.
+
+<a name='x-28MGL-MAT-3A-2E-2B-21-20FUNCTION-29'></a>
+
+- [function] **.+!** *ALPHA X*
+
+    Add the scalar `ALPHA` to each element of `X` destructively modifying
+    `X`. Return `X`.
+
+<a name='x-28MGL-MAT-3A-2E-2A-21-20FUNCTION-29'></a>
+
+- [function] **.\*!** *X Y*
+
+<a name='x-28MGL-MAT-3AGEEM-21-20FUNCTION-29'></a>
+
+- [function] **GEEM!** *ALPHA A B BETA C*
+
+    Like [`GEMM!`][acfb], but multiplication is elementwise. This is not a
+    standard BLAS routine.
+
+<a name='x-28MGL-MAT-3AGEERV-21-20FUNCTION-29'></a>
+
+- [function] **GEERV!** *ALPHA A X BETA B*
+
+    GEneric Elementwise Row - Vector multiplication. `B` = beta \* `B` + alpha \* a
+    \* diag(x). In other words, perform elementwise multiplication on
+    each row of `A` with the vector `X` and add the scaled result to the
+    corresponding row of `B`. Return `B`. This is not a standard BLAS
+    routine.
+
+<a name='x-28MGL-MAT-3A-2E-3C-21-20FUNCTION-29'></a>
+
+- [function] **.\<!** *X Y*
+
+    For each element of `X` and `Y` set `Y` to 1 if the element in `Y` is
+    greater than the element in `X`, and to 0 otherwise. Return `Y`.
+
+<a name='x-28MGL-MAT-3A-2EMIN-21-20FUNCTION-29'></a>
+
+- [function] **.MIN!** *ALPHA X*
+
+    Set each element of `X` to `ALPHA` if it's greater than `ALPHA`. Return
+    `X`.
+
+<a name='x-28MGL-MAT-3A-2EMAX-21-20FUNCTION-29'></a>
+
+- [function] **.MAX!** *ALPHA X*
+
+    Set each element of `X` to `ALPHA` if it's less than `ALPHA`. Return `X`.
+
+<a name='x-28MGL-MAT-3AADD-SIGN-21-20FUNCTION-29'></a>
+
+- [function] **ADD-SIGN!** *ALPHA A BETA B*
+
+    Add the elementwise sign (-1, 0 or 1 for negative, zero and
+    positive numbers respectively) of `A` times `ALPHA` to `BETA` \* `B`. Return
+    `B`.
+
+<a name='x-28MGL-MAT-3AFILL-21-20FUNCTION-29'></a>
+
+- [function] **FILL!** *ALPHA X &KEY (N (MAT-SIZE X))*
+
+    Fill matrix `X` with `ALPHA`. Return `X`.
+
+<a name='x-28MGL-MAT-3ASUM-21-20FUNCTION-29'></a>
+
+- [function] **SUM!** *X Y &KEY AXIS (ALPHA 1) (BETA 0)*
+
+    Sum matrix `X` along `AXIS` and add `ALPHA` \* SUMS to `BETA` \* `Y`
+    destructively modifying `Y`. Return `Y`. On a 2d matrix (nothing else is
+    supported currently), if `AXIS` is 0, then columns are summed, if `AXIS`
+    is 1 then rows are summed.
+
+<a name='x-28MGL-MAT-3ASCALE-ROWS-21-20FUNCTION-29'></a>
+
+- [function] **SCALE-ROWS!** *SCALES A B*
+
+Finally, some neural network operations.
+
+<a name='x-28MGL-MAT-3ACONVOLVE-21-20FUNCTION-29'></a>
+
+- [function] **CONVOLVE!** *X W Y &KEY START STRIDE ANCHOR BATCHED*
+
+    `Y` = `Y` + conv(`X`, `W`) and return `Y`. If `BATCHED`, then the first
+    dimension of `X` and `Y` is the number of elements in the batch (B),
+    else B is assumed to be 1. The rest of the dimensions encode the
+    input (`X`) and output (Y} N dimensional feature maps. `START`, `STRIDE`
+    and `ANCHOR` are lists of length N. `START` is the multi-dimensional
+    index of the first element of the input feature map (for each
+    element in the batch) for which the convolution must be computed.
+    Then (`ELT` `STRIDE` (- N 1)) is added to the last element of `START` and
+    so on until (`ARRAY-DIMENSION` `X` 1) is reached. Then the last element
+    of `START` is reset, (`ELT` `STRIDE` (- N 2)) is added to the first but
+    last element of `START` and we scan the last dimension again. Take a
+    2d example, `START` is (0 0), `STRIDE` is (1 2), and `X` is a B\*2x7
+    matrix.
+    
+    `W` is:
+    
+        1 2 1
+        2 4 2
+        1 2 1
+    
+    and `ANCHOR` is (1 1) which refers to the element of `W` whose value is
+    4. This anchor point of `W` is placed over elements of `X` whose multi
+    dimensional index is in numbers in this figure (only one element in
+    the batch is shown):
+    
+        0,0 . 0,2 . 0,4 . 0,6
+        1,0 . 1,2 . 1,4 . 1,6
+    
+    When applying `W` at position P of `X`, the convolution is the sum of
+    the products of overlapping elements of `X` and `W` when `W`'s `ANCHOR` is
+    placed at P. Elements of `W` over the edges of `X` are multiplied with 0
+    so are effectively ignored. The order of application of `W` to
+    positions defined by `START`, `STRIDE` and `ANCHOR` is undefined.
+    
+    `Y` must be a B\*2x4 (or 2x4 if not `BATCHED`) matrix in this example,
+    just large enough to hold the results of the convolutions.
+
+<a name='x-28MGL-MAT-3ADERIVE-CONVOLVE-21-20FUNCTION-29'></a>
+
+- [function] **DERIVE-CONVOLVE!** *X XD W WD YD &KEY START STRIDE ANCHOR BATCHED*
+
+    Add the dF/dX to `XD` and and dF/dW to `WD` where `YD` is dF/dY for some
+    function F where Y is the result of convolution with the same
+    arguments. 
+
+<a name='x-28MGL-MAT-3AMAX-POOL-21-20FUNCTION-29'></a>
+
+- [function] **MAX-POOL!** *X Y &KEY START STRIDE ANCHOR BATCHED POOL-DIMENSIONS*
+
+
+
+<a name='x-28MGL-MAT-3ADERIVE-MAX-POOL-21-20FUNCTION-29'></a>
+
+- [function] **DERIVE-MAX-POOL!** *X XD Y YD &KEY START STRIDE ANCHOR BATCHED POOL-DIMENSIONS*
+
+    Add the dF/dX to `XD` and and dF/dW to WD where `YD` is dF/dY for some
+    function F where `Y` is the result of [`MAX-POOL!`][36b8] with the same
+    arguments. 
+
+<a name='x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29'></a>
+
+## 11 Non-destructive API
+
+<a name='x-28MGL-MAT-3ACOPY-MAT-20FUNCTION-29'></a>
+
+- [function] **COPY-MAT** *A*
+
+    Return a copy of the active portion with regards to displacement
+    and shape of `A`. 
+
+<a name='x-28MGL-MAT-3ACOPY-ROW-20FUNCTION-29'></a>
+
+- [function] **COPY-ROW** *A ROW*
+
+    Return `ROW` of `A` as a new 1d matrix.
+
+<a name='x-28MGL-MAT-3ACOPY-COLUMN-20FUNCTION-29'></a>
+
+- [function] **COPY-COLUMN** *A COLUMN*
+
+    Return `COLUMN` of `A` as a new 1d matrix.
+
+<a name='x-28MGL-MAT-3AMAT-AS-SCALAR-20FUNCTION-29'></a>
+
+- [function] **MAT-AS-SCALAR** *A*
+
+    Return the first element of `A`. `A` must be of size 1.
+
+<a name='x-28MGL-MAT-3ASCALAR-AS-MAT-20FUNCTION-29'></a>
+
+- [function] **SCALAR-AS-MAT** *X &KEY (CTYPE (LISP-\>CTYPE (TYPE-OF X)))*
+
+    Return a matrix of one dimension and one element: `X`. `CTYPE`, the
+    type of the matrix, defaults to the ctype corresponding to the type
+    of `X`.
+
+<a name='x-28MGL-MAT-3AM-3D-20FUNCTION-29'></a>
+
+- [function] **M=** *A B*
+
+    Check whether `A` and `B`, which must be matrices of the same size, are
+    elementwise equal.
+
+<a name='x-28MGL-MAT-3ATRANSPOSE-20FUNCTION-29'></a>
+
+- [function] **TRANSPOSE** *A*
+
+    Return the transpose of `A`.
+
+<a name='x-28MGL-MAT-3AM-2A-20FUNCTION-29'></a>
+
+- [function] **M\*** *A B &KEY TRANSPOSE-A? TRANSPOSE-B?*
+
+    Compute op(`A`) \* op(`B`). Where op is either the identity or the
+    transpose operation depending on `TRANSPOSE-A?` and `TRANSPOSE-B?`.
+
+<a name='x-28MGL-MAT-3AMM-2A-20FUNCTION-29'></a>
+
+- [function] **MM\*** *M &REST ARGS*
+
+    Convenience function to multiply several matrices. 
+    
+    (mm\* a b c) => a \* b \* c
+
+<a name='x-28MGL-MAT-3AM--20FUNCTION-29'></a>
+
+- [function] **M-** *A B*
+
+    Return `A` - `B`.
+
+<a name='x-28MGL-MAT-3AM-2B-20FUNCTION-29'></a>
+
+- [function] **M+** *A B*
+
+    Return `A` + `B`.
+
+<a name='x-28MGL-MAT-3AINVERT-20FUNCTION-29'></a>
+
+- [function] **INVERT** *A*
+
+    Return the inverse of `A`.
+
+<a name='x-28MGL-MAT-3ALOGDET-20FUNCTION-29'></a>
+
+- [function] **LOGDET** *MAT*
+
+    Logarithm of the determinant of a matrix. Return -1, 1 or 0 (or
+    equivalent) to correct for the sign, as a second value.
+
+<a name='x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29'></a>
+
+## 12 Mappings
+
+<a name='x-28MGL-MAT-3AMAP-CONCAT-20FUNCTION-29'></a>
+
+- [function] **MAP-CONCAT** *FN MATS MAT &KEY KEY PASS-RAW-P*
+
+    Call `FN` with each element of `MATS` and `MAT` temporarily reshaped to
+    the dimensions of the current element of `MATS` and return `MAT`. For
+    the next element the displacement is increased so that there is no
+    overlap.
+    
+    `MATS` is keyed by `KEY` just like the CL sequence functions. Normally,
+    `FN` is called with the matrix returned by `KEY`. However, if
+    `PASS-RAW-P`, then the matrix returned by `KEY` is only used to
+    calculate dimensions and the element of `MATS` that was passed to `KEY`
+    is passed to `FN`, too.
+    
+    ```
+    (map-concat #'copy! (list (make-mat 2) (make-mat 4 :initial-element 1))
+                (make-mat '(2 3)))
+    ==> #<MAT 2x3 AB #2A((0.0d0 0.0d0 1.0d0) (1.0d0 1.0d0 1.0d0))>
+    ```
+
+
+<a name='x-28MGL-MAT-3AMAP-DISPLACEMENTS-20FUNCTION-29'></a>
+
+- [function] **MAP-DISPLACEMENTS** *FN MAT DIMENSIONS &KEY (DISPLACEMENT-START 0) DISPLACEMENT-STEP*
+
+    Call `FN` with `MAT` reshaped to `DIMENSIONS`, first displaced by
+    `DISPLACEMENT-START` that's incremented by `DISPLACEMENT-STEP` each
+    iteration while there are enough elements left for `DIMENSIONS` at the
+    current displacement. Returns `MAT`.
+    
+    ```commonlisp
+    (let ((mat (make-mat 14 :initial-contents '(-1 0 1 2 3
+                                                4 5 6 7
+                                                8 9 10 11 12))))
+      (reshape-and-displace! mat '(4 3) 1)
+      (map-displacements #'print mat 4))
+    ..
+    .. #<MAT 1+4+9 B #(0.0d0 1.0d0 2.0d0 3.0d0)> 
+    .. #<MAT 5+4+5 B #(4.0d0 5.0d0 6.0d0 7.0d0)> 
+    .. #<MAT 9+4+1 B #(8.0d0 9.0d0 10.0d0 11.0d0)> 
+    ```
+
+
+<a name='x-28MGL-MAT-3AMAP-MATS-INTO-20FUNCTION-29'></a>
+
+- [function] **MAP-MATS-INTO** *RESULT-MAT FN &REST MATS*
+
+    Like `CL:MAP-INTO` but for [`MAT`][773f] objects. Destructively modifies
+    `RESULT-MAT` to contain the results of applying `FN` to each element in
+    the argument `MATS` in turn.
+
+<a name='x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29'></a>
+
+## 13 Random numbers
+
+This is rather experimental.
+
+<a name='x-28MGL-MAT-3AMV-GAUSSIAN-RANDOM-20FUNCTION-29'></a>
+
+- [function] **MV-GAUSSIAN-RANDOM** *&KEY MEANS COVARIANCES*
+
+    Return a column vector of samples from the multivariate normal
+    distribution defined by `MEANS` (Nx1) and `COVARIANCES` (NxN).
+
+<a name='x-28MGL-MAT-3ACOPY-RANDOM-STATE-20GENERIC-FUNCTION-29'></a>
+
+- [generic-function] **COPY-RANDOM-STATE** *STATE*
+
+    Return a copy of `STATE` be it a lisp or cuda random
+    state.
+
+<a name='x-28MGL-MAT-3AUNIFORM-RANDOM-21-20FUNCTION-29'></a>
+
+- [function] **UNIFORM-RANDOM!** *MAT &KEY (LIMIT 1)*
+
+    Fill `MAT` with random numbers sampled uniformly from the [0,LIMIT)
+    interval of `MAT`'s type.
+
+<a name='x-28MGL-MAT-3AGAUSSIAN-RANDOM-21-20FUNCTION-29'></a>
+
+- [function] **GAUSSIAN-RANDOM!** *MAT &KEY (MEAN 0) (STDDEV 1)*
+
+    Fill `MAT` with independent normally distributed random numbers with
+    `MEAN` and `STDDEV`.
+
+<a name='x-28MGL-MAT-3AORTHOGONAL-RANDOM-21-20FUNCTION-29'></a>
+
+- [function] **ORTHOGONAL-RANDOM!** *M &KEY (SCALE 1)*
+
+    Fill the matrix `M` with random values in such a way that `M^T * M`
+    is the identity matrix (or something close if `M` is wide). Return `M`.
+
+<a name='x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29'></a>
+
+## 14 I/O
+
+<a name='x-28MGL-MAT-3AWRITE-MAT-20GENERIC-FUNCTION-29'></a>
+
+- [generic-function] **WRITE-MAT** *MAT STREAM*
+
+    Write `MAT` to `STREAM` in portable binary format.
+    Displacement and size are taken into account, only visible elements
+    are written.
+
+<a name='x-28MGL-MAT-3AREAD-MAT-20GENERIC-FUNCTION-29'></a>
+
+- [generic-function] **READ-MAT** *MAT STREAM*
+
+    Destructively modify the visible portion (with
+    regards to displacement and shape) of `MAT` by reading [`MAT-SIZE`][1caf] number
+    of elements from `STREAM`. No sanity checks are performed, [`READ-MAT`][dc10]
+    may return without error even if `STREAM` contains garbage.
+
+<a name='x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29'></a>
+
+## 15 Debugging
+
+The largest class of bugs has to do with synchronization of facets
+being broken. This is almost always caused by an operation that
+mispecifies the [`DIRECTION`][298b] argument of [`WITH-FACET`][f66e]. For example, the
+matrix argument of [`SCAL!`][4c84] should be accessed with direciton `:IO`. But
+if it's `:INPUT` instead, then subsequent access to the [`ARRAY`][ba88] facet
+will not see the changes made by [`AXPY!`][9221], and if it's `:OUTPUT`, then
+any changes made to the [`ARRAY`][ba88] facet since the last update of the
+[`CUDA-ARRAY`][84c3] facet will not be copied and from the wrong input [`SCAL!`][4c84]
+will compute the wrong result.
+
+Another thing that tends to come up is figuring out where memory is
+used.
+
+<a name='x-28MGL-MAT-3AMAT-ROOM-20FUNCTION-29'></a>
+
+- [function] **MAT-ROOM** *&KEY (STREAM \*STANDARD-OUTPUT\*) (VERBOSE T)*
+
+<a name='x-28MGL-MAT-3AWITH-MAT-COUNTERS-20MGL-PAX-3AMACRO-29'></a>
+
+- [macro] **WITH-MAT-COUNTERS** *(&KEY COUNT N-BYTES) &BODY BODY*
+
+    Count all [`MAT`][773f] allocations and also the number of bytes they may
+    require. *May require* here really means an upper bound,
+    because `(MAKE-MAT (EXPT 2 60))` doesn't actually uses memory until
+    one of its facets is accessed (don't simply evaluate it though,
+    printing the result will access the [`ARRAY`][ba88] facet if [`*PRINT-MAT*`][81d0]).
+    Also, while facets today all require the same number of bytes, this
+    may change in the future. This is a debugging tool, don't use it in
+    production.
+    
+    ```cl-transcript
+    (with-mat-counters (:count count :n-bytes n-bytes)
+      (assert (= count 0))
+      (assert (= n-bytes 0))
+      (make-mat '(2 3) :ctype :double)
+      (assert (= count 1))
+      (assert (= n-bytes (* 2 3 8)))
+      (with-mat-counters (:n-bytes n-bytes-1 :count count-1)
+        (make-mat '7 :ctype :float)
+        (assert (= count-1 1))
+        (assert (= n-bytes-1 (* 7 4))))
+      (assert (= n-bytes (+ (* 2 3 8) (* 7 4))))
+      (assert (= count 2)))
+    
+    ```
+
+
+<a name='x-28MGL-MAT-3A-40MAT-LOW-LEVEL-20MGL-PAX-3ASECTION-29'></a>
+
+## 16 Low-level API
+
+<a name='x-28MGL-MAT-3A-40MAT-FACETS-20MGL-PAX-3ASECTION-29'></a>
+
+### 16.1 Facets
+
+A [`MAT`][773f] is a [`CUBE`][9fcc] (see [Cube Manual][7de8]) whose facets are different
+representations of numeric arrays. These facets can be accessed with
+[`WITH-FACETS`][b61b] with one of the following [`FACET-NAME`][21a4]
+locatives:
+
+<a name='x-28MGL-MAT-3ABACKING-ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
+
+- [facet-name] **BACKING-ARRAY**
+
+    The corresponding facet's value is a one dimensional lisp array or
+    a static vector that also looks exactly like a lisp array but is
+    allocated in foreign memory. See [`*FOREIGN-ARRAY-STRATEGY*`][373b].
+
+<a name='x-28ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
+
+- [facet-name] **ARRAY**
+
+    Same as [`BACKING-ARRAY`][e3f0] if the matrix is one-dimensional, all
+    elements are visible (see [Shaping][8866]), else it's a lisp array
+    displaced to the backing array.
+
+<a name='x-28MGL-MAT-3AFOREIGN-ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
+
+- [facet-name] **FOREIGN-ARRAY**
+
+    The facet's value is a [`FOREIGN-ARRAY`][7043] which is an
+    `OFFSET-POINTER` wrapping a `CFFI` pointer. See
+    [`*FOREIGN-ARRAY-STRATEGY*`][373b].
+
+<a name='x-28MGL-MAT-3ACUDA-HOST-ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
+
+- [facet-name] **CUDA-HOST-ARRAY**
+
+    This facet's value is a basically the same as that of
+    [`FOREIGN-ARRAY`][12c9]. In fact, they share storage. The
+    difference is that accessing [`CUDA-HOST-ARRAY`][1944] ensures
+    that the foreign memory region is page-locked and registered with
+    the CUDA Driver API function cuMemHostRegister(). Copying between
+    GPU memory ([`CUDA-ARRAY`][84c3]) and registered memory is
+    significantly faster than with non-registered memory and also allows
+    overlapping copying with computation. See
+    [`WITH-SYNCING-CUDA-FACETS`][742e].
+
+<a name='x-28MGL-MAT-3ACUDA-ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
+
+- [facet-name] **CUDA-ARRAY**
+
+    The facet's value is a [`CUDA-ARRAY`][84c3] which is an `OFFSET-POINTER`
+    wrapping a `CL-CUDA.DRIVER-API:CU-DEVICE-PTR`, allocated with
+    `CL-CUDA.DRIVER-API:CU-MEM-ALLOC` and freed automatically.
+
+Facets bound by with [`WITH-FACETS`][b61b] are to be treated as dynamic
+extent: it is not allowed to keep a reference to them beyond the
+dynamic scope of [`WITH-FACETS`][b61b].
+
+For example, to implement the [`FILL!`][6156] operation using only the
+[`BACKING-ARRAY`][e3f0], one could do this:
+
+```commonlisp
+(let ((displacement (mat-displacement x))
+      (size (mat-size x)))
+ (with-facets ((x* (x 'backing-array :direction :output)))
+   (fill x* 1 :start displacement :end (+ displacement size))))
+```
+
+[`DIRECTION`][298b] is `:OUTPUT` because we clobber all values in `X`. Armed
+with this knowledge about the direction, [`WITH-FACETS`][b61b] will not copy
+data from another facet if the backing array is not up-to-date.
+
+To transpose a 2d matrix with the [`ARRAY`][ba88] facet:
+
+```
+(destructuring-bind (n-rows n-columns) (mat-dimensions x)
+  (with-facets ((x* (x 'array :direction :io)))
+    (dotimes (row n-rows)
+      (dotimes (column n-columns)
+        (setf (aref x* row column) (aref x* column row))))))
+```
+
+Note that [`DIRECTION`][298b] is `:IO`, because we need the data in this facet
+to be up-to-date (that's the input part) and we are invalidating all
+other facets by changing values (that's the output part).
+
+To sum the values of a matrix using the [`FOREIGN-ARRAY`][12c9]
+facet:
+
+```
+(let ((sum 0))
+  (with-facets ((x* (x 'foreign-array :direction :input)))
+    (let ((pointer (offset-pointer x*)))
+      (loop for index below (mat-size x)
+            do (incf sum (cffi:mem-aref pointer (mat-ctype x) index)))))
+  sum)
+```
+
+See [`DIRECTION`][298b] for a complete description of `:INPUT`, `:OUTPUT` and `:IO`.
+For [`MAT`][773f] objects, that needs to be refined. If a [`MAT`][773f] is reshaped
+and/or displaced in a way that not all elements are visible then
+those elements are always kept intact and copied around. This is
+accomplished by turning `:OUTPUT` into `:IO` automatically on such MATs.
+
+We have finished our introduction to the various facets. It must be
+said though that one can do anything without ever accessing a facet
+directly or even being aware of them as most operations on [`MAT`][773f]s
+take care of choosing the most appropriate facet behind the scenes.
+In particular, most operations automatically use CUDA, if available
+and initialized. See [`WITH-CUDA*`][c00b] for detail.
+
 <a name='x-28MGL-MAT-3A-40MAT-FOREIGN-20MGL-PAX-3ASECTION-29'></a>
 
-## 9 Foreign arrays
+### 16.2 Foreign arrays
 
 One facet of [`MAT`][773f] objects is [`FOREIGN-ARRAY`][12c9] which is
 backed by a memory area that can be pinned or is allocated in
@@ -502,32 +1055,34 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 - [variable] **\*FOREIGN-ARRAY-STRATEGY\*** *"-see below-"*
 
-    One of `:PIN-BACKING-ARRAY`, `:STATIC-BACKING-ARRAY` and :ALLOCATE (see
-    type [`FOREIGN-ARRAY-STRATEGY`][c65e]). This variable controls how foreign
-    arrays are handled and it can be changed at any time.
+    One of `:PINNED`, `:STATIC` and `:CUDA-HOST` (see type
+    [`FOREIGN-ARRAY-STRATEGY`][c65e]). This variable controls how foreign arrays
+    are handled and it can be changed at any time.
     
-    If it's `:PIN-BACKING-ARRAY` (only supported if ([`PINNING-SUPPORTED-P`][1227]),
-    then no separate storage is allocated for the foreign array, instead
-    it aliases the lisp array (via the [`BACKING-ARRAY`][e3f0] facet).
+    If it's `:PINNED` (only supported if ([`PINNING-SUPPORTED-P`][1227]), then no
+    separate storage is allocated for the foreign array. Instead, it
+    aliases the lisp array (via the [`BACKING-ARRAY`][e3f0] facet).
     
-    If it's `:STATIC-BACKING-ARRAY`, then the lisp backing arrays are
-    allocated statically via the static-vectors library. On some
-    implementations, explicit freeing of static vectors is necessary,
-    this is taken care of by finalizers or can be controlled with
-    [`WITH-FACET-BARRIER`][99b9].
+    If it's `:STATIC`, then the lisp backing arrays are allocated
+    statically via the static-vectors library. On some implementations,
+    explicit freeing of static vectors is necessary, this is taken care
+    of by finalizers or can be controlled with [`WITH-FACET-BARRIER`][99b9].
+    [`DESTROY-CUBE`][2cb4] and [`DESTROY-FACET`][bdd6] may also be of help.
     
-    If it's `:DYNAMIC`, then each time the foreign array is needed, it's
-    allocated and freed dynamically.
+    `:CUDA-HOST` is the same as `:STATIC`, but any copies to/from the
+    GPU (i.e. the [`CUDA-ARRAY`][84c3] facet) will be done via the
+    [`CUDA-HOST-ARRAY`][1944] facet whose memory pages will also be
+    locked and registered with `cuMemHostRegister` which allows quicker
+    and asynchronous copying to and from CUDA land.
     
-    The default is `:PIN-BACKING-ARRAY` if available, because it's the most
-    effecient. If pinning is not available, then
-    it's `:STATIC-BACKING-ARRAY`.
+    The default is `:PINNED` if available, because it's the most
+    efficient. If pinning is not available, then it's `:STATIC`.
 
 <a name='x-28MGL-MAT-3AFOREIGN-ARRAY-STRATEGY-20TYPE-29'></a>
 
 - [type] **FOREIGN-ARRAY-STRATEGY**
 
-    One of `:PIN-BACKING-ARRAY`, `:STATIC-BACKING-ARRAY`, `:DYNAMIC`. See
+    One of `:PINNED`, `:STATIC` and `:CUDA-HOST`. See
     [`*FOREIGN-ARRAY-STRATEGY*`][373b] for their semantics.
 
 <a name='x-28MGL-MAT-3APINNING-SUPPORTED-P-20FUNCTION-29'></a>
@@ -541,7 +1096,7 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a name='x-28MGL-MAT-3A-40MAT-CUDA-20MGL-PAX-3ASECTION-29'></a>
 
-## 10 CUDA
+### 16.3 CUDA
 
 <a name='x-28MGL-MAT-3ACUDA-AVAILABLE-P-20FUNCTION-29'></a>
 
@@ -552,31 +1107,31 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a name='x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29'></a>
 
-- [macro] **WITH-CUDA\*** *(&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T)) &BODY BODY*
+- [macro] **WITH-CUDA\*** *(&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T) N-POOL-BYTES) &BODY BODY*
 
-    Initializes cuda with with all bells and whistles before `BODY` and
+    Initializes CUDA with with all bells and whistles before `BODY` and
     deinitializes it after. Simply wrapping [`WITH-CUDA*`][c00b] around a piece
-    code is enough to make use of the first available cuda device or
+    code is enough to make use of the first available CUDA device or
     fall back on blas and lisp kernels if there is none.
     
-    If cuda is already initialized, then it sets up a facet barrier
-    which destroys [`CUDA-ARRAY`][84c3] facets after ensuring that the [`ARRAY`][ba88] facet
-    is up-to-date.
+    If CUDA is already initialized, then it sets up a facet barrier
+    which destroys [`CUDA-ARRAY`][84c3] and [`CUDA-HOST-ARRAY`][1944] facets after ensuring
+    that the [`ARRAY`][ba88] facet is up-to-date.
     
-    Else, if cuda is available and `ENABLED`, then in addition to the
-    facet barrier, a cuda context is set up, [`*N-MEMCPY-HOST-TO-DEVICE*`][ee37],
+    Else, if CUDA is available and `ENABLED`, then in addition to the
+    facet barrier, a CUDA context is set up, [`*N-MEMCPY-HOST-TO-DEVICE*`][ee37],
     [`*N-MEMCPY-DEVICE-TO-HOST*`][5d9b] are bound to zero, the highest possible
     -arch option for the device is added to *CL-CUDA:NVCC-OPTIONS* (if
     `OVERRIDE-ARCH-P`), a cublas handle created, and [`*CURAND-STATE*`][e868] is
     bound to a [`CURAND-XORWOW-STATE`][fa6c] with `N-RANDOM-STATES`, seeded with
-    `RANDOM-SEED`.
+    `RANDOM-SEED`, and allocation of device memory is limited to
+    `N-POOL-BYTES` (`NIL` means no limit).
     
-    Else - that is, if cuda is not available -, `BODY` is simply
-    executed.
+    Else - that is, if CUDA is not available, `BODY` is simply executed.
 
 <a name='x-28MGL-MAT-3ACALL-WITH-CUDA-20FUNCTION-29'></a>
 
-- [function] **CALL-WITH-CUDA** *FN &KEY ((:ENABLED \*CUDA-ENABLED\*) \*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T)*
+- [function] **CALL-WITH-CUDA** *FN &KEY ((:ENABLED \*CUDA-ENABLED\*) \*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T) N-POOL-BYTES*
 
     Like [`WITH-CUDA*`][c00b], but takes a no argument function instead of the
     macro's `BODY`.
@@ -756,7 +1311,7 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a name='x-28MGL-MAT-3A-40MAT-CUBLAS-20MGL-PAX-3ASECTION-29'></a>
 
-### 10.1 CUBLAS
+#### 16.3.1 CUBLAS
 
 [`WITH-CUDA*`][c00b] should take of everything. No need to use these at all
 unless you have a very good reason to bypass it.
@@ -795,7 +1350,7 @@ unless you have a very good reason to bypass it.
 
 <a name='x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29'></a>
 
-### 10.2 CURAND
+#### 16.3.2 CURAND
 
 This the low level CURAND API.
 
@@ -819,475 +1374,23 @@ This the low level CURAND API.
 
 - [reader] **STATES** *CURAND-XORWOW-STATE* *(:STATES)*
 
-<a name='x-28MGL-MAT-3A-40MAT-BLAS-20MGL-PAX-3ASECTION-29'></a>
+<a name='x-28MGL-MAT-3A-40MAT-CUDA-MEMORY-MANAGEMENT-20MGL-PAX-3ASECTION-29'></a>
 
-## 11 BLAS
+#### 16.3.3 CUDA Memory Management
 
-Only some BLAS functions are implemented, but it should be easy to
-add more as needed. All of them default to using CUDA, if it is
-initialized and enabled (see [`USE-CUDA-P`][51e4]).
 
-Level 1 BLAS operations
 
-<a name='x-28MGL-MAT-3AASUM-20FUNCTION-29'></a>
+<a name='x-28MGL-MAT-3ACUDA-ROOM-20FUNCTION-29'></a>
 
-- [function] **ASUM** *X &KEY (N (MAT-SIZE X)) (INCX 1)*
+- [function] **CUDA-ROOM** *&KEY (STREAM \*STANDARD-OUTPUT\*) (VERBOSE T)*
 
-    Return the l1 norm of `X`, that is, sum of the absolute values of its
-    elements.
+<a name='x-28MGL-MAT-3AWITH-SYNCING-CUDA-FACETS-20MGL-PAX-3AMACRO-29'></a>
 
-<a name='x-28MGL-MAT-3AAXPY-21-20FUNCTION-29'></a>
-
-- [function] **AXPY!** *ALPHA X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)*
-
-    Set `Y` to `ALPHA` \* `X` + `Y`. Return `Y`.
-
-<a name='x-28MGL-MAT-3ACOPY-21-20FUNCTION-29'></a>
-
-- [function] **COPY!** *X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)*
-
-    Copy `X` into `Y`. Return `Y`.
-
-<a name='x-28CL-CUDA-2ELANG-2EBUILT-IN-3ADOT-20FUNCTION-29'></a>
-
-- [function] **DOT** *X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)*
-
-    Return the dot product of `X` and `Y`.
-
-<a name='x-28MGL-MAT-3ANRM2-20FUNCTION-29'></a>
-
-- [function] **NRM2** *X &KEY (N (MAT-SIZE X)) (INCX 1)*
-
-    Return the l2 norm of `X`, which is the square root of the sum of the
-    squares of its elements.
-
-<a name='x-28MGL-MAT-3ASCAL-21-20FUNCTION-29'></a>
-
-- [function] **SCAL!** *ALPHA X &KEY (N (MAT-SIZE X)) (INCX 1)*
-
-    Set `X` to `ALPHA` \* `X`. Return `X`.
-
-Level 3 BLAS operations
-
-<a name='x-28MGL-MAT-3AGEMM-21-20FUNCTION-29'></a>
-
-- [function] **GEMM!** *ALPHA A B BETA C &KEY TRANSPOSE-A? TRANSPOSE-B? M N K LDA LDB LDC*
-
-    Basically `C` = `ALPHA` \* `A`' \* `B`' + `BETA` \* `C`. `A`' is `A` or its transpose
-    depending on `TRANSPOSE-A?`. `B`' is `B` or its transpose depending on
-    `TRANSPOSE-B?`. Returns `C`.
-    
-    `A`' is an MxK matrix. `B`' is a KxN matrix. `C` is an MxN matrix.
-    
-    `LDA` is the width of the matrix `A` (not of `A`'). If `A` is not transposed,
-    then `K` <= `LDA`, if it's transposed then `M` <= `LDA`.
-    
-    `LDB` is the width of the matrix `B` (not of `B`'). If `B` is not transposed,
-    then `N` <= `LDB`, if it's transposed then `K` <= `LDB`.
-    
-    In the example below M=3, N=2, K=5, LDA=6, LDB=3, LDC=4. The cells
-    marked with + do not feature in the calculation.
-    
-                   N
-                  --+
-                  --+
-                K -B+
-                  --+
-                  --+
-                  +++
-            K
-          -----+  --++
-        M --A--+  -C++
-          -----+  --++
-          ++++++  ++++
-
-
-<a name='x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29'></a>
-
-## 12 Destructive API
-
-<a name='x-28MGL-MAT-3A-2ESQUARE-21-20FUNCTION-29'></a>
-
-- [function] **.SQUARE!** *X &KEY (N (MAT-SIZE X))*
-
-    Set `X` to its elementwise square. Return `X`.
-
-<a name='x-28MGL-MAT-3A-2ESQRT-21-20FUNCTION-29'></a>
-
-- [function] **.SQRT!** *X &KEY (N (MAT-SIZE X))*
-
-    Set `X` to its elementwise square root. Return `X`.
-
-<a name='x-28MGL-MAT-3A-2ELOG-21-20FUNCTION-29'></a>
-
-- [function] **.LOG!** *X &KEY (N (MAT-SIZE X))*
-
-    Set `X` to its elementwise natural logarithm. Return `X`.
-
-<a name='x-28MGL-MAT-3A-2EEXP-21-20FUNCTION-29'></a>
-
-- [function] **.EXP!** *X &KEY (N (MAT-SIZE X))*
-
-    Apply `EXP` elementwise to `X` in a destructive manner. Return `X`.
-
-<a name='x-28MGL-MAT-3A-2ELOGISTIC-21-20FUNCTION-29'></a>
-
-- [function] **.LOGISTIC!** *X &KEY (N (MAT-SIZE X))*
-
-    Destructively apply the logistic function to `X` in an elementwise
-    manner. Return `X`.
-
-<a name='x-28MGL-MAT-3A-2E-2B-21-20FUNCTION-29'></a>
-
-- [function] **.+!** *ALPHA X*
-
-    Add the scalar `ALPHA` to each element of `X` destructively modifying
-    `X`. Return `X`.
-
-<a name='x-28MGL-MAT-3A-2E-2A-21-20FUNCTION-29'></a>
-
-- [function] **.\*!** *X Y*
-
-<a name='x-28MGL-MAT-3AGEEM-21-20FUNCTION-29'></a>
-
-- [function] **GEEM!** *ALPHA A B BETA C*
-
-    Like [`GEMM!`][acfb], but multiplication is elementwise. This is not a
-    standard BLAS routine.
-
-<a name='x-28MGL-MAT-3AGEERV-21-20FUNCTION-29'></a>
-
-- [function] **GEERV!** *ALPHA A X BETA B*
-
-    GEneric Elementwise Row - Vector multiplication. `B` = beta \* `B` + alpha \* a
-    \* diag(x). In other words, perform elementwise multiplication on
-    each row of `A` with the vector `X` and add the scaled result to the
-    corresponding row of `B`. Return `B`. This is not a standard BLAS
-    routine.
-
-<a name='x-28MGL-MAT-3A-2E-3C-21-20FUNCTION-29'></a>
-
-- [function] **.\<!** *X Y*
-
-    For each element of `X` and `Y` set `Y` to 1 if the element in `Y` is
-    greater than the element in `X`, and to 0 otherwise. Return `Y`.
-
-<a name='x-28MGL-MAT-3A-2EMIN-21-20FUNCTION-29'></a>
-
-- [function] **.MIN!** *ALPHA X*
-
-    Set each element of `X` to `ALPHA` if it's greater than `ALPHA`. Return
-    `X`.
-
-<a name='x-28MGL-MAT-3A-2EMAX-21-20FUNCTION-29'></a>
-
-- [function] **.MAX!** *ALPHA X*
-
-    Set each element of `X` to `ALPHA` if it's less than `ALPHA`. Return `X`.
-
-<a name='x-28MGL-MAT-3AADD-SIGN-21-20FUNCTION-29'></a>
-
-- [function] **ADD-SIGN!** *ALPHA A BETA B*
-
-    Add the elementwise sign (-1, 0 or 1 for negative, zero and
-    positive numbers respectively) of `A` times `ALPHA` to `BETA` \* `B`. Return
-    `B`.
-
-<a name='x-28MGL-MAT-3AFILL-21-20FUNCTION-29'></a>
-
-- [function] **FILL!** *ALPHA X &KEY (N (MAT-SIZE X))*
-
-    Fill matrix `X` with `ALPHA`. Return `X`.
-
-<a name='x-28MGL-MAT-3ASUM-21-20FUNCTION-29'></a>
-
-- [function] **SUM!** *X Y &KEY AXIS (ALPHA 1) (BETA 0)*
-
-    Sum matrix `X` along `AXIS` and add `ALPHA` \* SUMS to `BETA` \* `Y`
-    destructively modifying `Y`. Return `Y`. On a 2d matrix (nothing else is
-    supported currently), if `AXIS` is 0, then columns are summed, if `AXIS`
-    is 1 then rows are summed.
-
-<a name='x-28MGL-MAT-3ASCALE-ROWS-21-20FUNCTION-29'></a>
-
-- [function] **SCALE-ROWS!** *SCALES A B*
-
-Finally, some neural network operations.
-
-<a name='x-28MGL-MAT-3ACONVOLVE-21-20FUNCTION-29'></a>
-
-- [function] **CONVOLVE!** *X W Y &KEY START STRIDE ANCHOR BATCHED*
-
-    `Y` = `Y` + conv(`X`, `W`) and return `Y`. If `BATCHED`, then the first
-    dimension of `X` and `Y` is the number of elements in the batch (B),
-    else B is assumed to be 1. The rest of the dimensions encode the
-    input (`X`) and output (Y} N dimensional feature maps. `START`, `STRIDE`
-    and `ANCHOR` are lists of length N. `START` is the multi-dimensional
-    index of the first element of the input feature map (for each
-    element in the batch) for which the convolution must be computed.
-    Then (`ELT` `STRIDE` (- N 1)) is added to the last element of `START` and
-    so on until (`ARRAY-DIMENSION` `X` 1) is reached. Then the last element
-    of `START` is reset, (`ELT` `STRIDE` (- N 2)) is added to the first but
-    last element of `START` and we scan the last dimension again. Take a
-    2d example, `START` is (0 0), `STRIDE` is (1 2), and `X` is a B\*2x7
-    matrix.
-    
-    `W` is:
-    
-        1 2 1
-        2 4 2
-        1 2 1
-    
-    and `ANCHOR` is (1 1) which refers to the element of `W` whose value is
-    4. This anchor point of `W` is placed over elements of `X` whose multi
-    dimensional index is in numbers in this figure (only one element in
-    the batch is shown):
-    
-        0,0 . 0,2 . 0,4 . 0,6
-        1,0 . 1,2 . 1,4 . 1,6
-    
-    When applying `W` at position P of `X`, the convolution is the sum of
-    the products of overlapping elements of `X` and `W` when `W`'s `ANCHOR` is
-    placed at P. Elements of `W` over the edges of `X` are multiplied with 0
-    so are effectively ignored. The order of application of `W` to
-    positions defined by `START`, `STRIDE` and `ANCHOR` is undefined.
-    
-    `Y` must be a B\*2x4 (or 2x4 if not `BATCHED`) matrix in this example,
-    just large enough to hold the results of the convolutions.
-
-<a name='x-28MGL-MAT-3ADERIVE-CONVOLVE-21-20FUNCTION-29'></a>
-
-- [function] **DERIVE-CONVOLVE!** *X XD W WD YD &KEY START STRIDE ANCHOR BATCHED*
-
-    Add the dF/dX to `XD` and and dF/dW to `WD` where `YD` is dF/dY for some
-    function F where Y is the result of convolution with the same
-    arguments. 
-
-<a name='x-28MGL-MAT-3AMAX-POOL-21-20FUNCTION-29'></a>
-
-- [function] **MAX-POOL!** *X Y &KEY START STRIDE ANCHOR BATCHED POOL-DIMENSIONS*
-
-
-
-<a name='x-28MGL-MAT-3ADERIVE-MAX-POOL-21-20FUNCTION-29'></a>
-
-- [function] **DERIVE-MAX-POOL!** *X XD Y YD &KEY START STRIDE ANCHOR BATCHED POOL-DIMENSIONS*
-
-    Add the dF/dX to `XD` and and dF/dW to WD where `YD` is dF/dY for some
-    function F where `Y` is the result of [`MAX-POOL!`][36b8] with the same
-    arguments. 
-
-<a name='x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29'></a>
-
-## 13 Non-destructive API
-
-<a name='x-28MGL-MAT-3ACOPY-MAT-20FUNCTION-29'></a>
-
-- [function] **COPY-MAT** *A*
-
-    Return a copy of the active portion with regards to displacement
-    and shape of `A`. 
-
-<a name='x-28MGL-MAT-3ACOPY-ROW-20FUNCTION-29'></a>
-
-- [function] **COPY-ROW** *A ROW*
-
-    Return `ROW` of `A` as a new 1d matrix.
-
-<a name='x-28MGL-MAT-3ACOPY-COLUMN-20FUNCTION-29'></a>
-
-- [function] **COPY-COLUMN** *A COLUMN*
-
-    Return `COLUMN` of `A` as a new 1d matrix.
-
-<a name='x-28MGL-MAT-3AMAT-AS-SCALAR-20FUNCTION-29'></a>
-
-- [function] **MAT-AS-SCALAR** *A*
-
-    Return the first element of `A`. `A` must be of size 1.
-
-<a name='x-28MGL-MAT-3ASCALAR-AS-MAT-20FUNCTION-29'></a>
-
-- [function] **SCALAR-AS-MAT** *X &KEY (CTYPE (LISP-\>CTYPE (TYPE-OF X)))*
-
-    Return a matrix of one dimension and one element: `X`. `CTYPE`, the
-    type of the matrix, defaults to the ctype corresponding to the type
-    of `X`.
-
-<a name='x-28MGL-MAT-3AM-3D-20FUNCTION-29'></a>
-
-- [function] **M=** *A B*
-
-    Check whether `A` and `B`, which must be matrices of the same size, are
-    elementwise equal.
-
-<a name='x-28MGL-MAT-3ATRANSPOSE-20FUNCTION-29'></a>
-
-- [function] **TRANSPOSE** *A*
-
-    Return the transpose of `A`.
-
-<a name='x-28MGL-MAT-3AM-2A-20FUNCTION-29'></a>
-
-- [function] **M\*** *A B &KEY TRANSPOSE-A? TRANSPOSE-B?*
-
-    Compute op(`A`) \* op(`B`). Where op is either the identity or the
-    transpose operation depending on `TRANSPOSE-A?` and `TRANSPOSE-B?`.
-
-<a name='x-28MGL-MAT-3AMM-2A-20FUNCTION-29'></a>
-
-- [function] **MM\*** *M &REST ARGS*
-
-    Convenience function to multiply several matrices. 
-    
-    (mm\* a b c) => a \* b \* c
-
-<a name='x-28MGL-MAT-3AM--20FUNCTION-29'></a>
-
-- [function] **M-** *A B*
-
-    Return `A` - `B`.
-
-<a name='x-28MGL-MAT-3AM-2B-20FUNCTION-29'></a>
-
-- [function] **M+** *A B*
-
-    Return `A` + `B`.
-
-<a name='x-28MGL-MAT-3AINVERT-20FUNCTION-29'></a>
-
-- [function] **INVERT** *A*
-
-    Return the inverse of `A`.
-
-<a name='x-28MGL-MAT-3ALOGDET-20FUNCTION-29'></a>
-
-- [function] **LOGDET** *MAT*
-
-    Logarithm of the determinant of a matrix. Return -1, 1 or 0 (or
-    equivalent) to correct for the sign, as a second value.
-
-<a name='x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29'></a>
-
-## 14 Mappings
-
-<a name='x-28MGL-MAT-3AMAP-CONCAT-20FUNCTION-29'></a>
-
-- [function] **MAP-CONCAT** *FN MATS MAT &KEY KEY PASS-RAW-P*
-
-    Call `FN` with each element of `MATS` and `MAT` temporarily reshaped to
-    the dimensions of the current element of `MATS` and return `MAT`. For
-    the next element the displacement is increased so that there is no
-    overlap.
-    
-    `MATS` is keyed by `KEY` just like the CL sequence functions. Normally,
-    `FN` is called with the matrix returned by `KEY`. However, if
-    `PASS-RAW-P`, then the matrix returned by `KEY` is only used to
-    calculate dimensions and the element of `MATS` that was passed to `KEY`
-    is passed to `FN`, too.
-    
-    ```
-    (map-concat #'copy! (list (make-mat 2) (make-mat 4 :initial-element 1))
-                (make-mat '(2 3)))
-    ==> #<MAT 2x3 AB #2A((0.0d0 0.0d0 1.0d0) (1.0d0 1.0d0 1.0d0))>
-    ```
-
-
-<a name='x-28MGL-MAT-3AMAP-DISPLACEMENTS-20FUNCTION-29'></a>
-
-- [function] **MAP-DISPLACEMENTS** *FN MAT DIMENSIONS &KEY (DISPLACEMENT-START 0) DISPLACEMENT-STEP*
-
-    Call `FN` with `MAT` reshaped to `DIMENSIONS`, first displaced by
-    `DISPLACEMENT-START` that's incremented by `DISPLACEMENT-STEP` each
-    iteration while there are enough elements left for `DIMENSIONS` at the
-    current displacement. Returns `MAT`.
-    
-    ```commonlisp
-    (let ((mat (make-mat 14 :initial-contents '(-1 0 1 2 3
-                                                4 5 6 7
-                                                8 9 10 11 12))))
-      (reshape-and-displace! mat '(4 3) 1)
-      (map-displacements #'print mat 4))
-    ..
-    .. #<MAT 1+4+9 B #(0.0d0 1.0d0 2.0d0 3.0d0)> 
-    .. #<MAT 5+4+5 B #(4.0d0 5.0d0 6.0d0 7.0d0)> 
-    .. #<MAT 9+4+1 B #(8.0d0 9.0d0 10.0d0 11.0d0)> 
-    ```
-
-
-<a name='x-28MGL-MAT-3AMAP-MATS-INTO-20FUNCTION-29'></a>
-
-- [function] **MAP-MATS-INTO** *RESULT-MAT FN &REST MATS*
-
-    Like `CL:MAP-INTO` but for [`MAT`][773f] objects. Destructively modifies
-    `RESULT-MAT` to contain the results of applying `FN` to each element in
-    the argument `MATS` in turn.
-
-<a name='x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29'></a>
-
-## 15 Random numbers
-
-This is rather experimental.
-
-<a name='x-28MGL-MAT-3AMV-GAUSSIAN-RANDOM-20FUNCTION-29'></a>
-
-- [function] **MV-GAUSSIAN-RANDOM** *&KEY MEANS COVARIANCES*
-
-    Return a column vector of samples from the multivariate normal
-    distribution defined by `MEANS` (Nx1) and `COVARIANCES` (NxN).
-
-<a name='x-28MGL-MAT-3ACOPY-RANDOM-STATE-20GENERIC-FUNCTION-29'></a>
-
-- [generic-function] **COPY-RANDOM-STATE** *STATE*
-
-    Return a copy of `STATE` be it a lisp or cuda random
-    state.
-
-<a name='x-28MGL-MAT-3AUNIFORM-RANDOM-21-20FUNCTION-29'></a>
-
-- [function] **UNIFORM-RANDOM!** *MAT &KEY (LIMIT 1)*
-
-    Fill `MAT` with random numbers sampled uniformly from the [0,LIMIT)
-    interval of `MAT`'s type.
-
-<a name='x-28MGL-MAT-3AGAUSSIAN-RANDOM-21-20FUNCTION-29'></a>
-
-- [function] **GAUSSIAN-RANDOM!** *MAT &KEY (MEAN 0) (STDDEV 1)*
-
-    Fill `MAT` with independent normally distributed random numbers with
-    `MEAN` and `STDDEV`.
-
-<a name='x-28MGL-MAT-3AORTHOGONAL-RANDOM-21-20FUNCTION-29'></a>
-
-- [function] **ORTHOGONAL-RANDOM!** *M &KEY (SCALE 1)*
-
-    Fill the matrix `M` with random values in such a way that `M^T * M`
-    is the identity matrix (or something close if `M` is wide). Return `M`.
-
-<a name='x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29'></a>
-
-## 16 I/O
-
-<a name='x-28MGL-MAT-3AWRITE-MAT-20GENERIC-FUNCTION-29'></a>
-
-- [generic-function] **WRITE-MAT** *MAT STREAM*
-
-    Write `MAT` to `STREAM` in portable binary format.
-    Displacement and size are taken into account, only visible elements
-    are written.
-
-<a name='x-28MGL-MAT-3AREAD-MAT-20GENERIC-FUNCTION-29'></a>
-
-- [generic-function] **READ-MAT** *MAT STREAM*
-
-    Destructively modify the visible portion (with
-    regards to displacement and shape) of `MAT` by reading [`MAT-SIZE`][1caf] number
-    of elements from `STREAM`. No sanity checks are performed, [`READ-MAT`][dc10]
-    may return without error even if `STREAM` contains garbage.
+- [macro] **WITH-SYNCING-CUDA-FACETS** *(ENSURES DESTROYS) &BODY BODY*
 
 <a name='x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 17 Extension API
+### 16.4 Extension API
 
 Macros for defining cuda and lisp kernels. Typically operations
 have a cuda and a lisp implementations and decide which to use with
@@ -1301,15 +1404,17 @@ have a cuda and a lisp implementations and decide which to use with
     with [`MAT`][773f] objects and can define the same function for multiple
     `CTYPES`. Example:
     
-        (define-lisp-kernel (lisp-.+!)
-            ((alpha single-float) (x :mat :input) (start-x index) (n index))
-          (loop for xi of-type index upfrom start-x
-                  below (the! index (+ start-x n))
-                do (incf (aref x xi) alpha)))
+    ```commonlisp
+    (define-lisp-kernel (lisp-.+!)
+        ((alpha single-float) (x :mat :input) (start-x index) (n index))
+      (loop for xi of-type index upfrom start-x
+              below (the! index (+ start-x n))
+            do (incf (aref x xi) alpha)))
+    ```
     
     Parameters are either of the form `(<NAME> <LISP-TYPE)`
     or `(<NAME> :MAT <DIRECTION>)`. In the latter case, the appropriate
-    CFFI:POINTER is passed to the kernel. `<DIRECTION>` is passed on to
+    `CFFI` pointer is passed to the kernel. `<DIRECTION>` is passed on to
     the [`WITH-FACET`][f66e] that's used to acquire the foreign array. Note that
     the return type is not declared.
     
@@ -1364,53 +1469,6 @@ have a cuda and a lisp implementations and decide which to use with
     the ctype of the [`MAT`][773f] objects passed for `:MAT` typed parameters. It's
     an error if they are not of the same type. Scalars declared `FLOAT`
     are coerced to that type and the appropriate kernel is called.
-
-<a name='x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29'></a>
-
-## 18 Debugging
-
-The largest class of bugs has to do with synchronization of facets
-being broken. This is almost always caused by an operation that
-mispecifies the [`DIRECTION`][298b] argument of [`WITH-FACET`][f66e]. For example, the
-matrix argument of [`SCAL!`][4c84] should be accessed with direciton `:IO`. But
-if it's `:INPUT` instead, then subsequent access to the [`ARRAY`][ba88] facet
-will not see the changes made by [`AXPY!`][9221], and if it's `:OUTPUT`, then
-any changes made to the [`ARRAY`][ba88] facet since the last update of the
-[`CUDA-ARRAY`][84c3] facet will not be copied and from the wrong input [`SCAL!`][4c84]
-will compute the wrong result.
-
-Another thing that tends to come up is figuring out where memory is
-used.
-
-<a name='x-28MGL-MAT-3AWITH-MAT-COUNTERS-20MGL-PAX-3AMACRO-29'></a>
-
-- [macro] **WITH-MAT-COUNTERS** *(&KEY COUNT N-BYTES) &BODY BODY*
-
-    Count all [`MAT`][773f] allocations and also the number of bytes they may
-    require. *May require* here really means an upper bound,
-    because `(MAKE-MAT (EXPT 2 60))` doesn't actually uses memory until
-    one of its facets is accessed (don't simply evaluate it though,
-    printing the result will access the [`ARRAY`][ba88] facet if [`*PRINT-MAT*`][81d0]).
-    Also, while facets today all require the same number of bytes, this
-    may change in the future. This is a debugging tool, don't use it in
-    production.
-    
-    ```cl-transcript
-    (with-mat-counters (:count count :n-bytes n-bytes)
-      (assert (= count 0))
-      (assert (= n-bytes 0))
-      (make-mat '(2 3) :ctype :double)
-      (assert (= count 1))
-      (assert (= n-bytes (* 2 3 8)))
-      (with-mat-counters (:n-bytes n-bytes-1 :count count-1)
-        (make-mat '7 :ctype :float)
-        (assert (= count-1 1))
-        (assert (= n-bytes-1 (* 7 4))))
-      (assert (= n-bytes (+ (* 2 3 8) (* 7 4))))
-      (assert (= count 2)))
-    
-    ```
-
 <a name='x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29'></a>
 
 # Cube Manual
@@ -1420,18 +1478,18 @@ used.
 - [1 Introduction][0752]
 - [2 Basics][1164]
 - [3 Synchronization][688d]
-- [4 Facet extension API][eb06]
-- [5 The default implementation of CALL-WITH-FACET*][b64e]
-- [6 Views][692d]
-- [7 Destroying cubes][2fa1]
-- [8 Facet barriers][8520]
+- [4 Facets][34a4]
+- [5 Facet Extension API][2e01]
+- [6 The Default Implementation of CALL-WITH-FACET*][754d]
+- [7 Lifetime][767f]
+    - [7.1 Facet Barriers][5eab]
 
 ###### \[in package MGL-CUBE\]
 <a name='x-28MGL-CUBE-3A-40CUBE-INTRODUCTION-20MGL-PAX-3ASECTION-29'></a>
 
 ## 1 Introduction
 
-This is the libray on which MGL-MAT (see [MAT Manual][2629]) is
+This is the library on which MGL-MAT (see [MAT Manual][2629]) is
 built. The idea of automatically translating between various
 representations may be useful for other applications, so this got
 its own package and all ties to MGL-MAT has been severed.
@@ -1439,13 +1497,13 @@ its own package and all ties to MGL-MAT has been severed.
 This package defines [`CUBE`][9fcc], an abstract base class that provides a
 framework for automatic conversion between various representations
 of the same data. To define a cube, [`CUBE`][9fcc] needs to be subclassed and
-the [Facet extension API][eb06] be implemented.
+the [Facet Extension API][2e01] be implemented.
 
 If you are only interested in how to use cubes in general, read
-[Basics][1164], [Destroying cubes][2fa1] and [Facet barriers][8520].
+[Basics][1164], [Lifetime][767f] and [Facet Barriers][5eab].
 
-If you want to implement a new cube datatype, then see
-[Facet extension API][eb06], [The default implementation of CALL-WITH-FACET\*][b64e] and [Views][692d].
+If you want to implement a new cube datatype, then see [Facets][34a4],
+[Facet Extension API][2e01], and [The Default Implementation of CALL-WITH-FACET\*][754d].
 
 <a name='x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29'></a>
 
@@ -1467,18 +1525,22 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
     
     The cube is an abstract class, it does not provide useful behavior
     in itself. One must subclass it and implement the
-    [Facet extension API][eb06].
+    [Facet Extension API][2e01].
     
-    Also see [Views][692d], [Destroying cubes][2fa1] and [Facet barriers][8520].
+    Also see [Lifetime][767f] and [Facet Barriers][5eab].
 
 <a name='x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29'></a>
 
-- [macro] **WITH-FACET** *(FACET (CUBE FACET-NAME &KEY (DIRECTION :IO) TYPE)) &BODY BODY*
+- [macro] **WITH-FACET** *(VAR (CUBE FACET-NAME &KEY (DIRECTION :IO) TYPE)) &BODY BODY*
 
-    Bind the variable `FACET` to the facet with `FACET-NAME` of `CUBE`. `FACET`
-    is to be treated as dynamic extent: it is not allowed to keep a
-    reference to it. For the description of the `DIRECTION` parameter, see
-    the type `DIRECTION`.
+    Find or create the facet with `FACET-NAME` in `CUBE` and bind `VAR` to
+    the representation of `CUBE`'s data provided by that facet. This
+    representation is called the facet's *value*. The value is to be
+    treated as dynamic extent: it is not allowed to keep a reference to
+    it. For the description of the `DIRECTION` parameter, see the type
+    `DIRECTION`.
+    
+    If `TYPE` is specified, then `VAR` is declared to be of that type.
 
 <a name='x-28MGL-CUBE-3ADIRECTION-20TYPE-29'></a>
 
@@ -1504,14 +1566,14 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
       [`SELECT-COPY-SOURCE-FOR-FACET*`][6056]).
     
     Any number of [`WITH-FACET`][f66e]s with direction `:INPUT` may be active at
-    the same time, but `:IO` and `:OUTPUT` cannot coexists with any other
-    [`WITH-FACET`][f66e] regardless of the direction. An exception is made for
-    nested [`WITH-FACET`][f66e]s for the same facet: an enclosing [`WITH-FACET`][f66e]
-    never conflicts with an inner [`WITH-FACET`][f66e], but [`WITH-FACET`][f66e]s for
-    another facet or for the same facet but from another thread do.
+    the same time, but `:IO` and `:OUTPUT` cannot coexists with another
+    [`WITH-FACET`][f66e] regardless of the direction. The exception for this rule
+    is that an inner [`WITH-FACET`][f66e] does not conflict with an enclosing
+    [`WITH-FACET`][f66e] if they are for the same facet (but inner [`WITH-FACET`][f66e]s
+    for another facet or for the same facet from another thread do).
     
     See [`CHECK-NO-WRITERS`][edce] and [`CHECK-NO-WATCHERS`][b9c1] called by
-    [The default implementation of CALL-WITH-FACET\*][b64e].
+    [The Default Implementation of CALL-WITH-FACET\*][754d].
 
 <a name='x-28MGL-CUBE-3AWITH-FACETS-20MGL-PAX-3AMACRO-29'></a>
 
@@ -1554,7 +1616,7 @@ signal safe.
 
 - [accessor] **SYNCHRONIZATION** *CUBE* *(:SYNCHRONIZATION = \*DEFAULT-SYNCHRONIZATION\*)*
 
-    By default setup and teardown of facets by
+    By default, setup and teardown of facets by
     [`WITH-FACET`][f66e] is performed in a thread safe way. Corrupting internal
     data structures of cubes is not fun, but in the name of
     performance, synchronization can be turned off either dynamically
@@ -1584,47 +1646,120 @@ signal safe.
     Determines whether access the cube metadata is synchronized for
     cubes with [`SYNCHRONIZATION`][923f] `:MAYBE`.
 
-<a name='x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29'></a>
+<a name='x-28MGL-CUBE-3A-40CUBE-FACETS-20MGL-PAX-3ASECTION-29'></a>
 
-## 4 Facet extension API
+## 4 Facets
 
-<a name='x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29'></a>
+The basic currency for implementing new cube types is the [`FACET`][d34e].
+Simply using a cube only involves facet names and values, never
+facets themselves.
 
-- [locative] **FACET-NAME**
+<a name='x-28MGL-CUBE-3AFACETS-20FUNCTION-29'></a>
 
-    The `FACET-NAME` locative is to refer to stuff defined with
-    [`DEFINE-FACET-NAME`][5192].
+- [function] **FACETS** *CUBE*
 
-<a name='x-28MGL-CUBE-3ADEFINE-FACET-NAME-20MGL-PAX-3AMACRO-29'></a>
+    Return the facets of `CUBE`.
 
-- [macro] **DEFINE-FACET-NAME** *SYMBOL LAMBDA-LIST &BODY DOCSTRING*
+<a name='x-28MGL-CUBE-3AFIND-FACET-20FUNCTION-29'></a>
 
-    Just a macro to document the symbol [`FACET-NAME`][21a4] means a facet
-    name (as in the [`FACET-NAME`][21a4]).
+- [function] **FIND-FACET** *CUBE FACET-NAME*
+
+    Return the facet of `CUBE` for the facet with `FACET-NAME` or `NIL` if no
+    such facet exists.
+
+<a name='x-28MGL-CUBE-3AFACET-20CLASS-29'></a>
+
+- [class] **FACET** *STRUCTURE-OBJECT*
+
+    A cube has facets, as we discussed in [Basics][1164]. Facets holds
+    the data in a particular representation, this is called the *value*
+    of the facet. A facet holds one such value and some metadata
+    pertaining to it: its `FACET-NAME`([`0`][21a4] [`1`][593c]), whether it's
+    up-to-date ([`FACET-UP-TO-DATE-P`][e9ba]), etc. `FACET` objects are never seen
+    when simply using a cube, they are for implementing the
+    [Facet Extension API][2e01].
+
+<a name='x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
+
+- [structure-accessor] **FACET-NAME**
+
+    A symbol that uniquely identifies the facet within a cube.
+
+<a name='x-28MGL-CUBE-3AFACET-VALUE-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
+
+- [structure-accessor] **FACET-VALUE**
+
+    This is what's normally exposed by [`WITH-FACET`][f66e].
+
+<a name='x-28MGL-CUBE-3AFACET-DESCRIPTION-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
+
+- [structure-accessor] **FACET-DESCRIPTION**
+
+    Returned by [`MAKE-FACET*`][2a64] as its second value, this is an
+    arbitrary object in which additional information can be
+    stored.
+
+<a name='x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
+
+- [structure-accessor] **FACET-UP-TO-DATE-P**
+
+    Whether the cube has changed since this facet has been last
+    updated. See [`FACET-UP-TO-DATE-P*`][88b7].
+
+<a name='x-28MGL-CUBE-3AFACET-N-WATCHERS-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
+
+- [structure-accessor] **FACET-N-WATCHERS**
+
+    The number of active [`WITH-FACET`][f66e]s. Updated by [`WATCH-FACET`][a238] and
+    [`UNWATCH-FACET`][ee90].
+
+<a name='x-28MGL-CUBE-3AFACET-WATCHER-THREADS-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
+
+- [structure-accessor] **FACET-WATCHER-THREADS**
+
+    The threads (one for each watcher) that have active
+    [`WITH-FACET`][f66e]s.
+
+<a name='x-28MGL-CUBE-3AFACET-DIRECTION-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
+
+- [structure-accessor] **FACET-DIRECTION**
+
+    The direction of the last [`WITH-FACET`][f66e] on this facet.
+
+<a name='x-28MGL-CUBE-3A-40CUBE-FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29'></a>
+
+## 5 Facet Extension API
+
+Many of the generic functions in this section take [`FACET`][d34e] arguments.
+[`FACET`][d34e] is a structure and is not intended to be subclassed. To be
+able to add specialized methods, the name of the
+facet ([`FACET-NAME`][593c]) is also passed as the
+argument right in front of the corresponding facet argument.
+
+In summary, define `EQL` specializers on facet name arguments, and use
+[`FACET-DESCRIPTION`][3981] to associate arbitrary information with facets.
 
 <a name='x-28MGL-CUBE-3AMAKE-FACET-2A-20GENERIC-FUNCTION-29'></a>
 
 - [generic-function] **MAKE-FACET\*** *CUBE FACET-NAME*
 
-    As the first value, return a new object capable of
-    storing `CUBE`'s data in the facet with `FACET-NAME`. As the second
-    value, return a facet description which is going to be passed to
-    [`DESTROY-FACET*`][16c3]. As the third value, return a generalized boolean
-    indicating whether this facet must be explicitly destroyed (in which
-    case a finalizer will be added to `CUBE`). Called by [`WITH-FACET`][f66e] (or
-    more directly [`WATCH-FACET`][a238]) when there is no facet with
-    `FACET-NAME`.
+    Called by [`WITH-FACET`][f66e] (or more directly [`WATCH-FACET`][a238])
+    when there is no facet with `FACET-NAME`. As the first value, return a
+    new object capable of storing `CUBE`'s data in the facet with
+    `FACET-NAME`. As the second value, return a facet description which
+    will be available as [`FACET-DESCRIPTION`][3981]. As the third value, return a
+    generalized boolean indicating whether this facet must be explicitly
+    destroyed (in which case a finalizer will be added to `CUBE`).
 
 <a name='x-28MGL-CUBE-3ADESTROY-FACET-2A-20GENERIC-FUNCTION-29'></a>
 
-- [generic-function] **DESTROY-FACET\*** *FACET-NAME FACET FACET-DESCRIPTION*
+- [generic-function] **DESTROY-FACET\*** *FACET-NAME FACET*
 
-    Destroy `FACET` that belongs to a facet with
-    `FACET-NAME` and `FACET-DESCRIPTION`. The cube this facet belongs to is
-    not among the parameters because this method can be called from a
-    finalizer on the cube (so we can't have a reference to the cube
-    portably) which also means that it may run in an unpredictable
-    thread.
+    Free the resources associated with `FACET` with
+    `FACET-NAME`. The cube this facet belongs to is not among the
+    parameters because this method can be called from a finalizer on the
+    cube (so we can't have a reference to the cube portably) which also
+    means that it may run in an unpredictable thread.
 
 <a name='x-28MGL-CUBE-3ACOPY-FACET-2A-20GENERIC-FUNCTION-29'></a>
 
@@ -1639,36 +1774,72 @@ signal safe.
 
 - [generic-function] **CALL-WITH-FACET\*** *CUBE FACET-NAME DIRECTION FN*
 
-    Ensure that the facet with `FACET-NAME` exists.
-    Depending on `DIRECTION` and up-to-dateness, maybe copy data. Finally,
-    call `FN` with the facet. The default implementation acquires the
-    facet with [`WATCH-FACET`][a238], calls `FN` with it and finally calls
-    [`UNWATCH-FACET`][ee90]. However, specializations are allowed to create only
-    temporary, dynamic extent views without ever calling [`WATCH-FACET`][a238] and
-    [`UNWATCH-FACET`][ee90].
+    Call `FN` with an up-to-date [`FACET-VALUE`][2469] that belongs
+    to `FACET-NAME` of `CUBE`. [`WITH-FACET`][f66e] is directly implemented in terms
+    of this function. See [The Default Implementation of CALL-WITH-FACET\*][754d] for the gory
+    details.
+    
+    Specializations will most likely want to call the default
+    implementation (with `CALL-NEXT-METHOD`) but with a lambda that
+    transforms [`FACET-VALUE`][2469] before passing it on to `FN`.
 
-<a name='x-28MGL-CUBE-3ASET-UP-TO-DATE-P-2A-20GENERIC-FUNCTION-29'></a>
+<a name='x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-2A-20GENERIC-FUNCTION-29'></a>
 
-- [generic-function] **SET-UP-TO-DATE-P\*** *CUBE FACET-NAME VIEW VALUE*
+- [generic-function] **FACET-UP-TO-DATE-P\*** *CUBE FACET-NAME FACET*
 
-    Set the [`VIEW-UP-TO-DATE-P`][9e0b] slot of `VIEW` to `VALUE`.
-    The default implementation simply SETFs it. This being a generic
-    function allows subclasses to ensure that certain facets which share
-    storage are always up-to-date at the same time.
+    Check if `FACET` with `FACET-NAME` has been updated
+    since the latest change to `CUBE` (that is, since the access to other
+    facets with [`DIRECTION`][298b] of `:IO` or `:OUTPUT`). The default method simply
+    calls [`FACET-UP-TO-DATE-P`][e9ba] on `FACET`.
+    
+    One reason to specialize this is when some facets actually share
+    common storage, so updating one make the other up-to-date as well.
 
 <a name='x-28MGL-CUBE-3ASELECT-COPY-SOURCE-FOR-FACET-2A-20GENERIC-FUNCTION-29'></a>
 
 - [generic-function] **SELECT-COPY-SOURCE-FOR-FACET\*** *CUBE TO-NAME TO-FACET*
 
-    Return a facet name selected from the up-to-date
-    views from which `CUBE`'s data should be copied to `TO-FACET`. The
-    default method simply returns the first up-to-date view.
+    Called when `TO-FACET` with `TO-NAME` is about to be
+    updated by copying data from an up-to-date facet. Return the
+    facet (or its name) from which data shall be copied. Note that if
+    the returned facet is not [`FACET-UP-TO-DATE-P`][e9ba]*, then it will be
+    updated first and another SELECT-COPY-SOURCE-FOR-FACET* will take
+    place, so be careful not to get into endless recursion. The default
+    method simply returns the first up-to-date facet.
 
-Also see [The default implementation of CALL-WITH-FACET\*][b64e].
+PAX integration follows, don't worry about it if you don't use PAX,
+but you really should (see `MGL-PAX:@MGL-PAX-MANUAL`).
 
-<a name='x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29'></a>
+<a name='x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29'></a>
 
-## 5 The default implementation of CALL-WITH-FACET*
+- [locative] **FACET-NAME**
+
+    The `FACET-NAME` [locative][locative] is the to refer to stuff
+    defined with [`DEFINE-FACET-NAME`][5192].
+
+<a name='x-28MGL-CUBE-3ADEFINE-FACET-NAME-20MGL-PAX-3AMACRO-29'></a>
+
+- [macro] **DEFINE-FACET-NAME** *SYMBOL LAMBDA-LIST &BODY DOCSTRING*
+
+    Just a macro to document that `SYMBOL` refers to a facet name (as in
+    the [`FACET-NAME`][21a4]). This is totally confusing, so here is
+    an example of how MGL-MAT (see [MAT Manual][2629]) documents the
+    [`MGL-MAT:BACKING-ARRAY`][e3f0] facet:
+    
+    ```commonlisp
+    (define-facet-name backing-array ()
+      "The corresponding facet is a one dimensional lisp array.")
+    ```
+    
+    Which makes it possible to refer to this definition (refer as in
+    link and `M-.` to) [`MGL-MAT:BACKING-ARRAY`][e3f0] facet-name. See
+    `MGL-PAX:@MGL-PAX-MANUAL` for more.
+
+Also see [The Default Implementation of CALL-WITH-FACET\*][754d].
+
+<a name='x-28MGL-CUBE-3A-40CUBE-DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29'></a>
+
+## 6 The Default Implementation of CALL-WITH-FACET*
 
 <a name='x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20-28METHOD-20NIL-20-28MGL-CUBE-3ACUBE-20T-20T-20T-29-29-29'></a>
 
@@ -1676,7 +1847,7 @@ Also see [The default implementation of CALL-WITH-FACET\*][b64e].
 
     The default implementation of [`CALL-WITH-FACET*`][46c5] is defined in terms
     of the [`WATCH-FACET`][a238] and the [`UNWATCH-FACET`][ee90] generic functions. These
-    can be considered part of the [Facet extension API][eb06].
+    can be considered part of the [Facet Extension API][2e01].
 
 <a name='x-28MGL-CUBE-3AWATCH-FACET-20GENERIC-FUNCTION-29'></a>
 
@@ -1684,18 +1855,19 @@ Also see [The default implementation of CALL-WITH-FACET\*][b64e].
 
     This is what the default [`CALL-WITH-FACET*`][46c5] method,
     in terms of which [`WITH-FACET`][f66e] is implemented, calls first. The
-    default method takes care of creating views, copying and tracking
+    default method takes care of creating facets, copying and tracking
     up-to-dateness.
     
     Calls [`CHECK-NO-WRITERS`][edce] (unless [`*LET-INPUT-THROUGH-P*`][03fc]) and
     [`CHECK-NO-WATCHERS`][b9c1] (unless [`*LET-OUTPUT-THROUGH-P*`][8719]) depending on
     `DIRECTION` to detect situations with a writer being concurrent to
-    readers/writers because that would screw up the tracking
+    readers/writers because that would screw up the tracking of
     up-to-dateness.
     
-    The default implementation should suffice most of the time. MGL-MAT
-    specializes it to override the `DIRECTION` arg if it's `:OUTPUT` but not
-    all elements are visible due to reshaping.
+    The default implementation should suffice most of the time.
+    MGL-MAT specializes it to override the `DIRECTION` arg, if
+    it's `:OUTPUT` but not all elements are visible due to reshaping, so
+    that invisible elements are still copied over.
 
 <a name='x-28MGL-CUBE-3AUNWATCH-FACET-20GENERIC-FUNCTION-29'></a>
 
@@ -1703,7 +1875,7 @@ Also see [The default implementation of CALL-WITH-FACET\*][b64e].
 
     This is what the default [`CALL-WITH-FACET*`][46c5] method,
     in terms of which [`WITH-FACET`][f66e] is implemented, calls last. The default
-    method takes care of taking down views. External resource managers
+    method takes care of taking down facets. External resource managers
     may want to hook into this to handle unused facets.
 
 <a name='x-28MGL-CUBE-3A-2ALET-INPUT-THROUGH-P-2A-20VARIABLE-29'></a>
@@ -1738,70 +1910,22 @@ Also see [The default implementation of CALL-WITH-FACET\*][b64e].
     Signal an error if `CUBE` has facets (with names other than
     `FACET-NAME`) being regardless of the direction.
 
-<a name='x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29'></a>
+<a name='x-28MGL-CUBE-3A-40CUBE-LIFETIME-20MGL-PAX-3ASECTION-29'></a>
 
-## 6 Views
-
-We learn what a [`VIEW`][776e] is, how it's related to facets. See [`VIEWS`][c62e],
-[`FIND-VIEW`][d95a], and the default method of [`SET-UP-TO-DATE-P*`][59d0]. Views are
-only visible to those implementing the [Facet extension API][eb06].
-
-<a name='x-28MGL-CUBE-3AVIEW-20CLASS-29'></a>
-
-- [class] **VIEW** *STRUCTURE-OBJECT*
-
-    A cube has facets, as we discussed in [Basics][1164]. The object
-    which holds the data in a particular representation is the facet. A
-    `VIEW` holds one such facet and some metadata pertaining to it: its
-    name ([`VIEW-FACET-NAME`][9ecd]), whether it's up-to-date ([`VIEW-UP-TO-DATE-P`][9e0b]),
-    etc. `VIEW` ojbects are never seen when simply using a cube, they are
-    for implementing the [Facet extension API][eb06].
-
-<a name='x-28MGL-CUBE-3AVIEW-FACET-NAME-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
-
-- [structure-accessor] **VIEW-FACET-NAME**
-
-<a name='x-28MGL-CUBE-3AVIEW-FACET-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
-
-- [structure-accessor] **VIEW-FACET**
-
-<a name='x-28MGL-CUBE-3AVIEW-FACET-DESCRIPTION-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
-
-- [structure-accessor] **VIEW-FACET-DESCRIPTION**
-
-<a name='x-28MGL-CUBE-3AVIEW-UP-TO-DATE-P-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
-
-- [structure-accessor] **VIEW-UP-TO-DATE-P**
-
-<a name='x-28MGL-CUBE-3AVIEWS-20FUNCTION-29'></a>
-
-- [function] **VIEWS** *CUBE*
-
-    Return the views of `CUBE`.
-
-<a name='x-28MGL-CUBE-3AFIND-VIEW-20FUNCTION-29'></a>
-
-- [function] **FIND-VIEW** *CUBE FACET-NAME*
-
-    Return the view of `CUBE` for the facet with `FACET-NAME` or `NIL` if no
-    such view exists.
-
-<a name='x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29'></a>
-
-## 7 Destroying cubes
+## 7 Lifetime
 
 Lifetime management of facets is manual (but facets of garbage
 cubes are freed automatically by a finalizer, see [`MAKE-FACET*`][2a64]). One
 may destroy a single facet or all facets of a cube with
 [`DESTROY-FACET`][bdd6] and [`DESTROY-CUBE`][2cb4], respectively. Also see
-[Facet barriers][8520].
+[Facet Barriers][5eab].
 
 <a name='x-28MGL-CUBE-3ADESTROY-FACET-20FUNCTION-29'></a>
 
 - [function] **DESTROY-FACET** *CUBE FACET-NAME*
 
     Free resources associated with the facet with `FACET-NAME` and remove
-    it from [`VIEWS`][c62e] of `CUBE`.
+    it from [`FACETS`][bd5b] of `CUBE`.
 
 <a name='x-28MGL-CUBE-3ADESTROY-CUBE-20FUNCTION-29'></a>
 
@@ -1809,12 +1933,47 @@ may destroy a single facet or all facets of a cube with
 
     Destroy all facets of `CUBE` with [`DESTROY-FACET`][bdd6].
 
-<a name='x-28MGL-CUBE-3A-40FACET-BARRIER-20MGL-PAX-3ASECTION-29'></a>
+In some cases it is useful to declare the intent to use a facet in
+the future to prevent its destruction. Hence, every facet has
+reference count which starts from 0. The reference count is
+incremented and decremented by [`ADD-FACET-REFERENCE-BY-NAME`][db3f] and
+[`REMOVE-FACET-REFERENCE-BY-NAME`][3424], respectively. If it is positive,
+then the facet will not be destroyed by explicit [`DESTROY-FACET`][bdd6] and
+[`DESTROY-CUBE`][2cb4] calls, but it will still be destroyed by the finalizer
+to prevent resource leaks caused by stray references.
 
-## 8 Facet barriers
+<a name='x-28MGL-CUBE-3AADD-FACET-REFERENCE-BY-NAME-20FUNCTION-29'></a>
+
+- [function] **ADD-FACET-REFERENCE-BY-NAME** *CUBE FACET-NAME*
+
+    Make sure `FACET-NAME` exists on `CUBE` and increment its reference
+    count. Return the [`FACET`][d34e] behind `FACET-NAME`.
+
+<a name='x-28MGL-CUBE-3AREMOVE-FACET-REFERENCE-BY-NAME-20FUNCTION-29'></a>
+
+- [function] **REMOVE-FACET-REFERENCE-BY-NAME** *CUBE FACET-NAME*
+
+    Decrement the reference count of the facet with `FACET-NAME` of `CUBE`.
+    It is an error if the facet does not exists or if the reference
+    count becomes negative.
+
+<a name='x-28MGL-CUBE-3AREMOVE-FACET-REFERENCE-20FUNCTION-29'></a>
+
+- [function] **REMOVE-FACET-REFERENCE** *FACET*
+
+    Decrement the reference count of `FACET`. It is an error if the facet
+    is already destroyed or if the reference count becomes negative.
+    This function has the same purpose as
+    [`REMOVE-FACET-REFERENCE-BY-NAME`][3424], but by having a single `FACET`
+    argument, it's more suited for use in finalizers because it does not
+    keep the whole [`CUBE`][9fcc] alive.
+
+<a name='x-28MGL-CUBE-3A-40CUBE-FACET-BARRIER-20MGL-PAX-3ASECTION-29'></a>
+
+### 7.1 Facet Barriers
 
 A facility to control lifetime of facets tied to a dynamic extent.
-Also see [Destroying cubes][2fa1].
+Also see [Lifetime][767f].
 
 <a name='x-28MGL-CUBE-3AWITH-FACET-BARRIER-20MGL-PAX-3AMACRO-29'></a>
 
@@ -1858,18 +2017,22 @@ Also see [Destroying cubes][2fa1].
   [1164]: #x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-BASICS MGL-PAX:SECTION)"
   [1227]: #x-28MGL-MAT-3APINNING-SUPPORTED-P-20FUNCTION-29 "(MGL-MAT:PINNING-SUPPORTED-P FUNCTION)"
   [12c9]: #x-28MGL-MAT-3AFOREIGN-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:FOREIGN-ARRAY MGL-CUBE:FACET-NAME)"
-  [16c3]: #x-28MGL-CUBE-3ADESTROY-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:DESTROY-FACET* GENERIC-FUNCTION)"
+  [1944]: #x-28MGL-MAT-3ACUDA-HOST-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:CUDA-HOST-ARRAY MGL-CUBE:FACET-NAME)"
   [19b9]: #x-28MGL-CUBE-3A-2ADEFAULT-SYNCHRONIZATION-2A-20VARIABLE-29 "(MGL-CUBE:*DEFAULT-SYNCHRONIZATION* VARIABLE)"
   [1caf]: #x-28MGL-MAT-3AMAT-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-SIZE (MGL-PAX:READER MGL-MAT:MAT))"
   [21a4]: #x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29 "(MGL-CUBE:FACET-NAME MGL-PAX:LOCATIVE)"
+  [2469]: #x-28MGL-CUBE-3AFACET-VALUE-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:FACET-VALUE MGL-PAX:STRUCTURE-ACCESSOR)"
   [2629]: #x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)"
   [28eb]: #x-28MGL-MAT-3AMREF-20FUNCTION-29 "(MGL-MAT:MREF FUNCTION)"
   [298b]: #x-28MGL-CUBE-3ADIRECTION-20TYPE-29 "(MGL-CUBE:DIRECTION TYPE)"
   [2a64]: #x-28MGL-CUBE-3AMAKE-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:MAKE-FACET* GENERIC-FUNCTION)"
   [2cb4]: #x-28MGL-CUBE-3ADESTROY-CUBE-20FUNCTION-29 "(MGL-CUBE:DESTROY-CUBE FUNCTION)"
-  [2fa1]: #x-28MGL-CUBE-3A-40DESTRUCTION-OF-CUBES-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@DESTRUCTION-OF-CUBES MGL-PAX:SECTION)"
+  [2e01]: #x-28MGL-CUBE-3A-40CUBE-FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-FACET-EXTENSION-API MGL-PAX:SECTION)"
+  [3424]: #x-28MGL-CUBE-3AREMOVE-FACET-REFERENCE-BY-NAME-20FUNCTION-29 "(MGL-CUBE:REMOVE-FACET-REFERENCE-BY-NAME FUNCTION)"
+  [34a4]: #x-28MGL-CUBE-3A-40CUBE-FACETS-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-FACETS MGL-PAX:SECTION)"
   [36b8]: #x-28MGL-MAT-3AMAX-POOL-21-20FUNCTION-29 "(MGL-MAT:MAX-POOL! FUNCTION)"
   [373b]: #x-28MGL-MAT-3A-2AFOREIGN-ARRAY-STRATEGY-2A-20-28VARIABLE-20-22-see-20below--22-29-29 "(MGL-MAT:*FOREIGN-ARRAY-STRATEGY* (VARIABLE \"-see below-\"))"
+  [3981]: #x-28MGL-CUBE-3AFACET-DESCRIPTION-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:FACET-DESCRIPTION MGL-PAX:STRUCTURE-ACCESSOR)"
   [3cf7]: #x-28MGL-MAT-3AMAT-MAX-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-MAX-SIZE (MGL-PAX:READER MGL-MAT:MAT))"
   [4586]: #x-28MGL-MAT-3A-2ASUPPORTED-CTYPES-2A-20VARIABLE-29 "(MGL-MAT:*SUPPORTED-CTYPES* VARIABLE)"
   [46c5]: #x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:CALL-WITH-FACET* GENERIC-FUNCTION)"
@@ -1884,35 +2047,37 @@ Also see [Destroying cubes][2fa1].
   [552a]: #x-28MGL-MAT-3ASTACK-21-20FUNCTION-29 "(MGL-MAT:STACK! FUNCTION)"
   [58bb]: #x-28MGL-MAT-3ARESHAPE-TO-ROW-MATRIX-21-20FUNCTION-29 "(MGL-MAT:RESHAPE-TO-ROW-MATRIX! FUNCTION)"
   [58e7]: #x-28MGL-MAT-3ARESHAPE-21-20FUNCTION-29 "(MGL-MAT:RESHAPE! FUNCTION)"
-  [59d0]: #x-28MGL-CUBE-3ASET-UP-TO-DATE-P-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:SET-UP-TO-DATE-P* GENERIC-FUNCTION)"
+  [593c]: #x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:FACET-NAME MGL-PAX:STRUCTURE-ACCESSOR)"
   [5d9b]: #x-28MGL-MAT-3A-2AN-MEMCPY-DEVICE-TO-HOST-2A-20VARIABLE-29 "(MGL-MAT:*N-MEMCPY-DEVICE-TO-HOST* VARIABLE)"
+  [5eab]: #x-28MGL-CUBE-3A-40CUBE-FACET-BARRIER-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-FACET-BARRIER MGL-PAX:SECTION)"
   [5ed3]: #x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:CUDA-ENABLED (MGL-PAX:ACCESSOR MGL-MAT:MAT))"
   [5feb]: #x-28MGL-MAT-3A-2ACUDA-ENABLED-2A-20VARIABLE-29 "(MGL-MAT:*CUDA-ENABLED* VARIABLE)"
   [6056]: #x-28MGL-CUBE-3ASELECT-COPY-SOURCE-FOR-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:SELECT-COPY-SOURCE-FOR-FACET* GENERIC-FUNCTION)"
+  [6156]: #x-28MGL-MAT-3AFILL-21-20FUNCTION-29 "(MGL-MAT:FILL! FUNCTION)"
   [688d]: #x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-SYNCHRONIZATION MGL-PAX:SECTION)"
-  [692d]: #x-28MGL-CUBE-3A-40CUBE-VIEWS-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-VIEWS MGL-PAX:SECTION)"
   [6ccf]: #x-28MGL-MAT-3A-40MAT-PRINTING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-PRINTING MGL-PAX:SECTION)"
   [7043]: #x-28MGL-MAT-3AFOREIGN-ARRAY-20CLASS-29 "(MGL-MAT:FOREIGN-ARRAY CLASS)"
+  [7191]: #x-28MGL-MAT-3A-40MAT-CUDA-MEMORY-MANAGEMENT-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-CUDA-MEMORY-MANAGEMENT MGL-PAX:SECTION)"
   [7388]: #x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-MAPPINGS MGL-PAX:SECTION)"
+  [742e]: #x-28MGL-MAT-3AWITH-SYNCING-CUDA-FACETS-20MGL-PAX-3AMACRO-29 "(MGL-MAT:WITH-SYNCING-CUDA-FACETS MGL-PAX:MACRO)"
+  [754d]: #x-28MGL-CUBE-3A-40CUBE-DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-DEFAULT-CALL-WITH-FACET* MGL-PAX:SECTION)"
+  [767f]: #x-28MGL-CUBE-3A-40CUBE-LIFETIME-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-LIFETIME MGL-PAX:SECTION)"
   [773f]: #x-28MGL-MAT-3AMAT-20CLASS-29 "(MGL-MAT:MAT CLASS)"
-  [776e]: #x-28MGL-CUBE-3AVIEW-20CLASS-29 "(MGL-CUBE:VIEW CLASS)"
   [78d7]: #x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-IO MGL-PAX:SECTION)"
   [7de8]: #x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)"
   [81d0]: #x-28MGL-MAT-3A-2APRINT-MAT-2A-20VARIABLE-29 "(MGL-MAT:*PRINT-MAT* VARIABLE)"
   [84c3]: #x-28MGL-MAT-3ACUDA-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:CUDA-ARRAY MGL-CUBE:FACET-NAME)"
-  [8520]: #x-28MGL-CUBE-3A-40FACET-BARRIER-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@FACET-BARRIER MGL-PAX:SECTION)"
   [85d5]: #x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29 "(\"mgl-mat\" ASDF/SYSTEM:SYSTEM)"
-  [867d]: #x-28MGL-MAT-3ACTYPE-20TYPE-29 "(MGL-MAT:CTYPE TYPE)"
   [8719]: #x-28MGL-CUBE-3A-2ALET-OUTPUT-THROUGH-P-2A-20VARIABLE-29 "(MGL-CUBE:*LET-OUTPUT-THROUGH-P* VARIABLE)"
   [8816]: #x-28MGL-MAT-3A-40MAT-ASSEMBLING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-ASSEMBLING MGL-PAX:SECTION)"
   [8866]: #x-28MGL-MAT-3A-40MAT-SHAPING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-SHAPING MGL-PAX:SECTION)"
+  [88b7]: #x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:FACET-UP-TO-DATE-P* GENERIC-FUNCTION)"
   [8b4f]: #x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)"
   [9221]: #x-28MGL-MAT-3AAXPY-21-20FUNCTION-29 "(MGL-MAT:AXPY! FUNCTION)"
   [923f]: #x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29 "(MGL-CUBE:SYNCHRONIZATION (MGL-PAX:ACCESSOR MGL-CUBE:CUBE))"
   [9984]: #x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-NON-DESTRUCTIVE-API MGL-PAX:SECTION)"
   [99b9]: #x-28MGL-CUBE-3AWITH-FACET-BARRIER-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:WITH-FACET-BARRIER MGL-PAX:MACRO)"
-  [9e0b]: #x-28MGL-CUBE-3AVIEW-UP-TO-DATE-P-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:VIEW-UP-TO-DATE-P MGL-PAX:STRUCTURE-ACCESSOR)"
-  [9ecd]: #x-28MGL-CUBE-3AVIEW-FACET-NAME-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:VIEW-FACET-NAME MGL-PAX:STRUCTURE-ACCESSOR)"
+  [9ddc]: #x-28MGL-MAT-3A-40MAT-FACETS-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-FACETS MGL-PAX:SECTION)"
   [9fcc]: #x-28MGL-CUBE-3ACUBE-20CLASS-29 "(MGL-CUBE:CUBE CLASS)"
   [a238]: #x-28MGL-CUBE-3AWATCH-FACET-20GENERIC-FUNCTION-29 "(MGL-CUBE:WATCH-FACET GENERIC-FUNCTION)"
   [acfb]: #x-28MGL-MAT-3AGEMM-21-20FUNCTION-29 "(MGL-MAT:GEMM! FUNCTION)"
@@ -1920,31 +2085,32 @@ Also see [Destroying cubes][2fa1].
   [afa0]: #x-28MGL-MAT-3A-40MAT-CUBLAS-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-CUBLAS MGL-PAX:SECTION)"
   [b0b5]: #x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-INTRODUCTION MGL-PAX:SECTION)"
   [b61b]: #x-28MGL-CUBE-3AWITH-FACETS-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:WITH-FACETS MGL-PAX:MACRO)"
-  [b64e]: #x-28MGL-CUBE-3A-40DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@DEFAULT-CALL-WITH-FACET* MGL-PAX:SECTION)"
   [b9c1]: #x-28MGL-CUBE-3ACHECK-NO-WATCHERS-20FUNCTION-29 "(MGL-CUBE:CHECK-NO-WATCHERS FUNCTION)"
   [ba88]: #x-28ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(ARRAY MGL-CUBE:FACET-NAME)"
+  [bd5b]: #x-28MGL-CUBE-3AFACETS-20FUNCTION-29 "(MGL-CUBE:FACETS FUNCTION)"
   [bdd6]: #x-28MGL-CUBE-3ADESTROY-FACET-20FUNCTION-29 "(MGL-CUBE:DESTROY-FACET FUNCTION)"
   [c00b]: #x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29 "(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"
   [c07a]: #x-28MGL-MAT-3AREPLACE-21-20FUNCTION-29 "(MGL-MAT:REPLACE! FUNCTION)"
   [c246]: #x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20MGL-PAX-3AMACRO-29 "(MGL-MAT:WITH-SHAPE-AND-DISPLACEMENT MGL-PAX:MACRO)"
-  [c62e]: #x-28MGL-CUBE-3AVIEWS-20FUNCTION-29 "(MGL-CUBE:VIEWS FUNCTION)"
   [c65e]: #x-28MGL-MAT-3AFOREIGN-ARRAY-STRATEGY-20TYPE-29 "(MGL-MAT:FOREIGN-ARRAY-STRATEGY TYPE)"
   [caa5]: #x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-CURAND MGL-PAX:SECTION)"
+  [d34e]: #x-28MGL-CUBE-3AFACET-20CLASS-29 "(MGL-CUBE:FACET CLASS)"
   [d56c]: #x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-INSTALLATION MGL-PAX:SECTION)"
-  [d95a]: #x-28MGL-CUBE-3AFIND-VIEW-20FUNCTION-29 "(MGL-CUBE:FIND-VIEW FUNCTION)"
+  [db3f]: #x-28MGL-CUBE-3AADD-FACET-REFERENCE-BY-NAME-20FUNCTION-29 "(MGL-CUBE:ADD-FACET-REFERENCE-BY-NAME FUNCTION)"
   [dc10]: #x-28MGL-MAT-3AREAD-MAT-20GENERIC-FUNCTION-29 "(MGL-MAT:READ-MAT GENERIC-FUNCTION)"
   [dd58]: #x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)"
   [e3f0]: #x-28MGL-MAT-3ABACKING-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:BACKING-ARRAY MGL-CUBE:FACET-NAME)"
   [e71c]: #x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-DESTRUCTIVE-API MGL-PAX:SECTION)"
   [e868]: #x-28MGL-MAT-3A-2ACURAND-STATE-2A-20VARIABLE-29 "(MGL-MAT:*CURAND-STATE* VARIABLE)"
   [e8e7]: #x-28MGL-MAT-3A-40MAT-CACHING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-CACHING MGL-PAX:SECTION)"
-  [eb06]: #x-28MGL-CUBE-3A-40FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@FACET-EXTENSION-API MGL-PAX:SECTION)"
+  [e9ba]: #x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:FACET-UP-TO-DATE-P MGL-PAX:STRUCTURE-ACCESSOR)"
   [edce]: #x-28MGL-CUBE-3ACHECK-NO-WRITERS-20FUNCTION-29 "(MGL-CUBE:CHECK-NO-WRITERS FUNCTION)"
   [ee37]: #x-28MGL-MAT-3A-2AN-MEMCPY-HOST-TO-DEVICE-2A-20VARIABLE-29 "(MGL-MAT:*N-MEMCPY-HOST-TO-DEVICE* VARIABLE)"
   [ee90]: #x-28MGL-CUBE-3AUNWATCH-FACET-20GENERIC-FUNCTION-29 "(MGL-CUBE:UNWATCH-FACET GENERIC-FUNCTION)"
   [ef83]: #x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-RANDOM MGL-PAX:SECTION)"
   [f291]: #x-28MGL-MAT-3A-40MAT-CUDA-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-CUDA MGL-PAX:SECTION)"
   [f5c1]: #x-28MGL-MAT-3AMAT-DIMENSIONS-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-DIMENSIONS (MGL-PAX:READER MGL-MAT:MAT))"
+  [f603]: #x-28MGL-MAT-3A-40MAT-LOW-LEVEL-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-LOW-LEVEL MGL-PAX:SECTION)"
   [f66e]: #x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"
   [f966]: #x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-BASICS MGL-PAX:SECTION)"
   [fa6c]: #x-28MGL-MAT-3ACURAND-XORWOW-STATE-20CLASS-29 "(MGL-MAT:CURAND-XORWOW-STATE CLASS)"
