@@ -204,9 +204,12 @@
   (*default-mat-ctype* variable)
   (coerce-to-ctype function))
 
-(defvar *supported-ctypes* '(:float :double))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar *supported-ctypes* '(:float :double)))
 
-(deftype ctype () `(member ,@*supported-ctypes*))
+(deftype ctype ()
+  #.(format nil "This is basically `~S`." `(member ,@*supported-ctypes*))
+  `(member ,@*supported-ctypes*))
 
 (defparameter *lisp-foreign-cuda-lla-types*
   '((single-float :float :float :float 0)
@@ -229,7 +232,7 @@
 
 (defvar *default-mat-ctype* :double
   "By default MATs are created with this ctype. One of :FLOAT
-or :DOUBLE (the default).")
+  or :DOUBLE.")
 
 (defun coerce-to-ctype (x &key (ctype *default-mat-ctype*))
   "Coerce the scalar X to the lisp type corresponding to CTYPE."

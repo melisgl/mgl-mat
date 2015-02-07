@@ -2,6 +2,10 @@
 
 (in-package :mgl-mat)
 
+(defsection @mat-lisp-extensions (:title "Lisp Extensions")
+  (define-lisp-kernel macro)
+  (*default-lisp-kernel-declarations* variable))
+
 (defun lisp-kernel-name (name ctype)
   (if ctype
       (append-to-symbol name (format nil "-~A" (ctype-blas-prefix ctype)))
@@ -62,9 +66,9 @@
 
 (defmacro define-lisp-kernel ((name &key (ctypes '(:float :double)))
                               (&rest params) &body body)
-  "This is an extended CL-CUDA:DEFKERNEL macro. It knows how to deal
-  with MAT objects and can define the same function for multiple
-  CTYPES. Example:
+  "This is very much like DEFINE-CUDA-KERNEL but for normal lisp code.
+  It knows how to deal with MAT objects and can define the same
+  function for multiple CTYPES. Example:
 
   ```commonlisp
   (define-lisp-kernel (lisp-.+!)

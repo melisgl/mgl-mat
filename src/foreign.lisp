@@ -2,12 +2,13 @@
 
 (defsection @mat-foreign (:title "Foreign arrays")
   "One facet of MAT objects is [FOREIGN-ARRAY][facet-name] which is
-  backed by a memory area that can be pinned or is allocated in
-  foreign memory depending on *FOREIGN-ARRAY-STRATEGY*."
+  backed by a memory area that can be a pinned lisp array or is
+  allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*."
   (foreign-array class)
   (*foreign-array-strategy* (variable "-see below-"))
   (foreign-array-strategy type)
-  (pinning-supported-p function))
+  (pinning-supported-p function)
+  (foreign-room function))
 
 (defclass foreign-pool ()
   ((n-static-arrays :initform 0 :accessor n-static-arrays)
@@ -21,12 +22,26 @@
      ,@body))
 
 (defun foreign-room (&key (stream *standard-output*) (verbose t))
+  "Print a summary of foreign memory usage to STREAM. If VERBOSE, make
+  the output human easily readable, else try to present it in a very
+  concise way. Sample output with VERBOSE:
+
+  ```
+  Foreign memory usage:
+  foreign arrays: 450 (used bytes: 3,386,295,808)
+  ```
+
+  The same data presented with VERBOSE false:
+
+  ```
+  f: 450 (3,386,295,808)
+  ```"
   (if verbose
       (format stream "Foreign memory usage:~%~
-                     static arrays: ~S (used bytes: ~:D)~%"
+                     foreign arrays: ~S (used bytes: ~:D)~%"
               (n-static-arrays *foreign-pool*)
               (n-static-bytes-allocated *foreign-pool*))
-      (format stream "s: ~S (~:D)~%"
+      (format stream "f: ~S (~:D)~%"
               (n-static-arrays *foreign-pool*)
               (n-static-bytes-allocated *foreign-pool*))))
 

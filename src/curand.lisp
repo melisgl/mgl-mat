@@ -1,7 +1,8 @@
 (in-package :mgl-mat)
 
 (defsection @mat-curand (:title "CURAND")
-  "This the low level CURAND API."
+  "This the low level CURAND API. You probably want @MAT-RANDOM
+  instead."
   (with-curand-state macro)
   (*curand-state* variable)
   (curand-xorwow-state class)

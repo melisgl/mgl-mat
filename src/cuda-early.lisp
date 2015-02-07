@@ -6,20 +6,22 @@
   (call-with-cuda function)
   (*cuda-enabled* variable)
   (cuda-enabled (accessor mat))
-  (use-cuda-p function)
   (*default-mat-cuda-enabled* variable)
   (*n-memcpy-host-to-device* variable)
   (*n-memcpy-device-to-host* variable)
-  (choose-1d-block-and-grid function)
-  (choose-2d-block-and-grid function)
-  (choose-3d-block-and-grid function)
-  (cuda-out-of-memory condition)
   (*cuda-default-device-id* variable)
   (*cuda-default-random-seed* variable)
   (*cuda-default-n-random-states* variable)
-  (@mat-cublas section)
-  (@mat-curand section)
   (@mat-cuda-memory-management section))
+
+(defsection @mat-cuda-extensions (:title "CUDA Extensions")
+  (use-cuda-p function)
+  (choose-1d-block-and-grid function)
+  (choose-2d-block-and-grid function)
+  (choose-3d-block-and-grid function)
+  (define-cuda-kernel macro)
+  (@mat-cublas section)
+  (@mat-curand section))
 
 (defkernelmacro when (test &body body)
   `(if ,test
@@ -178,28 +180,82 @@
 
 
 (defsection @mat-cuda-memory-management (:title "CUDA Memory Management")
-  ""
-  (cuda-room function)
-  (with-syncing-cuda-facets macro))
+  "The GPU (called _device_ in CUDA terminology) has its own memory
+  and it can only perform computation on data in this _device memory_
+  so there is some copying involved to and from main memory. Efficient
+  algorithms often allocate device memory up front and minimize the
+  amount of copying that has to be done by computing as much as
+  possible on the GPU.
 
-(defmacro with-syncing-cuda-facets ((ensures destroys) &body body)
-  (alexandria:with-gensyms (token)
-    `(flet ((foo ()
-              ,@body))
-       (if (use-cuda-p)
-           (let ((,token (start-syncing-cuda-facets ,ensures ,destroys)))
-             (unwind-protect
-                  (foo)
-               (finish-syncing-cuda-facets ,token)))
-           (foo)))))
+  \\MGL-MAT reduces the cost of device of memory allocations by
+  maintaining a cache of currently unused allocations from which it
+  first tries to satisfy allocation requests. The total size of all
+  the allocated device memory regions (be they in use or currently
+  unused but cached) is never more than N-POOL-BYTES as specified in
+  WITH-CUDA*. N-POOL-BYTES being NIL means no limit."
+  (cuda-out-of-memory condition)
+  (cuda-room function)
+  "That's it about reducing the cost allocations. The other important
+  performance consideration, minimizing the amount copying done, is
+  very hard to do if the data doesn't fit in device memory which is
+  often a very limited resource. In this case the next best thing is
+  to do the copying concurrently with computation."
+  (with-syncing-cuda-facets macro)
+  (*syncing-cuda-facets-safe-p* variable)
+  "Also note that often the easiest thing to do is to prevent the use
+  of CUDA (and consequently the creation of [CUDA-ARRAY][facet-name]
+  facets, and allocations). This can be done either by binding
+  *CUDA-ENABLED* to NIL or by setting CUDA-ENABLED to NIL on specific
+  matrices.")
+
+(defmacro with-syncing-cuda-facets ((mats-to-cuda mats-to-cuda-host &key
+                                     (safep '*syncing-cuda-facets-safe-p*))
+                                    &body body)
+  "Update CUDA facets in a possibly asynchronous way while BODY
+  executes. Behind the scenes, a separate CUDA stream is used to copy
+  between registered host memory and device memory. When
+  WITH-SYNCING-CUDA-FACETS finishes either by returning normally or by
+  a performing a non-local-exit the following are true:
+
+  - All `MAT`s in MATS-TO-CUDA have an up-to-date
+    [CUDA-ARRAY][facet-name] facet.
+
+  - All `MAT`s in MATS-TO-CUDA-HOST have an up-to-date
+    [CUDA-HOST-ARRAY][facet-name] facet and no
+    [CUDA-ARRAY][facet-name].
+
+  It is an error if the same matrix appears in both MATS-TO-CUDA and
+  MATS-TO-CUDA-HOST, but the same matrix may appear any number of
+  times in one of them.
+
+  If SAFEP is true, then the all matrices in either of the two lists
+  are effectively locked for output until WITH-SYNCING-CUDA-FACETS
+  finishes. With SAFE NIL, unsafe accesses to facets of these matrices
+  are not detected, but the whole operation has a bit less overhead."
+  (alexandria:once-only (safep)
+    (alexandria:with-gensyms (token)
+      `(flet ((foo ()
+                ,@body))
+         (if (use-cuda-p)
+             (let ((,token (start-syncing-cuda-facets
+                            ,mats-to-cuda ,mats-to-cuda-host ,safep)))
+               (unwind-protect
+                    (foo)
+                 (finish-syncing-cuda-facets ,token ,safep)))
+             (foo))))))
+
+(defvar *syncing-cuda-facets-safe-p* t
+  "The default value of the SAFEP argument of
+  WITH-SYNCING-CUDA-FACETS.")
+
+
+;;;; Implementation of WITH-SYNCING-CUDA-FACETS
 
 (defvar *cuda-copy-stream*)
 
 (defclass sync-token ()
   ((ensures :initarg :ensures :reader ensures)
    (destroys :initarg :destroys :reader destroys)))
-
-(defvar *check-async-copy-p* t)
 
 (defun fake-writer (facet fake-thread)
   (assert (eq (mgl-cube:facet-direction facet) :input))
@@ -213,64 +269,55 @@
   (decf (mgl-cube:facet-n-watchers facet))
   (assert (equal fake-thread (pop (mgl-cube:facet-watcher-threads facet)))))
 
-(defun start-syncing-cuda-facets (ensures destroys)
-  "Ensure that all matrices in ENSURES have a CUDA-ARRAY facet and
-  start copying data to them to ensure that they are up-to-date. Also,
-  ensure that matrices in DESTROYS have up-to-date facets other than
-  CUDA-ARRAY so that FINISH-SYNCING-CUDA-FACETS can remove these
-  facets. Returns an opaque object to be passed to
-  FINISH-SYNCING-CUDA-FACETS. Note that the matrices in ENSURES and
-  KILLS must not be accessed before FINISH-SYNCING-CUDA-FACETS
-  returns.
-
-  Copying is performed in a separate CUDA stream, so that it can
-  overlap with computation."
-  (when (or ensures destroys)
+(defun start-syncing-cuda-facets (mats-to-cuda mats-to-cuda-host safep)
+  (when (or mats-to-cuda mats-to-cuda-host)
+    ;; Wait for any computation on our normal stream to finish so that
+    ;; we copy the latest.
     (cl-cuda.driver-api:cu-stream-synchronize *cuda-stream*)
     (let* ((*foreign-array-strategy* :cuda-host)
            (*cuda-stream* *cuda-copy-stream*)
            (ensures-seen (make-hash-table))
            (destroys-seen (make-hash-table))
-           (checkp *check-async-copy-p*)
-           (fake-thread (when checkp
-                          (cons 'async (bordeaux-threads:current-thread)))))
-      (loop while (or ensures destroys)
-            do (when ensures
-                 (let ((mat (pop ensures)))
+           (fake-thread (when safep
+                          (cons 'with-syncing-cuda-facets
+                                (bordeaux-threads:current-thread)))))
+      (loop while (or mats-to-cuda mats-to-cuda-host)
+            do (when mats-to-cuda
+                 (let ((mat (pop mats-to-cuda)))
                    (assert (not (gethash mat destroys-seen)))
                    (unless (gethash mat ensures-seen)
                      (with-facet (a (mat 'cuda-array :direction :input))
                        (declare (ignore a))
                        ;; Add a watcher inside WITH-FACET so that
                        ;; there is no race with other threads.
-                       (when checkp
+                       (when safep
                          (fake-writer (find-facet mat 'cuda-array)
                                       fake-thread)))
                      (setf (gethash mat ensures-seen) t))))
-               (when destroys
-                 (let ((mat (pop destroys)))
+               (when mats-to-cuda-host
+                 (let ((mat (pop mats-to-cuda-host)))
                    (assert (not (gethash mat ensures-seen)))
                    (unless (gethash mat destroys-seen)
                      (with-facet (a (mat 'cuda-host-array :direction :input))
                        (declare (ignore a))
-                       (when checkp
+                       (when safep
                          (fake-writer (find-facet mat 'cuda-host-array)
                                       fake-thread)))
                      (setf (gethash mat destroys-seen) t)))))
       (make-instance 'sync-token :ensures ensures-seen
                      :destroys destroys-seen))))
 
-(defun finish-syncing-cuda-facets (sync-token)
+(defun finish-syncing-cuda-facets (sync-token safep)
   "Wait until all the copying started by START-SYNCING-CUDA-FACETS is
   done, then remove the CUDA-ARRAY facets of the CUDA-ARRAY facets
   from all matrices in KILLS that was passed to
   START-SYNCING-CUDA-FACETS."
   (when sync-token
     (cl-cuda.driver-api:cu-stream-synchronize *cuda-copy-stream*)
-    (let* ((checkp *check-async-copy-p*)
-           (fake-thread (when checkp
-                          (cons 'async (bordeaux-threads:current-thread)))))
-      (when checkp
+    (let ((fake-thread (when safep
+                         (cons 'with-syncing-cuda-facets
+                               (bordeaux-threads:current-thread)))))
+      (when safep
         (maphash (lambda (mat value)
                    (declare (ignore value))
                    (let ((facet (find-facet mat 'cuda-array)))
@@ -279,7 +326,7 @@
                  (ensures sync-token)))
       (maphash (lambda (mat value)
                  (declare (ignore value))
-                 (when checkp
+                 (when safep
                    (let ((facet (find-facet mat 'cuda-host-array)))
                      (remove-fake-writer facet fake-thread)
                      (assert (facet-up-to-date-p* mat 'cuda-host-array facet))))
@@ -311,7 +358,7 @@
 
 (defmacro with-cuda-pool ((&key n-bytes) &body body)
   `(progn
-     (assert (null *cuda-pool*))
+     (assert (null *cuda-pool*) () "WITH-CUDA-POOL cannot be nested.")
      (let ((*cuda-pool*
              (make-instance 'cuda-pool
                             :n-bytes-free (or ,n-bytes most-positive-fixnum))))
@@ -384,7 +431,10 @@
   ((n-bytes :initarg :n-bytes :reader n-bytes))
   (:report (lambda (condition stream)
              (format stream "Could not allocate ~S bytes on the cuda device."
-                     (n-bytes condition)))))
+                     (n-bytes condition))))
+  (:documentation "If an allocation request cannot be
+  satisfied (either because of N-POOL-BYTES or physical device memory
+  limits being reached), then CUDA-OUT-OF-MEMORY is signalled."))
 
 ;;;; Implementation of CUDA pool
 
@@ -487,16 +537,6 @@
                (allocate-to-pool pool n-bytes)
                (error 'cuda-out-of-memory :n-bytes n-bytes)))))))))
 
-;;; reusable -> allocated
-(defun reallocate-from-pool (pool n-bytes)
-  (with-cuda-pool-locked (pool)
-    (when (<= n-bytes (n-bytes-reusable pool))
-      (let ((reusable (pop (gethash n-bytes (reusables pool)))))
-        (when reusable
-          (decf (n-bytes-reusable pool) n-bytes)
-          (incf (n-bytes-allocated pool) n-bytes)
-          reusable)))))
-
 ;;; free -> allocated
 (defun allocate-to-pool (pool n-bytes)
   (with-cuda-pool-locked (pool)
@@ -509,6 +549,23 @@
         (decf (n-bytes-free pool) n-bytes)
         (incf (n-bytes-allocated pool) n-bytes)
         pointer))))
+
+;;; allocated -> reusable
+(defun return-to-pool (pool pointer n-bytes)
+  (with-cuda-pool-locked (pool)
+    (push pointer (gethash n-bytes (reusables pool)))
+    (decf (n-bytes-allocated pool) n-bytes)
+    (incf (n-bytes-reusable pool) n-bytes)))
+
+;;; reusable -> allocated
+(defun reallocate-from-pool (pool n-bytes)
+  (with-cuda-pool-locked (pool)
+    (when (<= n-bytes (n-bytes-reusable pool))
+      (let ((reusable (pop (gethash n-bytes (reusables pool)))))
+        (when reusable
+          (decf (n-bytes-reusable pool) n-bytes)
+          (incf (n-bytes-allocated pool) n-bytes)
+          reusable)))))
 
 ;;; reusable -> free
 (defun free-some-reusables (pool n-bytes-to-free)
@@ -532,10 +589,3 @@
       (decf (n-bytes-reusable pool) n-bytes-freed)
       (incf (n-bytes-free pool) n-bytes-freed)
       n-bytes-freed)))
-
-;;; allocated -> reusable
-(defun return-to-pool (pool pointer n-bytes)
-  (with-cuda-pool-locked (pool)
-    (push pointer (gethash n-bytes (reusables pool)))
-    (decf (n-bytes-allocated pool) n-bytes)
-    (incf (n-bytes-reusable pool) n-bytes)))

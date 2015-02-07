@@ -8,28 +8,31 @@
 - [2 Introduction][b0b5]
     - [2.1 What's MGL-MAT?][01b0]
     - [2.2 What kind of matrices are supported?][dd58]
-    - [2.3 Installation][d56c]
-- [3 Basics][f966]
-- [4 Element types][00a6]
-- [5 Printing][6ccf]
-- [6 Shaping][8866]
-- [7 Assembling][8816]
-- [8 Caching][e8e7]
-- [9 BLAS][0386]
-- [10 Destructive API][e71c]
-- [11 Non-destructive API][9984]
-- [12 Mappings][7388]
-- [13 Random numbers][ef83]
-- [14 I/O][78d7]
-- [15 Debugging][fe72]
-- [16 Low-level API][f603]
-    - [16.1 Facets][9ddc]
-    - [16.2 Foreign arrays][4d1e]
-    - [16.3 CUDA][f291]
-        - [16.3.1 CUBLAS][afa0]
-        - [16.3.2 CURAND][caa5]
-        - [16.3.3 CUDA Memory Management][7191]
-    - [16.4 Extension API][8b4f]
+    - [2.3 Where to Get it?][d56c]
+- [3 Tutorial][d951]
+- [4 Basics][f966]
+- [5 Element types][00a6]
+- [6 Printing][6ccf]
+- [7 Shaping][8866]
+- [8 Assembling][8816]
+- [9 Caching][e8e7]
+- [10 BLAS Operations][0386]
+- [11 Destructive API][e71c]
+- [12 Non-destructive API][9984]
+- [13 Mappings][7388]
+- [14 Random numbers][ef83]
+- [15 I/O][78d7]
+- [16 Debugging][fe72]
+- [17 Facet API][82af]
+    - [17.1 Facets][9ddc]
+    - [17.2 Foreign arrays][4d1e]
+    - [17.3 CUDA][f291]
+        - [17.3.1 CUDA Memory Management][7191]
+- [18 Writing Extensions][1044]
+    - [18.1 Lisp Extensions][107c]
+    - [18.2 CUDA Extensions][0d9d]
+        - [18.2.1 CUBLAS][afa0]
+        - [18.2.2 CURAND][caa5]
 
 ###### \[in package MGL-MAT\]
 <a name='x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29'></a>
@@ -73,15 +76,111 @@ elements are not affected.
 
 <a name='x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29'></a>
 
-### 2.3 Installation
+### 2.3 Where to Get it?
 
-All dependencies are in quicklisp except for cl-cuda and some of
-its dependencies: cl-pattern and cl-reexport which you need to get
-from github.
+All dependencies are in quicklisp except for
+[CL-CUDA](https://github.com/takagi/cl-cuda) that needs to be
+fetched from github. Just clone CL-CUDA and MGL-MAT into
+`quicklisp/local-projects/` and you are set. MGL-MAT itself lives
+[at github](https://github.com/melisgl/mgl-mat), too.
+
+Prettier-than-markdown HTML documentation cross-linked with other
+libraries is
+[available](http://melisgl.github.io/mgl-pax-world/mat-manual.html)
+as part of [PAX World](http://melisgl.github.io/mgl-pax-world/).
+
+<a name='x-28MGL-MAT-3A-40MAT-TUTORIAL-20MGL-PAX-3ASECTION-29'></a>
+
+## 3 Tutorial
+
+We are going to see how to create matrices, access their contents.
+
+Creating matrices is just like creating lisp arrays:
+
+```commonlisp
+(make-mat '6)
+==> #<MAT 6 A #(0.0d0 0.0d0 0.0d0 0.0d0 0.0d0 0.0d0)>
+
+(make-mat '(2 3) :ctype :float :initial-contents '((1 2 3) (4 5 6)))
+==> #<MAT 2x3 AB #2A((1.0 2.0 3.0) (4.0 5.0 6.0))>
+
+(make-mat '(2 3 4) :initial-element 1)
+==> #<MAT 2x3x4 A #3A(((1.0d0 1.0d0 1.0d0 1.0d0)
+-->                    (1.0d0 1.0d0 1.0d0 1.0d0)
+-->                    (1.0d0 1.0d0 1.0d0 1.0d0))
+-->                   ((1.0d0 1.0d0 1.0d0 1.0d0)
+-->                    (1.0d0 1.0d0 1.0d0 1.0d0)
+-->                    (1.0d0 1.0d0 1.0d0 1.0d0)))>
+```
+
+The most prominent difference from lisp arrays is that [`MAT`][773f]s are
+always numeric and their element type (called [`CTYPE`][867d] here) defaults
+to `:DOUBLE`.
+
+Individual elements can be accessed or set with [`MREF`][28eb]:
+
+```commonlisp
+(let ((m (make-mat '(2 3))))
+  (setf (mref m 0 0) 1)
+  (setf (mref m 0 1) (* 2 (mref m 0 0)))
+  (incf (mref m 0 2) 4)
+  m)
+==> #<MAT 2x3 AB #2A((1.0d0 2.0d0 4.0d0) (0.0d0 0.0d0 0.0d0))>
+```
+
+Compared to `AREF` [`MREF`][28eb] is a very expensive operation and it's best
+used sparingly. Instead, typical code relies much more on matrix
+level operations:
+
+```commonlisp
+(princ (scal! 2 (fill! 3 (make-mat 4))))
+.. #<MAT 4 BF #(6.0d0 6.0d0 6.0d0 6.0d0)>
+==> #<MAT 4 ABF #(6.0d0 6.0d0 6.0d0 6.0d0)>
+```
+
+Notice the `ABF` in the printed results. It illustrates that behind
+the scenes [`FILL!`][6156] worked on the [`BACKING-ARRAY`][e3f0]
+facet (hence the `B`) that's basically a 1d lisp array. [`SCAL!`][4c84] on the
+other hand made a foreign call to the BLAS `dscal` function for
+which it needed the [`FOREIGN-ARRAY`][12c9] facet (`F`).
+Finally, the `A` stands for the [`ARRAY`][ba88] facet that was
+created when the array was printed. All facets are up-to-date (else
+some of the characters would be lowercase). This is possible because
+these three facets actually share storage which is never the case
+for the [`CUDA-ARRAY`][84c3] facet. Now if we have a
+CUDA-capable GPU, CUDA can be enabled with [`WITH-CUDA*`][c00b]:
+
+```commonlisp
+(with-cuda* ()
+  (princ (scal! 2 (fill! 3 (make-mat 4)))))
+.. #<MAT 4 C #(6.0d0 6.0d0 6.0d0 6.0d0)>
+==> #<MAT 4 A #(6.0d0 6.0d0 6.0d0 6.0d0)>
+```
+
+Note the lonely `C` showing that only the [`CUDA-ARRAY`][84c3]
+facet was used for both [`FILL!`][6156] and [`SCAL!`][4c84]. When [`WITH-CUDA*`][c00b] exits and
+destroys the CUDA context, it destroys all CUDA facets, moving their
+data to the [`ARRAY`][ba88] facet, so the returned [`MAT`][773f] only has
+that facet.
+
+When there is no high-level operation that does what we want, we may
+need to add new operations. This is usually best accomplished by
+accessing one of the facets directly, as in the following example:
+
+<a name='x-28MGL-MAT-3A-3ALOG-DET-EXAMPLE-20-28MGL-PAX-3AINCLUDE-20-28-3ASTART-20-28MGL-MAT-3ALOGDET-20FUNCTION-29-20-3AEND-20-28MGL-MAT-3A-3AEND-OF-LOGDET-EXAMPLE-20VARIABLE-29-29-20-3AHEADER-NL-20-22-60-60-60commonlisp-22-20-3AFOOTER-NL-20-22-60-60-60-22-29-29'></a>
+
+```commonlisp
+(defun logdet (mat)
+  "Logarithm of the determinant of MAT. Return -1, 1 or 0 (or
+  equivalent) to correct for the sign, as the second value."
+  (with-facets ((array (mat 'array :direction :input)))
+    (lla:logdet array)))
+
+```
 
 <a name='x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29'></a>
 
-## 3 Basics
+## 4 Basics
 
 <a name='x-28MGL-MAT-3AMAT-20CLASS-29'></a>
 
@@ -90,8 +189,8 @@ from github.
     A `MAT` is a data [`CUBE`][9fcc] that is much like a lisp
     array, it supports `DISPLACEMENT`, arbitrary `DIMENSIONS` and
     `INITIAL-ELEMENT` with the usual semantics. However, a `MAT` supports
-    different representations of the same data. See [Basics][f966] for a
-    tuturialish treatment.
+    different representations of the same data. See [Tutorial][d951] for
+    an introduction.
 
 <a name='x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a>
 
@@ -147,14 +246,15 @@ from github.
 
 <a name='x-28MGL-MAT-3AMAKE-MAT-20FUNCTION-29'></a>
 
-- [function] **MAKE-MAT** *DIMENSIONS &REST ARGS &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS (SYNCHRONIZATION \*DEFAULT-SYNCHRONIZATION\*)*
+- [function] **MAKE-MAT** *DIMENSIONS &REST ARGS &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS (SYNCHRONIZATION \*DEFAULT-SYNCHRONIZATION\*) (CUDA-ENABLED \*DEFAULT-MAT-CUDA-ENABLED\*)*
 
-    Return a new matrix. If `INITIAL-CONTENTS` is given then the matrix
-    contents are copied with [`REPLACE!`][c07a]. See class [`MAT`][773f] for the description
-    of the rest of the parameters. This is exactly what (`MAKE-INSTANCE`
-    '[`MAT`][773f] ...) does except `DIMENSIONS` is not a keyword argument so
-    [`MAKE-MAT`][4cc3] looks more like `MAKE-ARRAY`. Also see
-    [Synchronization][688d].
+    Return a new [`MAT`][773f] object. If `INITIAL-CONTENTS` is given then the
+    matrix contents are copied with [`REPLACE!`][c07a]. See class [`MAT`][773f] for the
+    description of the rest of the parameters. This is exactly
+    what (`MAKE-INSTANCE` '[`MAT`][773f] ...) does except `DIMENSIONS` is not a
+    keyword argument so that [`MAKE-MAT`][4cc3] looks more like `MAKE-ARRAY`. The
+    semantics of `SYNCHRONIZATION` are desribed in the
+    [Synchronization][688d] section.
 
 <a name='x-28MGL-MAT-3AARRAY-TO-MAT-20FUNCTION-29'></a>
 
@@ -214,9 +314,15 @@ from github.
     update the [`CUDA-ARRAY`][84c3] if cuda is enabled and it is up-to-date or
     there are no facets at all.
 
+<a name='x-28MGL-MAT-3AMAT-ROW-MAJOR-INDEX-20FUNCTION-29'></a>
+
+- [function] **MAT-ROW-MAJOR-INDEX** *MAT &REST SUBSCRIPTS*
+
+    Like `ARRAY-ROW-MAJOR-INDEX` for arrays.
+
 <a name='x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29'></a>
 
-## 4 Element types
+## 5 Element types
 
 <a name='x-28MGL-MAT-3A-2ASUPPORTED-CTYPES-2A-20VARIABLE-29'></a>
 
@@ -226,12 +332,14 @@ from github.
 
 - [type] **CTYPE**
 
+    This is basically `(MEMBER :FLOAT :DOUBLE)`.
+
 <a name='x-28MGL-MAT-3A-2ADEFAULT-MAT-CTYPE-2A-20VARIABLE-29'></a>
 
 - [variable] **\*DEFAULT-MAT-CTYPE\*** *:DOUBLE*
 
     By default MATs are created with this ctype. One of `:FLOAT`
-    or `:DOUBLE` (the default).
+    or `:DOUBLE`.
 
 <a name='x-28MGL-MAT-3ACOERCE-TO-CTYPE-20FUNCTION-29'></a>
 
@@ -241,7 +349,7 @@ from github.
 
 <a name='x-28MGL-MAT-3A-40MAT-PRINTING-20MGL-PAX-3ASECTION-29'></a>
 
-## 5 Printing
+## 6 Printing
 
 <a name='x-28MGL-MAT-3A-2APRINT-MAT-2A-20VARIABLE-29'></a>
 
@@ -264,7 +372,7 @@ from github.
 
 <a name='x-28MGL-MAT-3A-40MAT-SHAPING-20MGL-PAX-3ASECTION-29'></a>
 
-## 6 Shaping
+## 7 Shaping
 
 Reshaping and displacement of [`MAT`][773f] objects works somewhat similarly
 to lisp arrays. The key difference is that they are destructive
@@ -335,7 +443,7 @@ case.
 
 <a name='x-28MGL-MAT-3A-40MAT-ASSEMBLING-20MGL-PAX-3ASECTION-29'></a>
 
-## 7 Assembling
+## 8 Assembling
 
 The functions here assemble a single [`MAT`][773f] from a number of
 [`MAT`][773f]s.
@@ -367,7 +475,7 @@ The functions here assemble a single [`MAT`][773f] from a number of
 
 <a name='x-28MGL-MAT-3A-40MAT-CACHING-20MGL-PAX-3ASECTION-29'></a>
 
-## 8 Caching
+## 9 Caching
 
 Allocating and initializing a [`MAT`][773f] object and its necessary facets
 can be expensive. The following macros remember the previous value
@@ -402,7 +510,7 @@ particularly efficient but at least it's safe.
 
 <a name='x-28MGL-MAT-3A-40MAT-BLAS-20MGL-PAX-3ASECTION-29'></a>
 
-## 9 BLAS
+## 10 BLAS Operations
 
 Only some BLAS functions are implemented, but it should be easy to
 add more as needed. All of them default to using CUDA, if it is
@@ -485,7 +593,7 @@ Level 3 BLAS operations
 
 <a name='x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 10 Destructive API
+## 11 Destructive API
 
 <a name='x-28MGL-MAT-3A-2ESQUARE-21-20FUNCTION-29'></a>
 
@@ -660,7 +768,7 @@ Finally, some neural network operations.
 
 <a name='x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 11 Non-destructive API
+## 12 Non-destructive API
 
 <a name='x-28MGL-MAT-3ACOPY-MAT-20FUNCTION-29'></a>
 
@@ -745,12 +853,12 @@ Finally, some neural network operations.
 
 - [function] **LOGDET** *MAT*
 
-    Logarithm of the determinant of a matrix. Return -1, 1 or 0 (or
-    equivalent) to correct for the sign, as a second value.
+    Logarithm of the determinant of `MAT`. Return -1, 1 or 0 (or
+    equivalent) to correct for the sign, as the second value.
 
 <a name='x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29'></a>
 
-## 12 Mappings
+## 13 Mappings
 
 <a name='x-28MGL-MAT-3AMAP-CONCAT-20FUNCTION-29'></a>
 
@@ -806,16 +914,9 @@ Finally, some neural network operations.
 
 <a name='x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29'></a>
 
-## 13 Random numbers
+## 14 Random numbers
 
-This is rather experimental.
-
-<a name='x-28MGL-MAT-3AMV-GAUSSIAN-RANDOM-20FUNCTION-29'></a>
-
-- [function] **MV-GAUSSIAN-RANDOM** *&KEY MEANS COVARIANCES*
-
-    Return a column vector of samples from the multivariate normal
-    distribution defined by `MEANS` (Nx1) and `COVARIANCES` (NxN).
+Unless noted these work efficiently with CUDA.
 
 <a name='x-28MGL-MAT-3ACOPY-RANDOM-STATE-20GENERIC-FUNCTION-29'></a>
 
@@ -838,6 +939,14 @@ This is rather experimental.
     Fill `MAT` with independent normally distributed random numbers with
     `MEAN` and `STDDEV`.
 
+<a name='x-28MGL-MAT-3AMV-GAUSSIAN-RANDOM-20FUNCTION-29'></a>
+
+- [function] **MV-GAUSSIAN-RANDOM** *&KEY MEANS COVARIANCES*
+
+    Return a column vector of samples from the multivariate normal
+    distribution defined by `MEANS` (Nx1) and `COVARIANCES` (NxN). No CUDA
+    implementation.
+
 <a name='x-28MGL-MAT-3AORTHOGONAL-RANDOM-21-20FUNCTION-29'></a>
 
 - [function] **ORTHOGONAL-RANDOM!** *M &KEY (SCALE 1)*
@@ -847,7 +956,7 @@ This is rather experimental.
 
 <a name='x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29'></a>
 
-## 14 I/O
+## 15 I/O
 
 <a name='x-28MGL-MAT-3AWRITE-MAT-20GENERIC-FUNCTION-29'></a>
 
@@ -868,7 +977,7 @@ This is rather experimental.
 
 <a name='x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29'></a>
 
-## 15 Debugging
+## 16 Debugging
 
 The largest class of bugs has to do with synchronization of facets
 being broken. This is almost always caused by an operation that
@@ -886,6 +995,8 @@ used.
 <a name='x-28MGL-MAT-3AMAT-ROOM-20FUNCTION-29'></a>
 
 - [function] **MAT-ROOM** *&KEY (STREAM \*STANDARD-OUTPUT\*) (VERBOSE T)*
+
+    Calls [`FOREIGN-ROOM`][12bc] and [`CUDA-ROOM`][1dbc].
 
 <a name='x-28MGL-MAT-3AWITH-MAT-COUNTERS-20MGL-PAX-3AMACRO-29'></a>
 
@@ -917,13 +1028,15 @@ used.
     ```
 
 
-<a name='x-28MGL-MAT-3A-40MAT-LOW-LEVEL-20MGL-PAX-3ASECTION-29'></a>
+<a name='x-28MGL-MAT-3A-40MAT-FACET-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 16 Low-level API
+## 17 Facet API
+
+
 
 <a name='x-28MGL-MAT-3A-40MAT-FACETS-20MGL-PAX-3ASECTION-29'></a>
 
-### 16.1 Facets
+### 17.1 Facets
 
 A [`MAT`][773f] is a [`CUBE`][9fcc] (see [Cube Manual][7de8]) whose facets are different
 representations of numeric arrays. These facets can be accessed with
@@ -996,7 +1109,7 @@ data from another facet if the backing array is not up-to-date.
 
 To transpose a 2d matrix with the [`ARRAY`][ba88] facet:
 
-```
+```commonlisp
 (destructuring-bind (n-rows n-columns) (mat-dimensions x)
   (with-facets ((x* (x 'array :direction :io)))
     (dotimes (row n-rows)
@@ -1011,7 +1124,7 @@ other facets by changing values (that's the output part).
 To sum the values of a matrix using the [`FOREIGN-ARRAY`][12c9]
 facet:
 
-```
+```commonlisp
 (let ((sum 0))
   (with-facets ((x* (x 'foreign-array :direction :input)))
     (let ((pointer (offset-pointer x*)))
@@ -1035,11 +1148,11 @@ and initialized. See [`WITH-CUDA*`][c00b] for detail.
 
 <a name='x-28MGL-MAT-3A-40MAT-FOREIGN-20MGL-PAX-3ASECTION-29'></a>
 
-### 16.2 Foreign arrays
+### 17.2 Foreign arrays
 
 One facet of [`MAT`][773f] objects is [`FOREIGN-ARRAY`][12c9] which is
-backed by a memory area that can be pinned or is allocated in
-foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
+backed by a memory area that can be a pinned lisp array or is
+allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a name='x-28MGL-MAT-3AFOREIGN-ARRAY-20CLASS-29'></a>
 
@@ -1094,9 +1207,29 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
     doesn't move the array in memory. Currently this is only supported on
     SBCL gencgc platforms.
 
+<a name='x-28MGL-MAT-3AFOREIGN-ROOM-20FUNCTION-29'></a>
+
+- [function] **FOREIGN-ROOM** *&KEY (STREAM \*STANDARD-OUTPUT\*) (VERBOSE T)*
+
+    Print a summary of foreign memory usage to `STREAM`. If `VERBOSE`, make
+    the output human easily readable, else try to present it in a very
+    concise way. Sample output with `VERBOSE`:
+    
+    ```
+    Foreign memory usage:
+    foreign arrays: 450 (used bytes: 3,386,295,808)
+    ```
+    
+    The same data presented with `VERBOSE` false:
+    
+    ```
+    f: 450 (3,386,295,808)
+    ```
+
+
 <a name='x-28MGL-MAT-3A-40MAT-CUDA-20MGL-PAX-3ASECTION-29'></a>
 
-### 16.3 CUDA
+### 17.3 CUDA
 
 <a name='x-28MGL-MAT-3ACUDA-AVAILABLE-P-20FUNCTION-29'></a>
 
@@ -1125,7 +1258,7 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
     `OVERRIDE-ARCH-P`), a cublas handle created, and [`*CURAND-STATE*`][e868] is
     bound to a [`CURAND-XORWOW-STATE`][fa6c] with `N-RANDOM-STATES`, seeded with
     `RANDOM-SEED`, and allocation of device memory is limited to
-    `N-POOL-BYTES` (`NIL` means no limit).
+    `N-POOL-BYTES` (`NIL` means no limit, see [CUDA Memory Management][7191]).
     
     Else - that is, if CUDA is not available, `BODY` is simply executed.
 
@@ -1157,16 +1290,6 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
     Implementationally speaking, this is easily accomplished by using
     [`USE-CUDA-P`][51e4].
 
-<a name='x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29'></a>
-
-- [function] **USE-CUDA-P** *&REST MATS*
-
-    Return true if cuda is enabled ([`*CUDA-ENABLED*`][5feb]), it's initialized
-    and all `MATS` have [`CUDA-ENABLED`][5ed3]. Operations of
-    matrices use this to decide whether to go for the CUDA
-    implementation or BLAS/Lisp. It's provided for implementing new
-    operations.
-
 <a name='x-28MGL-MAT-3A-2ADEFAULT-MAT-CUDA-ENABLED-2A-20VARIABLE-29'></a>
 
 - [variable] **\*DEFAULT-MAT-CUDA-ENABLED\*** *T*
@@ -1186,6 +1309,185 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
     Incremented each time a device to host copy is performed. Bound to
     0 by [`WITH-CUDA*`][c00b]. Useful for tracking down performance problems.
+
+<a name='x-28MGL-MAT-3A-2ACUDA-DEFAULT-DEVICE-ID-2A-20VARIABLE-29'></a>
+
+- [variable] **\*CUDA-DEFAULT-DEVICE-ID\*** *0*
+
+    The default value of [`WITH-CUDA*`][c00b]'s `:DEVICE-ID` argument.
+
+<a name='x-28MGL-MAT-3A-2ACUDA-DEFAULT-RANDOM-SEED-2A-20VARIABLE-29'></a>
+
+- [variable] **\*CUDA-DEFAULT-RANDOM-SEED\*** *1234*
+
+    The default value of [`WITH-CUDA*`][c00b]'s `:RANDOM-SEED` argument.
+
+<a name='x-28MGL-MAT-3A-2ACUDA-DEFAULT-N-RANDOM-STATES-2A-20VARIABLE-29'></a>
+
+- [variable] **\*CUDA-DEFAULT-N-RANDOM-STATES\*** *4096*
+
+    The default value of [`WITH-CUDA*`][c00b]'s `:N-RANDOM-STATES` argument.
+
+<a name='x-28MGL-MAT-3A-40MAT-CUDA-MEMORY-MANAGEMENT-20MGL-PAX-3ASECTION-29'></a>
+
+#### 17.3.1 CUDA Memory Management
+
+The GPU (called *device* in CUDA terminology) has its own memory
+and it can only perform computation on data in this *device memory*
+so there is some copying involved to and from main memory. Efficient
+algorithms often allocate device memory up front and minimize the
+amount of copying that has to be done by computing as much as
+possible on the GPU.
+
+MGL-MAT reduces the cost of device of memory allocations by
+maintaining a cache of currently unused allocations from which it
+first tries to satisfy allocation requests. The total size of all
+the allocated device memory regions (be they in use or currently
+unused but cached) is never more than `N-POOL-BYTES` as specified in
+[`WITH-CUDA*`][c00b]. `N-POOL-BYTES` being `NIL` means no limit.
+
+<a name='x-28MGL-MAT-3ACUDA-OUT-OF-MEMORY-20CONDITION-29'></a>
+
+- [condition] **CUDA-OUT-OF-MEMORY** *STORAGE-CONDITION*
+
+    If an allocation request cannot be
+    satisfied (either because of `N-POOL-BYTES` or physical device memory
+    limits being reached), then `CUDA-OUT-OF-MEMORY` is signalled.
+
+<a name='x-28MGL-MAT-3ACUDA-ROOM-20FUNCTION-29'></a>
+
+- [function] **CUDA-ROOM** *&KEY (STREAM \*STANDARD-OUTPUT\*) (VERBOSE T)*
+
+    When CUDA is in use (see [`USE-CUDA-P`][51e4]), print a summary of memory
+    usage in the current CUDA context to `STREAM`. If `VERBOSE`, make the
+    output human easily readable, else try to present it in a very
+    concise way. Sample output with `VERBOSE`:
+    
+    ```
+    CUDA memory usage:
+    device arrays: 450 (used bytes: 3,386,295,808, pooled bytes: 1,816,657,920)
+    host arrays: 14640 (used bytes: 17,380,147,200)
+    host->device copies: 154,102,488, device->host copies: 117,136,434
+    ```
+    
+    The same data presented with `VERBOSE` false:
+    
+    ```
+    d: 450 (3,386,295,808 + 1,816,657,920), h: 14640 (17,380,147,200)
+    h->d: 154,102,488, d->h: 117,136,434
+    ```
+
+
+That's it about reducing the cost allocations. The other important
+performance consideration, minimizing the amount copying done, is
+very hard to do if the data doesn't fit in device memory which is
+often a very limited resource. In this case the next best thing is
+to do the copying concurrently with computation.
+
+<a name='x-28MGL-MAT-3AWITH-SYNCING-CUDA-FACETS-20MGL-PAX-3AMACRO-29'></a>
+
+- [macro] **WITH-SYNCING-CUDA-FACETS** *(MATS-TO-CUDA MATS-TO-CUDA-HOST &KEY (SAFEP '\*SYNCING-CUDA-FACETS-SAFE-P\*)) &BODY BODY*
+
+    Update CUDA facets in a possibly asynchronous way while `BODY`
+    executes. Behind the scenes, a separate CUDA stream is used to copy
+    between registered host memory and device memory. When
+    [`WITH-SYNCING-CUDA-FACETS`][742e] finishes either by returning normally or by
+    a performing a non-local-exit the following are true:
+    
+    - All [`MAT`][773f]s in `MATS-TO-CUDA` have an up-to-date
+      [`CUDA-ARRAY`][84c3] facet.
+    
+    - All [`MAT`][773f]s in `MATS-TO-CUDA-HOST` have an up-to-date
+      [`CUDA-HOST-ARRAY`][1944] facet and no
+      [`CUDA-ARRAY`][84c3].
+    
+    It is an error if the same matrix appears in both `MATS-TO-CUDA` and
+    `MATS-TO-CUDA-HOST`, but the same matrix may appear any number of
+    times in one of them.
+    
+    If `SAFEP` is true, then the all matrices in either of the two lists
+    are effectively locked for output until [`WITH-SYNCING-CUDA-FACETS`][742e]
+    finishes. With SAFE `NIL`, unsafe accesses to facets of these matrices
+    are not detected, but the whole operation has a bit less overhead.
+
+<a name='x-28MGL-MAT-3A-2ASYNCING-CUDA-FACETS-SAFE-P-2A-20VARIABLE-29'></a>
+
+- [variable] **\*SYNCING-CUDA-FACETS-SAFE-P\*** *T*
+
+    The default value of the `SAFEP` argument of
+    [`WITH-SYNCING-CUDA-FACETS`][742e].
+
+Also note that often the easiest thing to do is to prevent the use
+of CUDA (and consequently the creation of [`CUDA-ARRAY`][84c3]
+facets, and allocations). This can be done either by binding
+[`*CUDA-ENABLED*`][5feb] to `NIL` or by setting [`CUDA-ENABLED`][5ed3] to `NIL` on specific
+matrices.
+
+<a name='x-28MGL-MAT-3A-40MAT-EXTENSIONS-20MGL-PAX-3ASECTION-29'></a>
+
+## 18 Writing Extensions
+
+New operations are usually implemented in lisp, CUDA, or by calling
+a foreign function in, for instance, BLAS, CUBLAS, CURAND.
+
+<a name='x-28MGL-MAT-3A-40MAT-LISP-EXTENSIONS-20MGL-PAX-3ASECTION-29'></a>
+
+### 18.1 Lisp Extensions
+
+<a name='x-28MGL-MAT-3ADEFINE-LISP-KERNEL-20MGL-PAX-3AMACRO-29'></a>
+
+- [macro] **DEFINE-LISP-KERNEL** *(NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (&REST PARAMS) &BODY BODY*
+
+    This is very much like [`DEFINE-CUDA-KERNEL`][c8b5] but for normal lisp code.
+    It knows how to deal with [`MAT`][773f] objects and can define the same
+    function for multiple `CTYPES`. Example:
+    
+    ```commonlisp
+    (define-lisp-kernel (lisp-.+!)
+        ((alpha single-float) (x :mat :input) (start-x index) (n index))
+      (loop for xi of-type index upfrom start-x
+              below (the! index (+ start-x n))
+            do (incf (aref x xi) alpha)))
+    ```
+    
+    Parameters are either of the form `(<NAME> <LISP-TYPE)`
+    or `(<NAME> :MAT <DIRECTION>)`. In the latter case, the appropriate
+    `CFFI` pointer is passed to the kernel. `<DIRECTION>` is passed on to
+    the [`WITH-FACET`][f66e] that's used to acquire the foreign array. Note that
+    the return type is not declared.
+    
+    Both the signature and the body are written as if for single floats,
+    but one function is defined for each ctype in `CTYPES` by transforming
+    types, constants and code by substituting them with their ctype
+    equivalents. Currently this only means that one needs to write only
+    one kernel for `SINGLE-FLOAT` and `DOUBLE-FLOAT`. All such functions get
+    the declaration from [`*DEFAULT-LISP-KERNEL-DECLARATIONS*`][fd9c].
+    
+    Finally, a dispatcher function with `NAME` is defined which determines
+    the ctype of the [`MAT`][773f] objects passed for `:MAT` typed parameters. It's
+    an error if they are not of the same type. Scalars declared
+    `SINGLE-FLOAT` are coerced to that type and the appropriate kernel is
+    called.
+
+<a name='x-28MGL-MAT-3A-2ADEFAULT-LISP-KERNEL-DECLARATIONS-2A-20VARIABLE-29'></a>
+
+- [variable] **\*DEFAULT-LISP-KERNEL-DECLARATIONS\*** *((OPTIMIZE SPEED (SB-C::INSERT-ARRAY-BOUNDS-CHECKS 0)))*
+
+    These declarations are added automatically to kernel functions.
+
+<a name='x-28MGL-MAT-3A-40MAT-CUDA-EXTENSIONS-20MGL-PAX-3ASECTION-29'></a>
+
+### 18.2 CUDA Extensions
+
+<a name='x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29'></a>
+
+- [function] **USE-CUDA-P** *&REST MATS*
+
+    Return true if cuda is enabled ([`*CUDA-ENABLED*`][5feb]), it's initialized
+    and all `MATS` have [`CUDA-ENABLED`][5ed3]. Operations of
+    matrices use this to decide whether to go for the CUDA
+    implementation or BLAS/Lisp. It's provided for implementing new
+    operations.
 
 <a name='x-28MGL-MAT-3ACHOOSE-1D-BLOCK-AND-GRID-20FUNCTION-29'></a>
 
@@ -1287,34 +1589,47 @@ foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
     ```
 
 
-<a name='x-28MGL-MAT-3ACUDA-OUT-OF-MEMORY-20CONDITION-29'></a>
+<a name='x-28MGL-MAT-3ADEFINE-CUDA-KERNEL-20MGL-PAX-3AMACRO-29'></a>
 
-- [condition] **CUDA-OUT-OF-MEMORY** *STORAGE-CONDITION*
+- [macro] **DEFINE-CUDA-KERNEL** *(NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (RETURN-TYPE PARAMS) &BODY BODY*
 
-<a name='x-28MGL-MAT-3A-2ACUDA-DEFAULT-DEVICE-ID-2A-20VARIABLE-29'></a>
-
-- [variable] **\*CUDA-DEFAULT-DEVICE-ID\*** *0*
-
-    The default value of [`WITH-CUDA*`][c00b]'s `:DEVICE-ID` argument.
-
-<a name='x-28MGL-MAT-3A-2ACUDA-DEFAULT-RANDOM-SEED-2A-20VARIABLE-29'></a>
-
-- [variable] **\*CUDA-DEFAULT-RANDOM-SEED\*** *1234*
-
-    The default value of [`WITH-CUDA*`][c00b]'s `:RANDOM-SEED` argument.
-
-<a name='x-28MGL-MAT-3A-2ACUDA-DEFAULT-N-RANDOM-STATES-2A-20VARIABLE-29'></a>
-
-- [variable] **\*CUDA-DEFAULT-N-RANDOM-STATES\*** *4096*
-
-    The default value of [`WITH-CUDA*`][c00b]'s `:N-RANDOM-STATES` argument.
+    This is an extended `CL-CUDA:DEFKERNEL` macro. It knows how to deal
+    with [`MAT`][773f] objects and can define the same function for multiple
+    `CTYPES`. Example:
+    
+    ```commonlisp
+    (define-cuda-kernel (cuda-.+!)
+        (void ((alpha float) (x :mat :input) (n int)))
+      (let ((stride (* block-dim-x grid-dim-x)))
+        (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+                (+ i stride)))
+            ((>= i n))
+          (set (aref x i) (+ (aref x i) alpha)))))
+    ```
+    
+    The signature looks pretty much like in `CL-CUDA:DEFKERNEL`, but
+    parameters can take the form of `(<NAME> :MAT <DIRECTION>)` too, in
+    which case the appropriate `CL-CUDA.DRIVER-API:CU-DEVICE-PTR` is
+    passed to the kernel. `<DIRECTION>` is passed on to the [`WITH-FACET`][f66e]
+    that's used to acquire the cuda array.
+    
+    Both the signature and the body are written as if for single floats,
+    but one function is defined for each ctype in `CTYPES` by transforming
+    types, constants and code by substituting them with their ctype
+    equivalents. Currently this only means that one needs to write only
+    one kernel for `FLOAT` and `DOUBLE`.
+    
+    Finally, a dispatcher function with `NAME` is defined which determines
+    the ctype of the [`MAT`][773f] objects passed for `:MAT` typed parameters. It's
+    an error if they are not of the same type. Scalars declared `FLOAT`
+    are coerced to that type and the appropriate kernel is called.
 
 <a name='x-28MGL-MAT-3A-40MAT-CUBLAS-20MGL-PAX-3ASECTION-29'></a>
 
-#### 16.3.1 CUBLAS
+#### 18.2.1 CUBLAS
 
-[`WITH-CUDA*`][c00b] should take of everything. No need to use these at all
-unless you have a very good reason to bypass it.
+In a [`WITH-CUDA*`][c00b] [BLAS Operations][0386] will automatically use CUBLAS. No need to
+use these at all.
 
 <a name='x-28MGL-MAT-3ACUBLAS-ERROR-20CONDITION-29'></a>
 
@@ -1350,9 +1665,10 @@ unless you have a very good reason to bypass it.
 
 <a name='x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29'></a>
 
-#### 16.3.2 CURAND
+#### 18.2.2 CURAND
 
-This the low level CURAND API.
+This the low level CURAND API. You probably want [Random numbers][ef83]
+instead.
 
 <a name='x-28MGL-MAT-3AWITH-CURAND-STATE-20MGL-PAX-3AMACRO-29'></a>
 
@@ -1373,102 +1689,6 @@ This the low level CURAND API.
 <a name='x-28MGL-MAT-3ASTATES-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACURAND-XORWOW-STATE-29-29'></a>
 
 - [reader] **STATES** *CURAND-XORWOW-STATE* *(:STATES)*
-
-<a name='x-28MGL-MAT-3A-40MAT-CUDA-MEMORY-MANAGEMENT-20MGL-PAX-3ASECTION-29'></a>
-
-#### 16.3.3 CUDA Memory Management
-
-
-
-<a name='x-28MGL-MAT-3ACUDA-ROOM-20FUNCTION-29'></a>
-
-- [function] **CUDA-ROOM** *&KEY (STREAM \*STANDARD-OUTPUT\*) (VERBOSE T)*
-
-<a name='x-28MGL-MAT-3AWITH-SYNCING-CUDA-FACETS-20MGL-PAX-3AMACRO-29'></a>
-
-- [macro] **WITH-SYNCING-CUDA-FACETS** *(ENSURES DESTROYS) &BODY BODY*
-
-<a name='x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29'></a>
-
-### 16.4 Extension API
-
-Macros for defining cuda and lisp kernels. Typically operations
-have a cuda and a lisp implementations and decide which to use with
-[`USE-CUDA-P`][51e4]. These are provided to help writing new operations.
-
-<a name='x-28MGL-MAT-3ADEFINE-LISP-KERNEL-20MGL-PAX-3AMACRO-29'></a>
-
-- [macro] **DEFINE-LISP-KERNEL** *(NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (&REST PARAMS) &BODY BODY*
-
-    This is an extended `CL-CUDA:DEFKERNEL` macro. It knows how to deal
-    with [`MAT`][773f] objects and can define the same function for multiple
-    `CTYPES`. Example:
-    
-    ```commonlisp
-    (define-lisp-kernel (lisp-.+!)
-        ((alpha single-float) (x :mat :input) (start-x index) (n index))
-      (loop for xi of-type index upfrom start-x
-              below (the! index (+ start-x n))
-            do (incf (aref x xi) alpha)))
-    ```
-    
-    Parameters are either of the form `(<NAME> <LISP-TYPE)`
-    or `(<NAME> :MAT <DIRECTION>)`. In the latter case, the appropriate
-    `CFFI` pointer is passed to the kernel. `<DIRECTION>` is passed on to
-    the [`WITH-FACET`][f66e] that's used to acquire the foreign array. Note that
-    the return type is not declared.
-    
-    Both the signature and the body are written as if for single floats,
-    but one function is defined for each ctype in `CTYPES` by transforming
-    types, constants and code by substituting them with their ctype
-    equivalents. Currently this only means that one needs to write only
-    one kernel for `SINGLE-FLOAT` and `DOUBLE-FLOAT`. All such functions get
-    the declaration from [`*DEFAULT-LISP-KERNEL-DECLARATIONS*`][fd9c].
-    
-    Finally, a dispatcher function with `NAME` is defined which determines
-    the ctype of the [`MAT`][773f] objects passed for `:MAT` typed parameters. It's
-    an error if they are not of the same type. Scalars declared
-    `SINGLE-FLOAT` are coerced to that type and the appropriate kernel is
-    called.
-
-<a name='x-28MGL-MAT-3A-2ADEFAULT-LISP-KERNEL-DECLARATIONS-2A-20VARIABLE-29'></a>
-
-- [variable] **\*DEFAULT-LISP-KERNEL-DECLARATIONS\*** *((OPTIMIZE SPEED (SB-C::INSERT-ARRAY-BOUNDS-CHECKS 0)))*
-
-    These declarations are added automatically to kernel functions.
-
-<a name='x-28MGL-MAT-3ADEFINE-CUDA-KERNEL-20MGL-PAX-3AMACRO-29'></a>
-
-- [macro] **DEFINE-CUDA-KERNEL** *(NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (RETURN-TYPE PARAMS) &BODY BODY*
-
-    This is an extended `CL-CUDA:DEFKERNEL` macro. It knows how to deal
-    with [`MAT`][773f] objects and can define the same function for multiple
-    `CTYPES`. Example:
-    
-        (define-cuda-kernel (cuda-.+!)
-            (void ((alpha float) (x :mat :input) (n int)))
-          (let ((stride (* block-dim-x grid-dim-x)))
-            (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
-                    (+ i stride)))
-                ((>= i n))
-              (set (aref x i) (+ (aref x i) alpha)))))
-    
-    The signature looks pretty much like in `CL-CUDA:DEFKERNEL`, but
-    parameters can take the form of `(<NAME> :MAT <DIRECTION>)` too, in
-    which case the appropriate `CL-CUDA.DRIVER-API:CU-DEVICE-PTR` is
-    passed to the kernel. `<DIRECTION>` is passed on to the [`WITH-FACET`][f66e]
-    that's used to acquire the cuda array.
-    
-    Both the signature and the body are written as if for single floats,
-    but one function is defined for each ctype in `CTYPES` by transforming
-    types, constants and code by substituting them with their ctype
-    equivalents. Currently this only means that one needs to write only
-    one kernel for `FLOAT` and `DOUBLE`.
-    
-    Finally, a dispatcher function with `NAME` is defined which determines
-    the ctype of the [`MAT`][773f] objects passed for `:MAT` typed parameters. It's
-    an error if they are not of the same type. Scalars declared `FLOAT`
-    are coerced to that type and the appropriate kernel is called.
 <a name='x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29'></a>
 
 # Cube Manual
@@ -2012,14 +2232,19 @@ Also see [Lifetime][767f].
   [03fc]: #x-28MGL-CUBE-3A-2ALET-INPUT-THROUGH-P-2A-20VARIABLE-29 "(MGL-CUBE:*LET-INPUT-THROUGH-P* VARIABLE)"
   [0521]: #x-28MGL-MAT-3AMAT-DISPLACEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-DISPLACEMENT (MGL-PAX:READER MGL-MAT:MAT))"
   [0752]: #x-28MGL-CUBE-3A-40CUBE-INTRODUCTION-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-INTRODUCTION MGL-PAX:SECTION)"
+  [0d9d]: #x-28MGL-MAT-3A-40MAT-CUDA-EXTENSIONS-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-CUDA-EXTENSIONS MGL-PAX:SECTION)"
   [0ee2]: #x-28MGL-MAT-3AROW-MAJOR-MREF-20FUNCTION-29 "(MGL-MAT:ROW-MAJOR-MREF FUNCTION)"
   [0f32]: #x-28MGL-MAT-3ARESHAPE-AND-DISPLACE-21-20FUNCTION-29 "(MGL-MAT:RESHAPE-AND-DISPLACE! FUNCTION)"
+  [1044]: #x-28MGL-MAT-3A-40MAT-EXTENSIONS-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-EXTENSIONS MGL-PAX:SECTION)"
+  [107c]: #x-28MGL-MAT-3A-40MAT-LISP-EXTENSIONS-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-LISP-EXTENSIONS MGL-PAX:SECTION)"
   [1164]: #x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-BASICS MGL-PAX:SECTION)"
   [1227]: #x-28MGL-MAT-3APINNING-SUPPORTED-P-20FUNCTION-29 "(MGL-MAT:PINNING-SUPPORTED-P FUNCTION)"
+  [12bc]: #x-28MGL-MAT-3AFOREIGN-ROOM-20FUNCTION-29 "(MGL-MAT:FOREIGN-ROOM FUNCTION)"
   [12c9]: #x-28MGL-MAT-3AFOREIGN-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:FOREIGN-ARRAY MGL-CUBE:FACET-NAME)"
   [1944]: #x-28MGL-MAT-3ACUDA-HOST-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:CUDA-HOST-ARRAY MGL-CUBE:FACET-NAME)"
   [19b9]: #x-28MGL-CUBE-3A-2ADEFAULT-SYNCHRONIZATION-2A-20VARIABLE-29 "(MGL-CUBE:*DEFAULT-SYNCHRONIZATION* VARIABLE)"
   [1caf]: #x-28MGL-MAT-3AMAT-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-SIZE (MGL-PAX:READER MGL-MAT:MAT))"
+  [1dbc]: #x-28MGL-MAT-3ACUDA-ROOM-20FUNCTION-29 "(MGL-MAT:CUDA-ROOM FUNCTION)"
   [21a4]: #x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29 "(MGL-CUBE:FACET-NAME MGL-PAX:LOCATIVE)"
   [2469]: #x-28MGL-CUBE-3AFACET-VALUE-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:FACET-VALUE MGL-PAX:STRUCTURE-ACCESSOR)"
   [2629]: #x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-MANUAL MGL-PAX:SECTION)"
@@ -2066,13 +2291,14 @@ Also see [Lifetime][767f].
   [78d7]: #x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-IO MGL-PAX:SECTION)"
   [7de8]: #x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29 "(MGL-CUBE:@CUBE-MANUAL MGL-PAX:SECTION)"
   [81d0]: #x-28MGL-MAT-3A-2APRINT-MAT-2A-20VARIABLE-29 "(MGL-MAT:*PRINT-MAT* VARIABLE)"
+  [82af]: #x-28MGL-MAT-3A-40MAT-FACET-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-FACET-API MGL-PAX:SECTION)"
   [84c3]: #x-28MGL-MAT-3ACUDA-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:CUDA-ARRAY MGL-CUBE:FACET-NAME)"
   [85d5]: #x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29 "(\"mgl-mat\" ASDF/SYSTEM:SYSTEM)"
+  [867d]: #x-28MGL-MAT-3ACTYPE-20TYPE-29 "(MGL-MAT:CTYPE TYPE)"
   [8719]: #x-28MGL-CUBE-3A-2ALET-OUTPUT-THROUGH-P-2A-20VARIABLE-29 "(MGL-CUBE:*LET-OUTPUT-THROUGH-P* VARIABLE)"
   [8816]: #x-28MGL-MAT-3A-40MAT-ASSEMBLING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-ASSEMBLING MGL-PAX:SECTION)"
   [8866]: #x-28MGL-MAT-3A-40MAT-SHAPING-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-SHAPING MGL-PAX:SECTION)"
   [88b7]: #x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:FACET-UP-TO-DATE-P* GENERIC-FUNCTION)"
-  [8b4f]: #x-28MGL-MAT-3A-40MAT-EXTENSION-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-EXTENSION-API MGL-PAX:SECTION)"
   [9221]: #x-28MGL-MAT-3AAXPY-21-20FUNCTION-29 "(MGL-MAT:AXPY! FUNCTION)"
   [923f]: #x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29 "(MGL-CUBE:SYNCHRONIZATION (MGL-PAX:ACCESSOR MGL-CUBE:CUBE))"
   [9984]: #x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-NON-DESTRUCTIVE-API MGL-PAX:SECTION)"
@@ -2093,9 +2319,11 @@ Also see [Lifetime][767f].
   [c07a]: #x-28MGL-MAT-3AREPLACE-21-20FUNCTION-29 "(MGL-MAT:REPLACE! FUNCTION)"
   [c246]: #x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20MGL-PAX-3AMACRO-29 "(MGL-MAT:WITH-SHAPE-AND-DISPLACEMENT MGL-PAX:MACRO)"
   [c65e]: #x-28MGL-MAT-3AFOREIGN-ARRAY-STRATEGY-20TYPE-29 "(MGL-MAT:FOREIGN-ARRAY-STRATEGY TYPE)"
+  [c8b5]: #x-28MGL-MAT-3ADEFINE-CUDA-KERNEL-20MGL-PAX-3AMACRO-29 "(MGL-MAT:DEFINE-CUDA-KERNEL MGL-PAX:MACRO)"
   [caa5]: #x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-CURAND MGL-PAX:SECTION)"
   [d34e]: #x-28MGL-CUBE-3AFACET-20CLASS-29 "(MGL-CUBE:FACET CLASS)"
   [d56c]: #x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-INSTALLATION MGL-PAX:SECTION)"
+  [d951]: #x-28MGL-MAT-3A-40MAT-TUTORIAL-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-TUTORIAL MGL-PAX:SECTION)"
   [db3f]: #x-28MGL-CUBE-3AADD-FACET-REFERENCE-BY-NAME-20FUNCTION-29 "(MGL-CUBE:ADD-FACET-REFERENCE-BY-NAME FUNCTION)"
   [dc10]: #x-28MGL-MAT-3AREAD-MAT-20GENERIC-FUNCTION-29 "(MGL-MAT:READ-MAT GENERIC-FUNCTION)"
   [dd58]: #x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-WHAT-KIND-OF-MATRICES MGL-PAX:SECTION)"
@@ -2110,7 +2338,6 @@ Also see [Lifetime][767f].
   [ef83]: #x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-RANDOM MGL-PAX:SECTION)"
   [f291]: #x-28MGL-MAT-3A-40MAT-CUDA-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-CUDA MGL-PAX:SECTION)"
   [f5c1]: #x-28MGL-MAT-3AMAT-DIMENSIONS-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-DIMENSIONS (MGL-PAX:READER MGL-MAT:MAT))"
-  [f603]: #x-28MGL-MAT-3A-40MAT-LOW-LEVEL-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-LOW-LEVEL MGL-PAX:SECTION)"
   [f66e]: #x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"
   [f966]: #x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29 "(MGL-MAT:@MAT-BASICS MGL-PAX:SECTION)"
   [fa6c]: #x-28MGL-MAT-3ACURAND-XORWOW-STATE-20CLASS-29 "(MGL-MAT:CURAND-XORWOW-STATE CLASS)"

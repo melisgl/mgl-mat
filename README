@@ -32,11 +32,103 @@ is possible. The CUBLAS functions operate on the visible portion of
 the matrix (which is subject to displacement and shaping), invisible
 elements are not affected.
 
-### Installation
+### Where to Get it?
 
-All dependencies are in quicklisp except for cl-cuda and some of
-its dependencies: cl-pattern and cl-reexport which you need to get
-from github.
+All dependencies are in quicklisp except for
+[CL-CUDA](https://github.com/takagi/cl-cuda) that needs to be
+fetched from github. Just clone CL-CUDA and MGL-MAT into
+`quicklisp/local-projects/` and you are set. MGL-MAT itself lives
+[at github](https://github.com/melisgl/mgl-mat), too.
+
+Prettier-than-markdown HTML documentation cross-linked with other
+libraries is
+[available](http://melisgl.github.io/mgl-pax-world/mat-manual.html)
+as part of [PAX World](http://melisgl.github.io/mgl-pax-world/).
+
+## Tutorial
+
+We are going to see how to create matrices, access their contents.
+
+Creating matrices is just like creating lisp arrays:
+
+```commonlisp
+(make-mat '6)
+==> #<MAT 6 A #(0.0d0 0.0d0 0.0d0 0.0d0 0.0d0 0.0d0)>
+
+(make-mat '(2 3) :ctype :float :initial-contents '((1 2 3) (4 5 6)))
+==> #<MAT 2x3 AB #2A((1.0 2.0 3.0) (4.0 5.0 6.0))>
+
+(make-mat '(2 3 4) :initial-element 1)
+==> #<MAT 2x3x4 A #3A(((1.0d0 1.0d0 1.0d0 1.0d0)
+-->                    (1.0d0 1.0d0 1.0d0 1.0d0)
+-->                    (1.0d0 1.0d0 1.0d0 1.0d0))
+-->                   ((1.0d0 1.0d0 1.0d0 1.0d0)
+-->                    (1.0d0 1.0d0 1.0d0 1.0d0)
+-->                    (1.0d0 1.0d0 1.0d0 1.0d0)))>
+```
+
+The most prominent difference from lisp arrays is that `MAT`s are
+always numeric and their element type (called CTYPE here) defaults
+to :DOUBLE.
+
+Individual elements can be accessed or set with MREF:
+
+```commonlisp
+(let ((m (make-mat '(2 3))))
+  (setf (mref m 0 0) 1)
+  (setf (mref m 0 1) (* 2 (mref m 0 0)))
+  (incf (mref m 0 2) 4)
+  m)
+==> #<MAT 2x3 AB #2A((1.0d0 2.0d0 4.0d0) (0.0d0 0.0d0 0.0d0))>
+```
+
+Compared to AREF MREF is a very expensive operation and it's best
+used sparingly. Instead, typical code relies much more on matrix
+level operations:
+
+```commonlisp
+(princ (scal! 2 (fill! 3 (make-mat 4))))
+.. #<MAT 4 BF #(6.0d0 6.0d0 6.0d0 6.0d0)>
+==> #<MAT 4 ABF #(6.0d0 6.0d0 6.0d0 6.0d0)>
+```
+
+Notice the `ABF` in the printed results. It illustrates that behind
+the scenes FILL! worked on the [BACKING-ARRAY][facet-name]
+facet (hence the `B`) that's basically a 1d lisp array. SCAL! on the
+other hand made a foreign call to the BLAS `dscal` function for
+which it needed the [FOREIGN-ARRAY][facet-name] facet (`F`).
+Finally, the `A` stands for the [ARRAY][facet-name] facet that was
+created when the array was printed. All facets are up-to-date (else
+some of the characters would be lowercase). This is possible because
+these three facets actually share storage which is never the case
+for the [CUDA-ARRAY][facet-name] facet. Now if we have a
+CUDA-capable GPU, CUDA can be enabled with WITH-CUDA\*:
+
+```commonlisp
+(with-cuda* ()
+  (princ (scal! 2 (fill! 3 (make-mat 4)))))
+.. #<MAT 4 C #(6.0d0 6.0d0 6.0d0 6.0d0)>
+==> #<MAT 4 A #(6.0d0 6.0d0 6.0d0 6.0d0)>
+```
+
+Note the lonely `C` showing that only the [CUDA-ARRAY][facet-name]
+facet was used for both FILL! and SCAL!. When WITH-CUDA\* exits and
+destroys the CUDA context, it destroys all CUDA facets, moving their
+data to the [ARRAY][facet-name] facet, so the returned MAT only has
+that facet.
+
+When there is no high-level operation that does what we want, we may
+need to add new operations. This is usually best accomplished by
+accessing one of the facets directly, as in the following example:
+
+```commonlisp
+(defun logdet (mat)
+  "Logarithm of the determinant of MAT. Return -1, 1 or 0 (or
+  equivalent) to correct for the sign, as the second value."
+  (with-facets ((array (mat 'array :direction :input)))
+    (lla:logdet array)))
+
+```
 
 ## Basics
 
@@ -45,8 +137,8 @@ from github.
     A MAT is a data CUBE that is much like a lisp
     array, it supports DISPLACEMENT, arbitrary DIMENSIONS and
     INITIAL-ELEMENT with the usual semantics. However, a MAT supports
-    different representations of the same data. See @MAT-BASICS for a
-    tuturialish treatment.
+    different representations of the same data. See @MAT-TUTORIAL for
+    an introduction.
 
 - [reader] MAT-CTYPE MAT (:CTYPE = *DEFAULT-MAT-CTYPE*)
 
@@ -86,14 +178,15 @@ from github.
     cannot change. Also DISPLACEMENT + SIZE must not exceed it. This
     is not
 
-- [function] MAKE-MAT DIMENSIONS &REST ARGS &KEY (CTYPE *DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS (SYNCHRONIZATION *DEFAULT-SYNCHRONIZATION*)
+- [function] MAKE-MAT DIMENSIONS &REST ARGS &KEY (CTYPE *DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS (SYNCHRONIZATION *DEFAULT-SYNCHRONIZATION*) (CUDA-ENABLED *DEFAULT-MAT-CUDA-ENABLED*)
 
-    Return a new matrix. If INITIAL-CONTENTS is given then the matrix
-    contents are copied with REPLACE!. See class MAT for the description
-    of the rest of the parameters. This is exactly what (MAKE-INSTANCE
-    'MAT ...) does except DIMENSIONS is not a keyword argument so
-    MAKE-MAT looks more like MAKE-ARRAY. Also see
-    @CUBE-SYNCHRONIZATION.
+    Return a new MAT object. If INITIAL-CONTENTS is given then the
+    matrix contents are copied with REPLACE!. See class MAT for the
+    description of the rest of the parameters. This is exactly
+    what (MAKE-INSTANCE 'MAT ...) does except DIMENSIONS is not a
+    keyword argument so that MAKE-MAT looks more like MAKE-ARRAY. The
+    semantics of SYNCHRONIZATION are desribed in the
+    @CUBE-SYNCHRONIZATION section.
 
 - [function] ARRAY-TO-MAT ARRAY &KEY CTYPE (SYNCHRONIZATION *DEFAULT-SYNCHRONIZATION*)
 
@@ -143,16 +236,22 @@ from github.
     update the CUDA-ARRAY if cuda is enabled and it is up-to-date or
     there are no facets at all.
 
+- [function] MAT-ROW-MAJOR-INDEX MAT &REST SUBSCRIPTS
+
+    Like ARRAY-ROW-MAJOR-INDEX for arrays.
+
 ## Element types
 
 - [variable] *SUPPORTED-CTYPES* (:FLOAT :DOUBLE)
 
 - [type] CTYPE
 
+    This is basically `(MEMBER :FLOAT :DOUBLE)`.
+
 - [variable] *DEFAULT-MAT-CTYPE* :DOUBLE
 
     By default MATs are created with this ctype. One of :FLOAT
-    or :DOUBLE (the default).
+    or :DOUBLE.
 
 - [function] COERCE-TO-CTYPE X &KEY (CTYPE *DEFAULT-MAT-CTYPE*)
 
@@ -287,7 +386,7 @@ particularly efficient but at least it's safe.
     Bind VAR to a matrix of DIMENSIONS whose every element is 1. The
     matrix is cached for efficiency.
 
-## BLAS
+## BLAS Operations
 
 Only some BLAS functions are implemented, but it should be easy to
 add more as needed. All of them default to using CUDA, if it is
@@ -546,8 +645,8 @@ Finally, some neural network operations.
 
 - [function] LOGDET MAT
 
-    Logarithm of the determinant of a matrix. Return -1, 1 or 0 (or
-    equivalent) to correct for the sign, as a second value.
+    Logarithm of the determinant of MAT. Return -1, 1 or 0 (or
+    equivalent) to correct for the sign, as the second value.
 
 ## Mappings
 
@@ -599,12 +698,7 @@ Finally, some neural network operations.
 
 ## Random numbers
 
-This is rather experimental.
-
-- [function] MV-GAUSSIAN-RANDOM &KEY MEANS COVARIANCES
-
-    Return a column vector of samples from the multivariate normal
-    distribution defined by MEANS (Nx1) and COVARIANCES (NxN).
+Unless noted these work efficiently with CUDA.
 
 - [generic-function] COPY-RANDOM-STATE STATE
 
@@ -620,6 +714,12 @@ This is rather experimental.
 
     Fill MAT with independent normally distributed random numbers with
     MEAN and STDDEV.
+
+- [function] MV-GAUSSIAN-RANDOM &KEY MEANS COVARIANCES
+
+    Return a column vector of samples from the multivariate normal
+    distribution defined by MEANS (Nx1) and COVARIANCES (NxN). No CUDA
+    implementation.
 
 - [function] ORTHOGONAL-RANDOM! M &KEY (SCALE 1)
 
@@ -658,6 +758,8 @@ used.
 
 - [function] MAT-ROOM &KEY (STREAM *STANDARD-OUTPUT*) (VERBOSE T)
 
+    Calls FOREIGN-ROOM and CUDA-ROOM.
+
 - [macro] WITH-MAT-COUNTERS (&KEY COUNT N-BYTES) &BODY BODY
 
     Count all MAT allocations and also the number of bytes they may
@@ -686,7 +788,9 @@ used.
     ```
 
 
-## Low-level API
+## Facet API
+
+
 
 ### Facets
 
@@ -751,7 +855,7 @@ data from another facet if the backing array is not up-to-date.
 
 To transpose a 2d matrix with the ARRAY facet:
 
-```
+```commonlisp
 (destructuring-bind (n-rows n-columns) (mat-dimensions x)
   (with-facets ((x* (x 'array :direction :io)))
     (dotimes (row n-rows)
@@ -766,7 +870,7 @@ other facets by changing values (that's the output part).
 To sum the values of a matrix using the [FOREIGN-ARRAY][facet-name]
 facet:
 
-```
+```commonlisp
 (let ((sum 0))
   (with-facets ((x* (x 'foreign-array :direction :input)))
     (let ((pointer (offset-pointer x*)))
@@ -791,8 +895,8 @@ and initialized. See WITH-CUDA\* for detail.
 ### Foreign arrays
 
 One facet of MAT objects is [FOREIGN-ARRAY][facet-name] which is
-backed by a memory area that can be pinned or is allocated in
-foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
+backed by a memory area that can be a pinned lisp array or is
+allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
 
 - [class] FOREIGN-ARRAY OFFSET-POINTER
 
@@ -839,6 +943,24 @@ foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     doesn't move the array in memory. Currently this is only supported on
     SBCL gencgc platforms.
 
+- [function] FOREIGN-ROOM &KEY (STREAM *STANDARD-OUTPUT*) (VERBOSE T)
+
+    Print a summary of foreign memory usage to STREAM. If VERBOSE, make
+    the output human easily readable, else try to present it in a very
+    concise way. Sample output with VERBOSE:
+    
+    ```
+    Foreign memory usage:
+    foreign arrays: 450 (used bytes: 3,386,295,808)
+    ```
+    
+    The same data presented with VERBOSE false:
+    
+    ```
+    f: 450 (3,386,295,808)
+    ```
+
+
 ### CUDA
 
 - [function] CUDA-AVAILABLE-P &KEY (DEVICE-ID 0)
@@ -864,7 +986,7 @@ foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     OVERRIDE-ARCH-P), a cublas handle created, and *CURAND-STATE* is
     bound to a CURAND-XORWOW-STATE with N-RANDOM-STATES, seeded with
     RANDOM-SEED, and allocation of device memory is limited to
-    N-POOL-BYTES (NIL means no limit).
+    N-POOL-BYTES (NIL means no limit, see @MAT-CUDA-MEMORY-MANAGEMENT).
     
     Else - that is, if CUDA is not available, BODY is simply executed.
 
@@ -890,14 +1012,6 @@ foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     Implementationally speaking, this is easily accomplished by using
     USE-CUDA-P.
 
-- [function] USE-CUDA-P &REST MATS
-
-    Return true if cuda is enabled (*CUDA-ENABLED*), it's initialized
-    and all MATS have [CUDA-ENABLED][(accessor mat)]. Operations of
-    matrices use this to decide whether to go for the CUDA
-    implementation or BLAS/Lisp. It's provided for implementing new
-    operations.
-
 - [variable] *DEFAULT-MAT-CUDA-ENABLED* T
 
     The default for [CUDA-ENABLED][(accessor mat)].
@@ -911,6 +1025,157 @@ foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
 
     Incremented each time a device to host copy is performed. Bound to
     0 by WITH-CUDA\*. Useful for tracking down performance problems.
+
+- [variable] *CUDA-DEFAULT-DEVICE-ID* 0
+
+    The default value of WITH-CUDA\*'s :DEVICE-ID argument.
+
+- [variable] *CUDA-DEFAULT-RANDOM-SEED* 1234
+
+    The default value of WITH-CUDA\*'s :RANDOM-SEED argument.
+
+- [variable] *CUDA-DEFAULT-N-RANDOM-STATES* 4096
+
+    The default value of WITH-CUDA\*'s :N-RANDOM-STATES argument.
+
+#### CUDA Memory Management
+
+The GPU (called *device* in CUDA terminology) has its own memory
+and it can only perform computation on data in this *device memory*
+so there is some copying involved to and from main memory. Efficient
+algorithms often allocate device memory up front and minimize the
+amount of copying that has to be done by computing as much as
+possible on the GPU.
+
+MGL-MAT reduces the cost of device of memory allocations by
+maintaining a cache of currently unused allocations from which it
+first tries to satisfy allocation requests. The total size of all
+the allocated device memory regions (be they in use or currently
+unused but cached) is never more than N-POOL-BYTES as specified in
+WITH-CUDA\*. N-POOL-BYTES being NIL means no limit.
+
+- [condition] CUDA-OUT-OF-MEMORY STORAGE-CONDITION
+
+    If an allocation request cannot be
+    satisfied (either because of N-POOL-BYTES or physical device memory
+    limits being reached), then CUDA-OUT-OF-MEMORY is signalled.
+
+- [function] CUDA-ROOM &KEY (STREAM *STANDARD-OUTPUT*) (VERBOSE T)
+
+    When CUDA is in use (see USE-CUDA-P), print a summary of memory
+    usage in the current CUDA context to STREAM. If VERBOSE, make the
+    output human easily readable, else try to present it in a very
+    concise way. Sample output with VERBOSE:
+    
+    ```
+    CUDA memory usage:
+    device arrays: 450 (used bytes: 3,386,295,808, pooled bytes: 1,816,657,920)
+    host arrays: 14640 (used bytes: 17,380,147,200)
+    host->device copies: 154,102,488, device->host copies: 117,136,434
+    ```
+    
+    The same data presented with VERBOSE false:
+    
+    ```
+    d: 450 (3,386,295,808 + 1,816,657,920), h: 14640 (17,380,147,200)
+    h->d: 154,102,488, d->h: 117,136,434
+    ```
+
+
+That's it about reducing the cost allocations. The other important
+performance consideration, minimizing the amount copying done, is
+very hard to do if the data doesn't fit in device memory which is
+often a very limited resource. In this case the next best thing is
+to do the copying concurrently with computation.
+
+- [macro] WITH-SYNCING-CUDA-FACETS (MATS-TO-CUDA MATS-TO-CUDA-HOST &KEY (SAFEP '*SYNCING-CUDA-FACETS-SAFE-P*)) &BODY BODY
+
+    Update CUDA facets in a possibly asynchronous way while BODY
+    executes. Behind the scenes, a separate CUDA stream is used to copy
+    between registered host memory and device memory. When
+    WITH-SYNCING-CUDA-FACETS finishes either by returning normally or by
+    a performing a non-local-exit the following are true:
+    
+    - All `MAT`s in MATS-TO-CUDA have an up-to-date
+      [CUDA-ARRAY][facet-name] facet.
+    
+    - All `MAT`s in MATS-TO-CUDA-HOST have an up-to-date
+      [CUDA-HOST-ARRAY][facet-name] facet and no
+      [CUDA-ARRAY][facet-name].
+    
+    It is an error if the same matrix appears in both MATS-TO-CUDA and
+    MATS-TO-CUDA-HOST, but the same matrix may appear any number of
+    times in one of them.
+    
+    If SAFEP is true, then the all matrices in either of the two lists
+    are effectively locked for output until WITH-SYNCING-CUDA-FACETS
+    finishes. With SAFE NIL, unsafe accesses to facets of these matrices
+    are not detected, but the whole operation has a bit less overhead.
+
+- [variable] *SYNCING-CUDA-FACETS-SAFE-P* T
+
+    The default value of the SAFEP argument of
+    WITH-SYNCING-CUDA-FACETS.
+
+Also note that often the easiest thing to do is to prevent the use
+of CUDA (and consequently the creation of [CUDA-ARRAY][facet-name]
+facets, and allocations). This can be done either by binding
+*CUDA-ENABLED* to NIL or by setting CUDA-ENABLED to NIL on specific
+matrices.
+
+## Writing Extensions
+
+New operations are usually implemented in lisp, CUDA, or by calling
+a foreign function in, for instance, BLAS, CUBLAS, CURAND.
+
+### Lisp Extensions
+
+- [macro] DEFINE-LISP-KERNEL (NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (&REST PARAMS) &BODY BODY
+
+    This is very much like DEFINE-CUDA-KERNEL but for normal lisp code.
+    It knows how to deal with MAT objects and can define the same
+    function for multiple CTYPES. Example:
+    
+    ```commonlisp
+    (define-lisp-kernel (lisp-.+!)
+        ((alpha single-float) (x :mat :input) (start-x index) (n index))
+      (loop for xi of-type index upfrom start-x
+              below (the! index (+ start-x n))
+            do (incf (aref x xi) alpha)))
+    ```
+    
+    Parameters are either of the form `(<NAME> <LISP-TYPE)`
+    or `(<NAME> :MAT <DIRECTION>)`. In the latter case, the appropriate
+    CFFI pointer is passed to the kernel. `<DIRECTION>` is passed on to
+    the WITH-FACET that's used to acquire the foreign array. Note that
+    the return type is not declared.
+    
+    Both the signature and the body are written as if for single floats,
+    but one function is defined for each ctype in CTYPES by transforming
+    types, constants and code by substituting them with their ctype
+    equivalents. Currently this only means that one needs to write only
+    one kernel for SINGLE-FLOAT and DOUBLE-FLOAT. All such functions get
+    the declaration from *DEFAULT-LISP-KERNEL-DECLARATIONS*.
+    
+    Finally, a dispatcher function with NAME is defined which determines
+    the ctype of the MAT objects passed for :MAT typed parameters. It's
+    an error if they are not of the same type. Scalars declared
+    SINGLE-FLOAT are coerced to that type and the appropriate kernel is
+    called.
+
+- [variable] *DEFAULT-LISP-KERNEL-DECLARATIONS* ((OPTIMIZE SPEED (SB-C::INSERT-ARRAY-BOUNDS-CHECKS 0)))
+
+    These declarations are added automatically to kernel functions.
+
+### CUDA Extensions
+
+- [function] USE-CUDA-P &REST MATS
+
+    Return true if cuda is enabled (*CUDA-ENABLED*), it's initialized
+    and all MATS have [CUDA-ENABLED][(accessor mat)]. Operations of
+    matrices use this to decide whether to go for the CUDA
+    implementation or BLAS/Lisp. It's provided for implementing new
+    operations.
 
 - [function] CHOOSE-1D-BLOCK-AND-GRID N MAX-N-WARPS-PER-BLOCK
 
@@ -1006,24 +1271,43 @@ foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     ```
 
 
-- [condition] CUDA-OUT-OF-MEMORY STORAGE-CONDITION
+- [macro] DEFINE-CUDA-KERNEL (NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (RETURN-TYPE PARAMS) &BODY BODY
 
-- [variable] *CUDA-DEFAULT-DEVICE-ID* 0
-
-    The default value of WITH-CUDA\*'s :DEVICE-ID argument.
-
-- [variable] *CUDA-DEFAULT-RANDOM-SEED* 1234
-
-    The default value of WITH-CUDA\*'s :RANDOM-SEED argument.
-
-- [variable] *CUDA-DEFAULT-N-RANDOM-STATES* 4096
-
-    The default value of WITH-CUDA\*'s :N-RANDOM-STATES argument.
+    This is an extended CL-CUDA:DEFKERNEL macro. It knows how to deal
+    with MAT objects and can define the same function for multiple
+    CTYPES. Example:
+    
+    ```commonlisp
+    (define-cuda-kernel (cuda-.+!)
+        (void ((alpha float) (x :mat :input) (n int)))
+      (let ((stride (* block-dim-x grid-dim-x)))
+        (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+                (+ i stride)))
+            ((>= i n))
+          (set (aref x i) (+ (aref x i) alpha)))))
+    ```
+    
+    The signature looks pretty much like in CL-CUDA:DEFKERNEL, but
+    parameters can take the form of `(<NAME> :MAT <DIRECTION>)` too, in
+    which case the appropriate CL-CUDA.DRIVER-API:CU-DEVICE-PTR is
+    passed to the kernel. `<DIRECTION>` is passed on to the WITH-FACET
+    that's used to acquire the cuda array.
+    
+    Both the signature and the body are written as if for single floats,
+    but one function is defined for each ctype in CTYPES by transforming
+    types, constants and code by substituting them with their ctype
+    equivalents. Currently this only means that one needs to write only
+    one kernel for FLOAT and DOUBLE.
+    
+    Finally, a dispatcher function with NAME is defined which determines
+    the ctype of the MAT objects passed for :MAT typed parameters. It's
+    an error if they are not of the same type. Scalars declared FLOAT
+    are coerced to that type and the appropriate kernel is called.
 
 #### CUBLAS
 
-WITH-CUDA\* should take of everything. No need to use these at all
-unless you have a very good reason to bypass it.
+In a WITH-CUDA\* @MAT-BLAS will automatically use CUBLAS. No need to
+use these at all.
 
 - [condition] CUBLAS-ERROR ERROR
 
@@ -1043,7 +1327,8 @@ unless you have a very good reason to bypass it.
 
 #### CURAND
 
-This the low level CURAND API.
+This the low level CURAND API. You probably want @MAT-RANDOM
+instead.
 
 - [macro] WITH-CURAND-STATE (STATE) &BODY BODY
 
@@ -1054,88 +1339,6 @@ This the low level CURAND API.
 - [reader] N-STATES CURAND-XORWOW-STATE (:N-STATES)
 
 - [reader] STATES CURAND-XORWOW-STATE (:STATES)
-
-#### CUDA Memory Management
-
-
-
-- [function] CUDA-ROOM &KEY (STREAM *STANDARD-OUTPUT*) (VERBOSE T)
-
-- [macro] WITH-SYNCING-CUDA-FACETS (ENSURES DESTROYS) &BODY BODY
-
-### Extension API
-
-Macros for defining cuda and lisp kernels. Typically operations
-have a cuda and a lisp implementations and decide which to use with
-USE-CUDA-P. These are provided to help writing new operations.
-
-- [macro] DEFINE-LISP-KERNEL (NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (&REST PARAMS) &BODY BODY
-
-    This is an extended CL-CUDA:DEFKERNEL macro. It knows how to deal
-    with MAT objects and can define the same function for multiple
-    CTYPES. Example:
-    
-    ```commonlisp
-    (define-lisp-kernel (lisp-.+!)
-        ((alpha single-float) (x :mat :input) (start-x index) (n index))
-      (loop for xi of-type index upfrom start-x
-              below (the! index (+ start-x n))
-            do (incf (aref x xi) alpha)))
-    ```
-    
-    Parameters are either of the form `(<NAME> <LISP-TYPE)`
-    or `(<NAME> :MAT <DIRECTION>)`. In the latter case, the appropriate
-    CFFI pointer is passed to the kernel. `<DIRECTION>` is passed on to
-    the WITH-FACET that's used to acquire the foreign array. Note that
-    the return type is not declared.
-    
-    Both the signature and the body are written as if for single floats,
-    but one function is defined for each ctype in CTYPES by transforming
-    types, constants and code by substituting them with their ctype
-    equivalents. Currently this only means that one needs to write only
-    one kernel for SINGLE-FLOAT and DOUBLE-FLOAT. All such functions get
-    the declaration from *DEFAULT-LISP-KERNEL-DECLARATIONS*.
-    
-    Finally, a dispatcher function with NAME is defined which determines
-    the ctype of the MAT objects passed for :MAT typed parameters. It's
-    an error if they are not of the same type. Scalars declared
-    SINGLE-FLOAT are coerced to that type and the appropriate kernel is
-    called.
-
-- [variable] *DEFAULT-LISP-KERNEL-DECLARATIONS* ((OPTIMIZE SPEED (SB-C::INSERT-ARRAY-BOUNDS-CHECKS 0)))
-
-    These declarations are added automatically to kernel functions.
-
-- [macro] DEFINE-CUDA-KERNEL (NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (RETURN-TYPE PARAMS) &BODY BODY
-
-    This is an extended CL-CUDA:DEFKERNEL macro. It knows how to deal
-    with MAT objects and can define the same function for multiple
-    CTYPES. Example:
-    
-        (define-cuda-kernel (cuda-.+!)
-            (void ((alpha float) (x :mat :input) (n int)))
-          (let ((stride (* block-dim-x grid-dim-x)))
-            (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
-                    (+ i stride)))
-                ((>= i n))
-              (set (aref x i) (+ (aref x i) alpha)))))
-    
-    The signature looks pretty much like in CL-CUDA:DEFKERNEL, but
-    parameters can take the form of `(<NAME> :MAT <DIRECTION>)` too, in
-    which case the appropriate CL-CUDA.DRIVER-API:CU-DEVICE-PTR is
-    passed to the kernel. `<DIRECTION>` is passed on to the WITH-FACET
-    that's used to acquire the cuda array.
-    
-    Both the signature and the body are written as if for single floats,
-    but one function is defined for each ctype in CTYPES by transforming
-    types, constants and code by substituting them with their ctype
-    equivalents. Currently this only means that one needs to write only
-    one kernel for FLOAT and DOUBLE.
-    
-    Finally, a dispatcher function with NAME is defined which determines
-    the ctype of the MAT objects passed for :MAT typed parameters. It's
-    an error if they are not of the same type. Scalars declared FLOAT
-    are coerced to that type and the appropriate kernel is called.
 # Cube Manual
 
 ###### \[in package MGL-CUBE\]

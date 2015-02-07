@@ -9,6 +9,7 @@
 (defsection @mat-manual (:title "MAT Manual")
   (mgl-mat asdf:system)
   (@mat-introduction section)
+  (@mat-tutorial section)
   (@mat-basics section)
   (@mat-ctypes section)
   (@mat-printing section)
@@ -22,7 +23,8 @@
   (@mat-random section)
   (@mat-io section)
   (@mat-debugging section)
-  (@mat-low-level section))
+  (@mat-facet-api section)
+  (@mat-extensions section))
 
 (defsection @mat-introduction (:title "Introduction")
   (@mat-what-is-it section)
@@ -46,10 +48,98 @@
   the matrix (which is subject to displacement and shaping), invisible
   elements are not affected.")
 
-(defsection @mat-installation (:title "Installation")
-  "All dependencies are in quicklisp except for cl-cuda and some of
-  its dependencies: cl-pattern and cl-reexport which you need to get
-  from github.")
+(defsection @mat-installation (:title "Where to Get it?")
+  "All dependencies are in quicklisp except for
+  [CL-CUDA](https://github.com/takagi/cl-cuda) that needs to be
+  fetched from github. Just clone \\CL-CUDA and \\MGL-MAT into
+  `quicklisp/local-projects/` and you are set. \\MGL-MAT itself lives
+  [at github](https://github.com/melisgl/mgl-mat), too.
+
+  Prettier-than-markdown HTML documentation cross-linked with other
+  libraries is
+  [available](http://melisgl.github.io/mgl-pax-world/mat-manual.html)
+  as part of [PAX World](http://melisgl.github.io/mgl-pax-world/).")
+
+
+(defsection @mat-tutorial (:title "Tutorial")
+  "We are going to see how to create matrices, access their contents.
+
+  Creating matrices is just like creating lisp arrays:
+
+  ```commonlisp
+  (make-mat '6)
+  ==> #<MAT 6 A #(0.0d0 0.0d0 0.0d0 0.0d0 0.0d0 0.0d0)>
+
+  (make-mat '(2 3) :ctype :float :initial-contents '((1 2 3) (4 5 6)))
+  ==> #<MAT 2x3 AB #2A((1.0 2.0 3.0) (4.0 5.0 6.0))>
+
+  (make-mat '(2 3 4) :initial-element 1)
+  ==> #<MAT 2x3x4 A #3A(((1.0d0 1.0d0 1.0d0 1.0d0)
+  -->                    (1.0d0 1.0d0 1.0d0 1.0d0)
+  -->                    (1.0d0 1.0d0 1.0d0 1.0d0))
+  -->                   ((1.0d0 1.0d0 1.0d0 1.0d0)
+  -->                    (1.0d0 1.0d0 1.0d0 1.0d0)
+  -->                    (1.0d0 1.0d0 1.0d0 1.0d0)))>
+  ```
+
+  The most prominent difference from lisp arrays is that `MAT`s are
+  always numeric and their element type (called CTYPE here) defaults
+  to :DOUBLE.
+
+  Individual elements can be accessed or set with MREF:
+
+  ```commonlisp
+  (let ((m (make-mat '(2 3))))
+    (setf (mref m 0 0) 1)
+    (setf (mref m 0 1) (* 2 (mref m 0 0)))
+    (incf (mref m 0 2) 4)
+    m)
+  ==> #<MAT 2x3 AB #2A((1.0d0 2.0d0 4.0d0) (0.0d0 0.0d0 0.0d0))>
+  ```
+
+  Compared to AREF MREF is a very expensive operation and it's best
+  used sparingly. Instead, typical code relies much more on matrix
+  level operations:
+
+  ```commonlisp
+  (princ (scal! 2 (fill! 3 (make-mat 4))))
+  .. #<MAT 4 BF #(6.0d0 6.0d0 6.0d0 6.0d0)>
+  ==> #<MAT 4 ABF #(6.0d0 6.0d0 6.0d0 6.0d0)>
+  ```
+
+  Notice the `ABF` in the printed results. It illustrates that behind
+  the scenes FILL! worked on the [BACKING-ARRAY][facet-name]
+  facet (hence the `B`) that's basically a 1d lisp array. SCAL! on the
+  other hand made a foreign call to the BLAS `dscal` function for
+  which it needed the [FOREIGN-ARRAY][facet-name] facet (`F`).
+  Finally, the `A` stands for the [ARRAY][facet-name] facet that was
+  created when the array was printed. All facets are up-to-date (else
+  some of the characters would be lowercase). This is possible because
+  these three facets actually share storage which is never the case
+  for the [CUDA-ARRAY][facet-name] facet. Now if we have a
+  CUDA-capable GPU, CUDA can be enabled with WITH-CUDA*:
+
+  ```commonlisp
+  (with-cuda* ()
+    (princ (scal! 2 (fill! 3 (make-mat 4)))))
+  .. #<MAT 4 C #(6.0d0 6.0d0 6.0d0 6.0d0)>
+  ==> #<MAT 4 A #(6.0d0 6.0d0 6.0d0 6.0d0)>
+  ```
+
+  Note the lonely `C` showing that only the [CUDA-ARRAY][facet-name]
+  facet was used for both FILL! and SCAL!. When WITH-CUDA* exits and
+  destroys the CUDA context, it destroys all CUDA facets, moving their
+  data to the [ARRAY][facet-name] facet, so the returned MAT only has
+  that facet.
+
+  When there is no high-level operation that does what we want, we may
+  need to add new operations. This is usually best accomplished by
+  accessing one of the facets directly, as in the following example:"
+  (log-det-example (include (:start (logdet function)
+                                    :end (end-of-logdet-example variable))
+                            :header-nl "```commonlisp"
+                            :footer-nl "```")))
+
 
 (defsection @mat-basics (:title "Basics")
   (mat class)
@@ -65,7 +155,8 @@
   (mat-to-array function)
   (replace! function)
   (mref function)
-  (row-major-mref function))
+  (row-major-mref function)
+  (mat-row-major-index function))
 
 (defvar *default-mat-cuda-enabled* t
   "The default for [CUDA-ENABLED][(accessor mat)].")
@@ -118,8 +209,8 @@
   (:documentation "A MAT is a data CUBE that is much like a lisp
    array, it supports DISPLACEMENT, arbitrary DIMENSIONS and
    INITIAL-ELEMENT with the usual semantics. However, a MAT supports
-   different representations of the same data. See @MAT-BASICS for a
-   tuturialish treatment."))
+   different representations of the same data. See @MAT-TUTORIAL for
+   an introduction."))
 
 (defmethod mat-ctype ((mat mat))
   (vec-ctype (vec mat)))
@@ -164,14 +255,17 @@
 
 (defun make-mat (dimensions &rest args &key (ctype *default-mat-ctype*)
                  (displacement 0) max-size (initial-element 0)
-                 initial-contents (synchronization *default-synchronization*))
-  "Return a new matrix. If INITIAL-CONTENTS is given then the matrix
-  contents are copied with REPLACE!. See class MAT for the description
-  of the rest of the parameters. This is exactly what (MAKE-INSTANCE
-  'MAT ...) does except DIMENSIONS is not a keyword argument so
-  MAKE-MAT looks more like MAKE-ARRAY. Also see
-  @CUBE-SYNCHRONIZATION."
-  (declare (ignore displacement max-size initial-element initial-contents)
+                 initial-contents (synchronization *default-synchronization*)
+                 (cuda-enabled *default-mat-cuda-enabled*))
+  "Return a new MAT object. If INITIAL-CONTENTS is given then the
+  matrix contents are copied with REPLACE!. See class MAT for the
+  description of the rest of the parameters. This is exactly
+  what (MAKE-INSTANCE 'MAT ...) does except DIMENSIONS is not a
+  keyword argument so that MAKE-MAT looks more like MAKE-ARRAY. The
+  semantics of SYNCHRONIZATION are desribed in the
+  @CUBE-SYNCHRONIZATION section."
+  (declare (ignore displacement max-size initial-element initial-contents
+                   cuda-enabled)
            (optimize speed)
            (dynamic-extent args))
   (apply #'make-instance 'mat :ctype ctype :dimensions dimensions
@@ -1069,7 +1163,7 @@
   b)
 
 
-(defsection @mat-blas (:title "BLAS")
+(defsection @mat-blas (:title "BLAS Operations")
   "Only some BLAS functions are implemented, but it should be easy to
   add more as needed. All of them default to using CUDA, if it is
   initialized and enabled (see USE-CUDA-P)."
@@ -1335,10 +1429,12 @@
     (array-to-mat (lla:invert array))))
 
 (defun logdet (mat)
-  "Logarithm of the determinant of a matrix. Return -1, 1 or 0 (or
-  equivalent) to correct for the sign, as a second value."
+  "Logarithm of the determinant of MAT. Return -1, 1 or 0 (or
+  equivalent) to correct for the sign, as the second value."
   (with-facets ((array (mat 'array :direction :input)))
     (lla:logdet array)))
+
+(defvar end-of-logdet-example)
 
 
 (defsection @mat-mappings (:title "Mappings")
@@ -1444,54 +1540,20 @@
 
 
 (defsection @mat-random (:title "Random numbers")
-  "This is rather experimental."
-  (mv-gaussian-random function)
+  "Unless noted these work efficiently with CUDA."
   (copy-random-state generic-function)
   (uniform-random! function)
   (gaussian-random! function)
+  (mv-gaussian-random function)
   (orthogonal-random! function))
 
-(defun gaussian-random-1 ()
-  "Return a double float of zero mean and unit variance."
-  (loop
-    (let* ((x1 (1- (* 2d0 (random 1d0))))
-           (x2 (1- (* 2d0 (random 1d0))))
-           (w (+ (* x1 x1) (* x2 x2))))
-      (declare (type double-float x1 x2)
-               (type double-float w)
-               (optimize (speed 3)))
-      (when (< w 1d0)
-        ;; Now we have two random numbers but return only one. The
-        ;; other would be X1 times the same.
-        (return
-          (* x2
-             (locally (declare (optimize (safety 0)))
-               (the double-float (sqrt (/ (* -2d0 (log w)) w))))))))))
-
-(defun mv-gaussian-random (&key means covariances)
-  "Return a column vector of samples from the multivariate normal
-  distribution defined by MEANS (Nx1) and COVARIANCES (NxN)."
-  (let* ((n (mat-size means))
-         (z (make-mat (list n 1) :ctype (mat-ctype means))))
-    (with-facets ((z (z 'backing-array :direction :output)))
-      (ecase (mat-ctype means)
-        ((:float)
-         (dotimes (i n)
-           (setf (aref z i) (float (gaussian-random-1)))))
-        ((:double)
-         (dotimes (i n)
-           (setf (aref z i) (gaussian-random-1))))))
-    (m+ means (array-to-mat
-               (with-facets ((covariances (covariances 'array
-                                                       :direction :input))
-                             (z (z 'array :direction :input)))
-                 (lla:mm (lla:cholesky (clnu:hermitian-matrix covariances))
-                         z))))))
-
-(define-lisp-kernel (lisp-uniform-random)
-    ((v :mat :output) (start index) (end index) (limit single-float))
-  (loop for i of-type index upfrom start below end
-        do (setf (aref v i) (random limit))))
+(defgeneric copy-random-state (state)
+  (:method ((state curand-state))
+    (copy-curand-state state))
+  (:method ((state random-state))
+    (make-random-state state))
+  (:documentation "Return a copy of STATE be it a lisp or cuda random
+  state."))
 
 (defun uniform-random! (mat &key (limit 1))
   "Fill MAT with random numbers sampled uniformly from the [0,LIMIT)
@@ -1508,10 +1570,14 @@
              (lisp-uniform-random mat start end limit)))))
   mat)
 
+(define-lisp-kernel (lisp-uniform-random)
+    ((v :mat :output) (start index) (end index) (limit single-float))
+  (loop for i of-type index upfrom start below end
+        do (setf (aref v i) (random limit))))
+
 (defun gaussian-random! (mat &key (mean 0) (stddev 1))
   "Fill MAT with independent normally distributed random numbers with
   MEAN and STDDEV."
-  
   (let* ((ctype (mat-ctype mat))
          (mean (coerce-to-ctype mean :ctype ctype))
          (stddev (coerce-to-ctype stddev :ctype ctype)))
@@ -1532,6 +1598,44 @@
                                                           :ctype ctype))))))))))
   mat)
 
+(defun gaussian-random-1 ()
+  "Return a double float of zero mean and unit variance."
+  (loop
+    (let* ((x1 (1- (* 2d0 (random 1d0))))
+           (x2 (1- (* 2d0 (random 1d0))))
+           (w (+ (* x1 x1) (* x2 x2))))
+      (declare (type double-float x1 x2)
+               (type double-float w)
+               (optimize (speed 3)))
+      (when (< w 1d0)
+        ;; Now we have two random numbers but return only one. The
+        ;; other would be X1 times the same.
+        (return
+          (* x2
+             (locally (declare (optimize (safety 0)))
+               (the double-float (sqrt (/ (* -2d0 (log w)) w))))))))))
+
+(defun mv-gaussian-random (&key means covariances)
+  "Return a column vector of samples from the multivariate normal
+  distribution defined by MEANS (Nx1) and COVARIANCES (NxN). No CUDA
+  implementation."
+  (let* ((n (mat-size means))
+         (z (make-mat (list n 1) :ctype (mat-ctype means))))
+    (with-facets ((z (z 'backing-array :direction :output)))
+      (ecase (mat-ctype means)
+        ((:float)
+         (dotimes (i n)
+           (setf (aref z i) (float (gaussian-random-1)))))
+        ((:double)
+         (dotimes (i n)
+           (setf (aref z i) (gaussian-random-1))))))
+    (m+ means (array-to-mat
+               (with-facets ((covariances (covariances 'array
+                                                       :direction :input))
+                             (z (z 'array :direction :input)))
+                 (lla:mm (lla:cholesky (clnu:hermitian-matrix covariances))
+                         z))))))
+
 (defun orthogonal-random! (m &key (scale 1))
   "Fill the matrix M with random values in such a way that `M^T * M`
   is the identity matrix (or something close if M is wide). Return M."
@@ -1547,14 +1651,6 @@
           (t
            (assert nil))))
   (scal! scale m))
-
-(defgeneric copy-random-state (state)
-  (:method ((state curand-state))
-    (copy-curand-state state))
-  (:method ((state random-state))
-    (make-random-state state))
-  (:documentation "Return a copy of STATE be it a lisp or cuda random
-  state."))
 
 
 (defsection @mat-io (:title "I/O")
@@ -1608,6 +1704,7 @@
   (with-mat-counters macro))
 
 (defun mat-room (&key (stream *standard-output*) (verbose t))
+  "Calls FOREIGN-ROOM and CUDA-ROOM."
   (foreign-room :stream stream :verbose verbose)
   (cuda-room :stream stream :verbose verbose))
 
@@ -1652,11 +1749,11 @@
            (incf (second counter))))
 
 
-(defsection @mat-low-level (:title "Low-level API")
+(defsection @mat-facet-api (:title "Facet API")
+  ""
   (@mat-facets section)
   (@mat-foreign section)
-  (@mat-cuda section)
-  (@mat-extension-api section))
+  (@mat-cuda section))
 
 (defsection @mat-facets (:title "Facets")
   "A MAT is a CUBE (see @CUBE-MANUAL) whose facets are different
@@ -1688,7 +1785,7 @@
 
   To transpose a 2d matrix with the ARRAY facet:
 
-  ```
+  ```commonlisp
   (destructuring-bind (n-rows n-columns) (mat-dimensions x)
     (with-facets ((x* (x 'array :direction :io)))
       (dotimes (row n-rows)
@@ -1703,7 +1800,7 @@
   To sum the values of a matrix using the [FOREIGN-ARRAY][facet-name]
   facet:
 
-  ```
+  ```commonlisp
   (let ((sum 0))
     (with-facets ((x* (x 'foreign-array :direction :input)))
       (let ((pointer (offset-pointer x*)))
@@ -1727,6 +1824,7 @@
 
 (export 'with-facet)
 (export 'with-facets)
+(export 'facet-name)
 
 (define-facet-name backing-array ()
   "The corresponding facet's value is a one dimensional lisp array or
@@ -2002,10 +2100,8 @@
   (facet-up-to-date-p (cdr (facet-description facet))))
 
 
-(defsection @mat-extension-api (:title "Extension API")
-  "Macros for defining cuda and lisp kernels. Typically operations
-  have a cuda and a lisp implementations and decide which to use with
-  USE-CUDA-P. These are provided to help writing new operations."
-  (define-lisp-kernel macro)
-  (*default-lisp-kernel-declarations* variable)
-  (define-cuda-kernel macro))
+(defsection @mat-extensions (:title "Writing Extensions")
+  "New operations are usually implemented in lisp, CUDA, or by calling
+  a foreign function in, for instance, BLAS, CUBLAS, CURAND."
+  (@mat-lisp-extensions section)
+  (@mat-cuda-extensions section))

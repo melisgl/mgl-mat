@@ -18,12 +18,31 @@
   0 by WITH-CUDA*. Useful for tracking down performance problems.")
 
 (defun cuda-room (&key (stream *standard-output*) (verbose t))
+  "When CUDA is in use (see USE-CUDA-P), print a summary of memory
+  usage in the current CUDA context to STREAM. If VERBOSE, make the
+  output human easily readable, else try to present it in a very
+  concise way. Sample output with VERBOSE:
+
+  ```
+  CUDA memory usage:
+  device arrays: 450 (used bytes: 3,386,295,808, pooled bytes: 1,816,657,920)
+  host arrays: 14640 (used bytes: 17,380,147,200)
+  host->device copies: 154,102,488, device->host copies: 117,136,434
+  ```
+
+  The same data presented with VERBOSE false:
+
+  ```
+  d: 450 (3,386,295,808 + 1,816,657,920), h: 14640 (17,380,147,200)
+  h->d: 154,102,488, d->h: 117,136,434
+  ```"
   (when (use-cuda-p)
     (if verbose
-        (format stream "CUDA memory usage:~%~
-                       device arrays: ~S (used bytes: ~:D, pooled bytes: ~:D)~%~
-                       host arrays: ~S (used bytes: ~:D)~%~
-                       host->device copies: ~S, device->host copies: ~S~%"
+        (format stream
+                "CUDA memory usage:~%~
+                device arrays: ~S (used bytes: ~:D, pooled bytes: ~:D)~%~
+                host arrays: ~S (used bytes: ~:D)~%~
+                host->device copies: ~:D, device->host copies: ~:D~%"
                 (count-barred-facets 'cuda-array :type 'mat)
                 (n-bytes-allocated *cuda-pool*)
                 (n-bytes-reusable *cuda-pool*)
@@ -31,7 +50,8 @@
                 (n-bytes-host-array-registered *cuda-pool*)
                 *n-memcpy-host-to-device*
                 *n-memcpy-device-to-host*)
-        (format stream "d: ~S (~:D + ~:D), h: ~S (~:D), h->d: ~S, d->h: ~S~%"
+        (format stream "d: ~S (~:D + ~:D), h: ~S (~:D)~%~
+                       h->d: ~:D, d->h: ~:D~%"
                 (count-barred-facets 'cuda-array :type 'mat)
                 (n-bytes-allocated *cuda-pool*)
                 (n-bytes-reusable *cuda-pool*)
@@ -130,7 +150,7 @@
   OVERRIDE-ARCH-P), a cublas handle created, and *CURAND-STATE* is
   bound to a CURAND-XORWOW-STATE with N-RANDOM-STATES, seeded with
   RANDOM-SEED, and allocation of device memory is limited to
-  N-POOL-BYTES (NIL means no limit).
+  N-POOL-BYTES (NIL means no limit, see @MAT-CUDA-MEMORY-MANAGEMENT).
 
   Else - that is, if CUDA is not available, BODY is simply executed."
   `(call-with-cuda (lambda () ,@body) :enabled ,enabled
