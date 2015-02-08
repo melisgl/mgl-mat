@@ -1418,7 +1418,7 @@ thread or a device with <code>DEVICE-ID</code> is available.</p></li>
 <p><a name='x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29'></a></p>
 
 <ul>
-<li><p>[macro] <strong>WITH-CUDA*</strong> <em>(&amp;KEY (ENABLED '*CUDA-ENABLED*) (DEVICE-ID *CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED *CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES *CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T) N-POOL-BYTES) &amp;BODY BODY</em></p>
+<li><p>[macro] <strong>WITH-CUDA*</strong> <em>(&amp;KEY (ENABLED '*CUDA-ENABLED*) (DEVICE-ID '*CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED '*CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES '*CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T) N-POOL-BYTES) &amp;BODY BODY</em></p>
 
 <p>Initializes CUDA with with all bells and whistles before <code>BODY</code> and
 deinitializes it after. Simply wrapping <a href="#x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29" title="(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"><code>WITH-CUDA*</code></a> around a piece

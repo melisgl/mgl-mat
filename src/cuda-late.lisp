@@ -128,9 +128,9 @@
                    (get-cuda-device device-id)))))))
 
 (defmacro with-cuda* ((&key (enabled '*cuda-enabled*)
-                       (device-id *cuda-default-device-id*)
-                       (random-seed *cuda-default-random-seed*)
-                       (n-random-states *cuda-default-n-random-states*)
+                       (device-id '*cuda-default-device-id*)
+                       (random-seed '*cuda-default-random-seed*)
+                       (n-random-states '*cuda-default-n-random-states*)
                        (override-arch-p t)
                        n-pool-bytes)
                       &body body)
