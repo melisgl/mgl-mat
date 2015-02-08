@@ -7,7 +7,7 @@
 
 (asdf:defsystem #:mgl-mat
   :licence "MIT, see COPYING."
-  :version "0.0.1"
+  :version "0.1.0"
   :author "Gábor Melis"
   :mailto "mega@retes.hu"
   :homepage "http://quotenil.com"

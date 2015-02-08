@@ -39,7 +39,7 @@
 
 ## 1 mgl-mat ASDF System Details
 
-- Version: 0.0.1
+- Version: 0.1.0
 - Description: MAT is library for working with multi-dimensional
   arrays which supports efficient interfacing to foreign and CUDA
   code. BLAS and CUBLAS bindings are available.
