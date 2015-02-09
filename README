@@ -1634,7 +1634,7 @@ but you really should (see MGL-PAX:@MGL-PAX-MANUAL).
 
 Also see @CUBE-DEFAULT-CALL-WITH-FACET\*.
 
-## The Default Implementation of CALL-WITH-FACET*
+## The Default Implementation of CALL-WITH-FACET\*
 
 - [method] CALL-WITH-FACET* (CUBE CUBE) FACET-NAME DIRECTION FN
 
