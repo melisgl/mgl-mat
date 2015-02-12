@@ -785,6 +785,7 @@
   (.log! function)
   (.exp! function)
   (.expt! function)
+  (.inv! function)
   (.logistic! function)
   (.+! function)
   (.*! function)
@@ -822,6 +823,11 @@
   "Apply EXP elementwise to X in a destructive manner. Return X.")
 (define-elementwise-cuda-kernel cuda-.exp! (e) (exp e))
 (define-elementwise-lisp-kernel lisp-.exp! (e) (the! single-float (exp e)))
+
+(define-elementwise-dispatcher .inv! cuda-.inv! lisp-.inv!
+  "Set X to its elementwise inverse `(/ 1 X)`. Return X.")
+(define-elementwise-cuda-kernel cuda-.inv! (e) (/ 1.0 e))
+(define-elementwise-lisp-kernel lisp-.inv! (e) (/ e))
 
 (define-elementwise-dispatcher .logistic! cuda-.logistic! lisp-.logistic!
   "Destructively apply the logistic function to X in an elementwise

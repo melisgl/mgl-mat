@@ -494,6 +494,10 @@ Level 3 BLAS operations
 
     Raise matrix X to POWER in an elementwise manner. Return X.
 
+- [function] .INV! X &KEY (N (MAT-SIZE X))
+
+    Set X to its elementwise inverse `(/ 1 X)`. Return X.
+
 - [function] .LOGISTIC! X &KEY (N (MAT-SIZE X))
 
     Destructively apply the logistic function to X in an elementwise

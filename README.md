@@ -646,6 +646,12 @@ Level 3 BLAS operations
 
     Raise matrix `X` to `POWER` in an elementwise manner. Return `X`.
 
+<a name='x-28MGL-MAT-3A-2EINV-21-20FUNCTION-29'></a>
+
+- [function] **.INV!** *X &KEY (N (MAT-SIZE X))*
+
+    Set `X` to its elementwise inverse `(/ 1 X)`. Return `X`.
+
 <a name='x-28MGL-MAT-3A-2ELOGISTIC-21-20FUNCTION-29'></a>
 
 - [function] **.LOGISTIC!** *X &KEY (N (MAT-SIZE X))*
