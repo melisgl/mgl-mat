@@ -501,6 +501,27 @@ particularly efficient but at least it's safe.
     cached object is updated with the binding of `VAR` which `BODY` may
     change.
 
+<a name='x-28MGL-MAT-3AWITH-THREAD-CACHED-MATS-20-28MGL-PAX-3AMACRO-29-29'></a>
+
+- [macro] **WITH-THREAD-CACHED-MATS** *SPECS &BODY BODY*
+
+    A shorthand for writing nested [`WITH-THREAD-CACHED-MAT`][41fd] calls.
+    
+    ```
+    (with-thread-cached-mat (a ...)
+      (with-thread-cached-mat (b ...)
+        ...))
+    ```
+    
+    is equivalent to:
+    
+    ```
+    (with-thread-cached-mat ((a ...)
+                             (b ...))
+      ...)
+    ```
+
+
 <a name='x-28MGL-MAT-3AWITH-ONES-20-28MGL-PAX-3AMACRO-29-29'></a>
 
 - [macro] **WITH-ONES** *(VAR DIMENSIONS &KEY (CTYPE '\*DEFAULT-MAT-CTYPE\*) (PLACE :ONES)) &BODY BODY*
@@ -2257,6 +2278,7 @@ Also see [Lifetime][767f].
   [373b]: #x-28MGL-MAT-3A-2AFOREIGN-ARRAY-STRATEGY-2A-20-28VARIABLE-20-22-see-20below--22-29-29 "(MGL-MAT:*FOREIGN-ARRAY-STRATEGY* (VARIABLE \"-see below-\"))"
   [38a0]: #x-28MGL-MAT-3A-2ADEFAULT-LISP-KERNEL-DECLARATIONS-2A-20-28VARIABLE-29-29 "(MGL-MAT:*DEFAULT-LISP-KERNEL-DECLARATIONS* (VARIABLE))"
   [3cf7]: #x-28MGL-MAT-3AMAT-MAX-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-MAX-SIZE (MGL-PAX:READER MGL-MAT:MAT))"
+  [41fd]: #x-28MGL-MAT-3AWITH-THREAD-CACHED-MAT-20-28MGL-PAX-3AMACRO-29-29 "(MGL-MAT:WITH-THREAD-CACHED-MAT (MGL-PAX:MACRO))"
   [423c]: #x-28MGL-CUBE-3AFACET-VALUE-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29 "(MGL-CUBE:FACET-VALUE (MGL-PAX:STRUCTURE-ACCESSOR))"
   [4417]: #x-28ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29 "(ARRAY (MGL-CUBE:FACET-NAME))"
   [46c5]: #x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:CALL-WITH-FACET* GENERIC-FUNCTION)"

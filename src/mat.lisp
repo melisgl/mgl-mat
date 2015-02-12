@@ -659,6 +659,7 @@
   it is used so other invocations will create a fresh one which isn't
   particularly efficient but at least it's safe."
   (with-thread-cached-mat macro)
+  (with-thread-cached-mats macro)
   (with-ones macro))
 
 (defmacro with-thread-cached-mat ((var dimensions &rest args
@@ -690,6 +691,29 @@
                 :place ,place)
              (setq ,var (adjust! ,var ,dimensions ,displacement))
              (locally ,@body)))))))
+
+(defmacro with-thread-cached-mats (specs &body body)
+  "A shorthand for writing nested WITH-THREAD-CACHED-MAT calls.
+
+  ```
+  (with-thread-cached-mat (a ...)
+    (with-thread-cached-mat (b ...)
+      ...))
+  ```
+
+  is equivalent to:
+
+  ```
+  (with-thread-cached-mat ((a ...)
+                           (b ...))
+    ...)
+  ```"
+  (labels ((foo (specs)
+             (if (endp specs)
+                 `(locally ,@body)
+                 `(with-thread-cached-mat ,(first specs)
+                    ,(foo (rest specs))))))
+    (foo specs)))
 
 (defmacro with-ones ((var dimensions &key (ctype '*default-mat-ctype*)
                       (place :ones))
