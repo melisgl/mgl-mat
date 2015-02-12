@@ -261,6 +261,12 @@
                      (coerce-to-ctype
                       (elt '(0 0 15 21 43 41 71 61 0 0) i)))))))))
 
+(defun test-.expt! ()
+  (do-configurations (.expt!)
+    (let ((x (make-mat 7 :initial-contents '(-2 -1 0 1 2 3 4))))
+      (.expt! x 3)
+      (assert (m= x (make-mat 7 :initial-contents '(-8 -1 0 1 8 27 64)))))))
+
 (defun test-.<! ()
   (do-configurations (.<!)
     (let ((x (make-mat 5 :initial-contents '(0 1 2 3 4)))
@@ -513,6 +519,7 @@
   (test-nrm2)
   (test-gemm!)
   (test-geerv!)
+  (test-.expt!)
   (test-.<!)
   (test-sum!)
   (test-convolve!)

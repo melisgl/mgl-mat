@@ -784,6 +784,7 @@
   (.sqrt! function)
   (.log! function)
   (.exp! function)
+  (.expt! function)
   (.logistic! function)
   (.+! function)
   (.*! function)
@@ -828,6 +829,33 @@
 (define-elementwise-cuda-kernel cuda-.logistic! (e) (/ 1.0 (+ 1.0 (exp (- e)))))
 (define-elementwise-lisp-kernel lisp-.logistic! (e)
   (/ 1.0 (+ 1.0 (with-zero-on-underflow (e) (exp (- e))))))
+
+(defun .expt! (x power)
+  "Raise matrix X to POWER in an elementwise manner. Return X."
+  (let ((n (mat-size x))
+        (power (coerce-to-ctype power :ctype (mat-ctype x))))
+    (if (use-cuda-p x)
+        (multiple-value-bind (block-dim grid-dim) (choose-1d-block-and-grid n 4)
+          (cuda-.expt! power x n :grid-dim grid-dim :block-dim block-dim))
+        (lisp-.expt! power x (mat-displacement x) n)))
+  x)
+
+(define-cuda-kernel (cuda-.expt!)
+    (void ((power float) (x :mat :io) (n int)))
+  (let ((stride (* block-dim-x grid-dim-x)))
+    (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+            (+ i stride)))
+        ((>= i n))
+      (set (aref x i) (expt (aref x i) power)))))
+
+(define-lisp-kernel (lisp-.expt!)
+    ((power single-float) (x :mat :io) (start-x index) (n index))
+  (loop for xi of-type index upfrom start-x
+          below (the! index (+ start-x n))
+        do (setf (aref x xi)
+                 (the! single-float
+                       (expt (the (single-float 0.0) (aref x xi))
+                             power)))))
 
 (define-cuda-kernel (cuda-.+!)
     (void ((alpha float) (x :mat :io) (n int)))

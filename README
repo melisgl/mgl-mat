@@ -490,6 +490,10 @@ Level 3 BLAS operations
 
     Apply EXP elementwise to X in a destructive manner. Return X.
 
+- [function] .EXPT! X POWER
+
+    Raise matrix X to POWER in an elementwise manner. Return X.
+
 - [function] .LOGISTIC! X &KEY (N (MAT-SIZE X))
 
     Destructively apply the logistic function to X in an elementwise

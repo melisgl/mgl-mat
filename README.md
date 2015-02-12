@@ -640,6 +640,12 @@ Level 3 BLAS operations
 
     Apply `EXP` elementwise to `X` in a destructive manner. Return `X`.
 
+<a name='x-28MGL-MAT-3A-2EEXPT-21-20FUNCTION-29'></a>
+
+- [function] **.EXPT!** *X POWER*
+
+    Raise matrix `X` to `POWER` in an elementwise manner. Return `X`.
+
 <a name='x-28MGL-MAT-3A-2ELOGISTIC-21-20FUNCTION-29'></a>
 
 - [function] **.LOGISTIC!** *X &KEY (N (MAT-SIZE X))*
