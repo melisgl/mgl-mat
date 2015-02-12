@@ -798,6 +798,7 @@
   (fill! function)
   (sum! function)
   (scale-rows! function)
+  (scale-columns! function)
   "Finally, some neural network operations."
   (convolve! function)
   (derive-convolve! function)
@@ -1179,6 +1180,35 @@
         (error "Not implemented."))
     y))
 
+(defun scale-rows! (scales a &key (result a))
+  "Set RESULT to `DIAG(SCALES)*A` and return it. `A` is an `MxN`
+  matrix, SCALES is treated as a length `M` vector."
+  (destructuring-bind (n-rows n-columns) (mat-dimensions a)
+    (assert (equal (mat-dimensions a) (mat-dimensions result)))
+    (assert (= n-rows (mat-size scales)))
+    (if (use-cuda-p a result)
+        (multiple-value-bind (block-dim grid-dim)
+            (choose-1d-block-and-grid (mat-size a) 4)
+          (cuda-scale-rows! scales a result n-rows n-columns
+                            :grid-dim grid-dim :block-dim block-dim))
+        (lisp-scale-rows! scales (mat-displacement scales)
+                          a (mat-displacement a)
+                          result (mat-displacement result)
+                          n-rows n-columns)))
+  result)
+
+(define-cuda-kernel (cuda-scale-rows!)
+    (void ((scales :mat :input) (x :mat :input) (y :mat :output)
+           (n-rows int) (n-columns int)))
+  (let ((stride (* block-dim-x grid-dim-x))
+        (n (* n-rows n-columns)))
+    (do ((i (+ (* block-dim-x block-idx-x) thread-idx-x)
+            (+ i stride)))
+        ((>= i n))
+      (set (aref y i)
+           (* (aref scales (/ i n-columns))
+              (aref x i))))))
+
 (define-lisp-kernel (lisp-scale-rows!)
     ((scales :mat :input) (start-scales index)
      (x :mat :input) (start-x index)
@@ -1193,7 +1223,24 @@
             for yi of-type index upfrom (+ start-y row-offset)
             do (setf (aref y yi) (* scale (aref x xi)))))))
 
-(define-cuda-kernel (cuda-scale-rows!)
+(defun scale-columns! (scales a &key (result a))
+  "Set RESULT to `A*DIAG(SCALES)` and return it. `A` is an `MxN`
+  matrix, SCALES is treated as a length `N` vector."
+  (destructuring-bind (n-rows n-columns) (mat-dimensions a)
+    (assert (equal (mat-dimensions a) (mat-dimensions result)))
+    (assert (= n-columns (mat-size scales)))
+    (if (use-cuda-p a result)
+        (multiple-value-bind (block-dim grid-dim)
+            (choose-1d-block-and-grid (mat-size a) 4)
+          (cuda-scale-columns! scales a result n-rows n-columns
+                               :grid-dim grid-dim :block-dim block-dim))
+        (lisp-scale-columns! scales (mat-displacement scales)
+                             a (mat-displacement a)
+                             result (mat-displacement result)
+                             n-rows n-columns)))
+  result)
+
+(define-cuda-kernel (cuda-scale-columns!)
     (void ((scales :mat :input) (x :mat :input) (y :mat :output)
            (n-rows int) (n-columns int)))
   (let ((stride (* block-dim-x grid-dim-x))
@@ -1202,23 +1249,20 @@
             (+ i stride)))
         ((>= i n))
       (set (aref y i)
-           (* (aref scales (/ i n-columns))
+           (* (aref scales (mod i n-columns))
               (aref x i))))))
 
-(defun scale-rows! (scales a b)
-  (destructuring-bind (n-rows n-columns) (mat-dimensions a)
-    (assert (equal (mat-dimensions a) (mat-dimensions b)))
-    (assert (= n-rows (mat-size scales)))
-    (if (use-cuda-p a b)
-        (multiple-value-bind (block-dim grid-dim)
-            (choose-1d-block-and-grid (mat-size a) 4)
-          (cuda-scale-rows! scales a b n-rows n-columns
-                            :grid-dim grid-dim :block-dim block-dim))
-        (lisp-scale-rows! scales (mat-displacement scales)
-                          a (mat-displacement a)
-                          b (mat-displacement b)
-                          n-rows n-columns)))
-  b)
+(define-lisp-kernel (lisp-scale-columns!)
+    ((scales :mat :input) (start-scales index)
+     (x :mat :input) (start-x index)
+     (y :mat :output) (start-y index)
+     (n-rows index) (n-columns index))
+  (loop for column of-type index below n-columns do
+    (let ((scale (aref scales (+ start-scales column))))
+      (loop for xi of-type index upfrom (+ start-x column) by n-columns
+            for yi of-type index upfrom (+ start-y column) by n-columns
+            repeat n-rows
+            do (setf (aref y yi) (* scale (aref x xi)))))))
 
 
 (defsection @mat-blas (:title "BLAS Operations")

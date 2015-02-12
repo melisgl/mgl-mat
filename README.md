@@ -732,7 +732,17 @@ Level 3 BLAS operations
 
 <a name='x-28MGL-MAT-3ASCALE-ROWS-21-20FUNCTION-29'></a>
 
-- [function] **SCALE-ROWS!** *SCALES A B*
+- [function] **SCALE-ROWS!** *SCALES A &KEY (RESULT A)*
+
+    Set `RESULT` to `DIAG(SCALES)*A` and return it. `A` is an `MxN`
+    matrix, `SCALES` is treated as a length `M` vector.
+
+<a name='x-28MGL-MAT-3ASCALE-COLUMNS-21-20FUNCTION-29'></a>
+
+- [function] **SCALE-COLUMNS!** *SCALES A &KEY (RESULT A)*
+
+    Set `RESULT` to `A*DIAG(SCALES)` and return it. `A` is an `MxN`
+    matrix, `SCALES` is treated as a length `N` vector.
 
 Finally, some neural network operations.
 

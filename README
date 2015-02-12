@@ -554,7 +554,15 @@ Level 3 BLAS operations
     supported currently), if AXIS is 0, then columns are summed, if AXIS
     is 1 then rows are summed.
 
-- [function] SCALE-ROWS! SCALES A B
+- [function] SCALE-ROWS! SCALES A &KEY (RESULT A)
+
+    Set RESULT to `DIAG(SCALES)*A` and return it. `A` is an `MxN`
+    matrix, SCALES is treated as a length `M` vector.
+
+- [function] SCALE-COLUMNS! SCALES A &KEY (RESULT A)
+
+    Set RESULT to `A*DIAG(SCALES)` and return it. `A` is an `MxN`
+    matrix, SCALES is treated as a length `N` vector.
 
 Finally, some neural network operations.
 

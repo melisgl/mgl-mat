@@ -448,12 +448,26 @@
       (replace! x '((1 2) (3 4) (5 6)))
       (let ((y (make-mat 9 :initial-element 7)))
         (reshape-and-displace! y '(3 2) 2)
-        (scale-rows! (make-mat 3 :initial-contents '(-1 2 -3)) x y)
+        (scale-rows! (make-mat 3 :initial-contents '(-1 2 -3)) x :result y)
         (with-facets ((array (y 'backing-array :direction :input)))
           (dotimes (i 9)
             (assert (= (aref array i)
                        (coerce-to-ctype
                         (elt '(7 7 -1 -2 6 8 -15 -18 7) i))))))))))
+
+(defun test-scale-columns! ()
+  (do-configurations (scale-columns!)
+    (let ((x (make-mat 8)))
+      (reshape-and-displace! x '(3 2) 1)
+      (replace! x '((1 2) (3 4) (5 6)))
+      (let ((y (make-mat 9 :initial-element 7)))
+        (reshape-and-displace! y '(3 2) 2)
+        (scale-columns! (make-mat 2 :initial-contents '(-1 2)) x :result y)
+        (with-facets ((array (y 'backing-array :direction :input)))
+          (dotimes (i 9)
+            (assert (= (aref array i)
+                       (coerce-to-ctype
+                        (elt '(7 7 -1 4 -3 8 -5 12 7) i))))))))))
 
 (defun test-with-syncing-cuda-facets ()
   (with-cuda* ()
@@ -527,6 +541,7 @@
   (test-uniform-random!)
   (test-pool)
   (test-scale-rows!)
+  (test-scale-columns!)
   (test-with-syncing-cuda-facets)
   #+sbcl
   (sb-ext:gc :full t)
