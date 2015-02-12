@@ -1812,7 +1812,7 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
     ```
     (with-facets ((f1 (c1 'name1 :direction :input))
                   (f2 (c2 'name2 :direction :output)))
-      ...))
+      ...)
     ```
 
 

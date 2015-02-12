@@ -217,7 +217,7 @@
   ```
   (with-facets ((f1 (c1 'name1 :direction :input))
                 (f2 (c2 'name2 :direction :output)))
-    ...))
+    ...)
   ```"
   (expand-with-facets facet-binding-specs body))
 
