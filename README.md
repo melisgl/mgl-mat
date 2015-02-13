@@ -1032,6 +1032,12 @@ any changes made to the [`ARRAY`][4417] facet since the last update of the
 [`CUDA-ARRAY`][b706] facet will not be copied and from the wrong input [`SCAL!`][4c84]
 will compute the wrong result.
 
+Using the SLIME inspector or trying to access the
+[`CUDA-ARRAY`][b706] facet from threads other than the one in
+which the corresponding CUDA context was initialized will fail. For
+now, the easy way out is to debug the code with CUDA disabled (see
+[`*CUDA-ENABLED*`][d91f]).
+
 Another thing that tends to come up is figuring out where memory is
 used.
 

@@ -1800,6 +1800,12 @@
   CUDA-ARRAY facet will not be copied and from the wrong input SCAL!
   will compute the wrong result.
 
+  Using the SLIME inspector or trying to access the
+  [CUDA-ARRAY][facet-name] facet from threads other than the one in
+  which the corresponding CUDA context was initialized will fail. For
+  now, the easy way out is to debug the code with CUDA disabled (see
+  *CUDA-ENABLED*).
+
   Another thing that tends to come up is figuring out where memory is
   used."
   (mat-room function)
