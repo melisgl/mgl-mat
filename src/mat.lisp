@@ -662,6 +662,7 @@
   (with-thread-cached-mats macro)
   (with-ones macro))
 
+;;; FIXME: automatic nested scratch key numbering
 (defmacro with-thread-cached-mat ((var dimensions &rest args
                                    &key (place :scratch)
                                    (ctype '*default-mat-ctype*)
@@ -672,7 +673,13 @@
   "Bind VAR to a matrix of DIMENSIONS, CTYPE, etc. Cache this matrix,
   and possibly reuse it later by reshaping it. When BODY exits the
   cached object is updated with the binding of VAR which BODY may
-  change."
+  change.
+
+  There is a separate cache for each thread and each `PLACE` (under
+  EQ). Since every cache holds exactly one MAT per CTYPE, nested
+  WITH-THREAD-CACHED-MAT often want to use different `PLACE`s. By
+  convention, these places are called `:SCRATCH-1`, `:SCRATCH-2`,
+  etc."
   (declare (ignore max-size initial-contents))
   (let ((args (copy-list args)))
     (remf args :place)
