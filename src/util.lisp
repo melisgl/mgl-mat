@@ -1,45 +1,5 @@
 (in-package :mgl-mat)
 
-;;;; Float I/O
-
-(defun write-as-bytes (integer n stream)
-  (let ((x integer))
-    (loop repeat n do
-      (write-byte (logand x #xff) stream)
-      (setq x (ash x -8)))
-    (assert (zerop x))))
-
-(defun read-as-bytes (n stream)
-  (let ((x 0))
-    (loop for i below n do
-      (incf x (ash (read-byte stream) (* i 8))))
-    x))
-
-(defun write-single-float-array (array stream &key (start 0)
-                                 (end (array-total-size array)))
-  (loop for i upfrom start below end do
-    (write-as-bytes (ieee-floats:encode-float32 (row-major-aref array i))
-                    4 stream)))
-
-(defun write-double-float-array (array stream &key (start 0)
-                                 (end (array-total-size array)))
-  (loop for i upfrom start below end do
-    (write-as-bytes (ieee-floats:encode-float64 (row-major-aref array i))
-                    8 stream)))
-
-(defun read-single-float-array (array stream &key (start 0)
-                                (end (array-total-size array)))
-  (loop for i upfrom start below end do
-    (setf (row-major-aref array i)
-          (ieee-floats:decode-float32 (read-as-bytes 4 stream)))))
-
-(defun read-double-float-array (array stream &key (start 0)
-                                (end (array-total-size array)))
-  (loop for i upfrom start below end do
-    (setf (row-major-aref array i)
-          (ieee-floats:decode-float64 (read-as-bytes 8 stream)))))
-
-
 ;;;; WITH-THREAD-CACHED-OBJECT
 
 (defvar *thread-caches* (tg:make-weak-hash-table :weakness :key))
@@ -307,3 +267,174 @@
   (dest :pointer)
   (src :pointer)
   (n cl-cuda.driver-api:size-t))
+
+
+;;;; Float I/O
+
+(defun write-as-bytes (integer n stream)
+  (declare (type (unsigned-byte 64) integer)
+           (type (unsigned-byte 4) n)
+           (optimize speed))
+  (let ((x integer))
+    (declare (type (unsigned-byte 64) x))
+    (loop repeat n do
+      (write-byte (logand x #xff) stream)
+      (setq x (ash x -8)))
+    (assert (zerop x))))
+
+(defun read-as-bytes (n stream)
+  (declare (type (unsigned-byte 4) n))
+  (let ((x 0))
+    (declare (type (unsigned-byte 64) x)
+             (optimize speed))
+    (loop for i below n do
+      (setq x (the! (unsigned-byte 64)
+                    (+ x (the! (unsigned-byte 64)
+                               (ash (the! (unsigned-byte 8)
+                                          (read-byte stream))
+                                    (* i 8)))))))
+    x))
+
+(defun write-single-float-vector/generic (array stream &key (start 0)
+                                          (end (array-total-size array)))
+  (loop for i upfrom start below end do
+    (write-as-bytes (ieee-floats:encode-float32 (row-major-aref array i))
+                    4 stream)))
+
+(defun write-double-float-vector/generic (array stream &key (start 0)
+                                          (end (array-total-size array)))
+  (loop for i upfrom start below end do
+    (write-as-bytes (ieee-floats:encode-float64 (row-major-aref array i))
+                    8 stream)))
+
+(defun read-single-float-vector/generic (array stream &key (start 0)
+                                         (end (array-total-size array)))
+  (loop for i upfrom start below end do
+    (setf (row-major-aref array i)
+          (ieee-floats:decode-float32 (read-as-bytes 4 stream)))))
+
+(defun read-double-float-vector/generic (array stream &key (start 0)
+                                         (end (array-total-size array)))
+  (loop for i upfrom start below end do
+    (setf (row-major-aref array i)
+          (ieee-floats:decode-float64 (read-as-bytes 8 stream)))))
+
+(deftype single-float-vector () '(simple-array single-float (*)))
+(deftype double-float-vector () '(simple-array double-float (*)))
+
+#+(and sbcl little-endian)
+(progn
+  (defun sync->fd (fd-stream)
+    (force-output fd-stream)
+    (let ((fd (sb-impl::fd-stream-fd fd-stream)))
+      (sb-unix:unix-lseek fd (file-position fd-stream) sb-unix:l_set)))
+
+  (defun sync<-fd (fd-stream)
+    (let ((fd (sb-impl::fd-stream-fd fd-stream)))
+      (file-position fd-stream (sb-unix:unix-lseek fd 0 sb-unix:l_incr))))
+
+  (defun write-single-float-vector (array stream &key (start 0)
+                                    (end (length array)))
+    (declare (type single-float-vector array))
+    (if (typep stream 'sb-sys:fd-stream)
+        (sb-sys:with-pinned-objects (array)
+          (sync->fd stream)
+          (let ((fd (sb-impl::fd-stream-fd stream)))
+            (sb-unix:unix-write fd (sb-sys:vector-sap array)
+                                (* 4 start) (* 4 (- end start))))
+          (sync<-fd stream))
+        (write-single-float-vector/generic array stream :start start :end end)))
+
+  (defun read-single-float-vector (array stream &key (start 0)
+                                   (end (length array)))
+    (declare (type single-float-vector array))
+    (if (typep stream 'sb-sys:fd-stream)
+        (sb-sys:with-pinned-objects (array)
+          (sync->fd stream)
+          (let* ((l (* 4 (- end start)))
+                 (l2 (sb-unix:unix-read (sb-impl::fd-stream-fd stream)
+                                        (sb-sys:sap+ (sb-sys:vector-sap array)
+                                                     (* 4 start))
+                                        l)))
+            (sync<-fd stream)
+            (unless (= l l2)
+              (error "Read only ~S bytes out of ~S~%" l2 l))))
+        (read-single-float-vector/generic array stream :start start :end end)))
+
+  (defun write-double-float-vector (array stream &key (start 0)
+                                    (end (length array)))
+    (declare (type double-float-vector array))
+    (if (typep stream 'sb-sys:fd-stream)
+        (sb-sys:with-pinned-objects (array)
+          (sync->fd stream)
+          (let ((fd (sb-impl::fd-stream-fd stream)))
+            (sb-unix:unix-write fd (sb-sys:vector-sap array)
+                                (* 8 start) (* 8 (- end start))))
+          (sync<-fd stream))
+        (write-double-float-vector/generic array stream :start start :end end)))
+
+  (defun read-double-float-vector (array stream &key (start 0)
+                                   (end (length array)))
+    (declare (type double-float-vector array))
+    (if (typep stream 'sb-sys:fd-stream)
+        (sb-sys:with-pinned-objects (array)
+          (sync->fd stream)
+          (let ((l (* 8 (- end start))))
+            (multiple-value-bind (l2 errno)
+                (sb-unix:unix-read (sb-impl::fd-stream-fd stream)
+                                   (sb-sys:sap+ (sb-sys:vector-sap array)
+                                                (* 8 start))
+                                   l)
+              (when (null l2)
+                (error "read() failed with errno ~D." errno))
+              (sync<-fd stream)
+              (unless (= l l2)
+                (error "Read only ~S bytes out of ~S~%" l2 l)))))
+        (read-double-float-vector/generic array stream :start start :end end))))
+
+#+allegro
+(progn
+  (defun write-single-float-vector (array stream &key (start 0)
+                                    (end (length array)))
+    (declare (type single-float-vector array))
+    (excl:write-vector array stream :start (* 4 start) :end (* 4 end)
+                       #+big-endian :endian-swap #+big-endian :byte-32))
+
+  (defun read-single-float-vector (array stream &key (start 0)
+                                   (end (length array)))
+    (declare (type single-float-vector array))
+    (let* ((l (* 4 (- end start)))
+           (l2 (- (excl:read-vector
+                   array stream :start (* 4 start) :end (* 4 end)
+                   #+big-endian :endian-swap #+big-endian :byte-32)
+                  (* 4 start))))
+      (unless (= l l2)
+        (error "Read only ~S bytes out of ~S~%" l2 l))))
+
+  (defun write-double-float-vector (array stream &key (start 0)
+                                    (end (length array)))
+    (declare (type double-float-vector array))
+    (excl:write-vector array stream :start (* 8 start) :end (* 8 end)
+                       #+big-endian :endian-swap #+big-endian :byte-64))
+
+  (defun read-double-float-vector (array stream &key (start 0)
+                                   (end (length array)))
+    (declare (type double-float-vector array))
+    (let* ((l (* 8 (- end start)))
+           (l2 (- (excl:read-vector
+                   array stream :start (* 8 start) :end (* 8 end)
+                   #+big-endian :endian-swap #+big-endian :byte-64)
+                  (* 8 start))))
+      (unless (= l l2)
+        (error "Read only ~S bytes out of ~S~%" l2 l)))))
+
+#-(or (and sbcl little-endian) allegro)
+(progn
+  (setf (symbol-function 'read-single-float-vector)
+        #'read-single-float-vector/generic)
+  (setf (symbol-function 'write-single-float-vector)
+        #'write-single-float-vector/generic)
+  (setf (symbol-function 'read-double-float-vector)
+        #'read-double-float-vector/generic)
+  (setf (symbol-function 'write-double-float-vector)
+        #'write-double-float-vector/generic))

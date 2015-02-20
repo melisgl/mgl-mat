@@ -31,6 +31,16 @@
 (defun ~= (x y)
   (< (abs (- x y)) 0.00001))
 
+(defun assert-mat~= (x y)
+  (with-facets ((x* (x 'backing-array :direction :input))
+                (y* (y 'backing-array :direction :input)))
+    (assert (= (length x*) (length y*)))
+    (dotimes (i (length x*))
+      (let ((xi (aref x* i))
+            (yi (aref y* i)))
+        (when (< 0.0001d0 (abs (- xi yi)))
+          (error "~S: ~S ~S~%" i xi yi))))))
+
 (defmacro signals-error-p (&body body)
   `(nth-value 1 (ignore-errors (values (progn ,@body)))))
 
@@ -469,6 +479,26 @@
                        (coerce-to-ctype
                         (elt '(7 7 -1 4 -3 8 -5 12 7) i))))))))))
 
+(defun test-io ()
+  (do-configurations (io)
+    (let ((x (make-mat 8))
+          (x2 (array-to-mat #(-1 -2 -3 -4 -5 -6 -7))))
+      (reshape-and-displace! x '(3 2) 1)
+      (replace! x '((1 2) (3 4) (5 6)))
+      ;; FIXME: On some implementations writing to disk has a separate
+      ;; code path, we should test the other streams too.
+      (cl-fad:with-open-temporary-file (stream :direction :io)
+        (write-mat x stream)
+        (write-mat x2 stream)
+        (file-position stream 0)
+        (let ((y (make-mat 10))
+              (y2 (make-mat 7)))
+          (reshape-and-displace! y 6 2)
+          (read-mat y stream)
+          (read-mat y2 stream)
+          (assert-mat~= y (array-to-mat #(0 0 1 2 3 4 5 6 0 0)))
+          (assert-mat~= x2 y2))))))
+
 (defun test-with-syncing-cuda-facets ()
   (with-cuda* ()
     (when (use-cuda-p)
@@ -542,6 +572,7 @@
   (test-pool)
   (test-scale-rows!)
   (test-scale-columns!)
+  (test-io)
   (test-with-syncing-cuda-facets)
   #+sbcl
   (sb-ext:gc :full t)

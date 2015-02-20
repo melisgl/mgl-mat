@@ -1773,9 +1773,9 @@
       (with-facets ((array (mat 'backing-array :direction :input)))
         (ecase (mat-ctype mat)
           ((:float)
-           (write-single-float-array array stream :start start :end end))
+           (write-single-float-vector array stream :start start :end end))
           ((:double)
-           (write-double-float-array array stream :start start :end end))))))
+           (write-double-float-vector array stream :start start :end end))))))
   (:documentation "Write MAT to STREAM in portable binary format.
   Displacement and size are taken into account, only visible elements
   are written."))
@@ -1787,9 +1787,9 @@
       (with-facets ((array (mat 'backing-array :direction :input)))
         (ecase (mat-ctype mat)
           ((:float)
-           (read-single-float-array array stream :start start :end end))
+           (read-single-float-vector array stream :start start :end end))
           ((:double)
-           (read-double-float-array array stream :start start :end end))))))
+           (read-double-float-vector array stream :start start :end end))))))
   (:documentation "Destructively modify the visible portion (with
   regards to displacement and shape) of MAT by reading MAT-SIZE number
   of elements from STREAM. No sanity checks are performed, READ-MAT
