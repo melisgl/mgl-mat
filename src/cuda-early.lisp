@@ -367,11 +367,26 @@
          ;; CUDA-VECTOR facets of live VEC objects. But if
          ;; finalization has started for a garbage VEC then we must
          ;; wait for it to finish, hence the loop.
-         (loop until (with-cuda-pool-locked (*cuda-pool*)
-                       (and (zerop (n-bytes-host-array-registered *cuda-pool*))
-                            (zerop (n-bytes-allocated *cuda-pool*))))
-               do (process-pool *cuda-pool*)
-                  (sleep 0.01))
+         (let ((seconds-slept 0)
+               (delay 0.01))
+           (loop until (with-cuda-pool-locked (*cuda-pool*)
+                         (and (zerop (n-bytes-host-array-registered
+                                      *cuda-pool*))
+                              (zerop (n-bytes-allocated *cuda-pool*))))
+                 do (process-pool *cuda-pool*)
+                    (sleep delay)
+                    (incf seconds-slept delay)
+                    (setq delay (* delay 1.1))
+                    ;; KLUDGE: This shouldn't be necessary but
+                    ;; finalizations are finicky. Give them a nudge.
+                    (cond ((< 30 seconds-slept)
+                           (warn "WITH-CUDA-POOL timed out waiting for ~
+                           CUDA related finalizers to run.")
+                           (return))
+                          ((< 5 delay)
+                           (trivial-garbage:gc :full t))
+                          ((< 1 delay)
+                           (trivial-garbage:gc)))))
          ;; free all
          (free-some-reusables *cuda-pool* (n-bytes-reusable *cuda-pool*))
          (with-cuda-pool-locked (*cuda-pool*)
