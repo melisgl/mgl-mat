@@ -576,8 +576,7 @@
   (test-scale-columns!)
   (test-io)
   (test-with-syncing-cuda-facets)
-  #+sbcl
-  (sb-ext:gc :full t)
+  (trivial-garbage:gc :full t)
   (mat-room))
 
 #|
