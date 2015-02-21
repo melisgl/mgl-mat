@@ -773,18 +773,25 @@ Unless noted these work efficiently with CUDA.
 
 ## I/O
 
+- [variable] *MAT-HEADERS* T
+
+    If enabled, a header with MAT-CTYPE and MAT-SIZE is written by
+    WRITE-MAT before the contents and READ-MAT checks that these match
+    the matrix into which it is reading.
+
 - [generic-function] WRITE-MAT MAT STREAM
 
     Write MAT to STREAM in portable binary format.
-    Displacement and size are taken into account, only visible elements
-    are written.
+    Return MAT. Displacement and size are taken into account, only
+    visible elements are written. Also see *MAT-HEADERS*.
 
 - [generic-function] READ-MAT MAT STREAM
 
     Destructively modify the visible portion (with
     regards to displacement and shape) of MAT by reading MAT-SIZE number
-    of elements from STREAM. No sanity checks are performed, READ-MAT
-    may return without error even if STREAM contains garbage.
+    of elements from STREAM. Return MAT. No sanity checks are performed,
+    READ-MAT may return without error even if STREAM contains garbage.
+    Also see *MAT-HEADERS*.
 
 ## Debugging
 

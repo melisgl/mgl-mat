@@ -1011,13 +1011,21 @@ Unless noted these work efficiently with CUDA.
 
 ## 15 I/O
 
+<a name='x-28MGL-MAT-3A-2AMAT-HEADERS-2A-20-28VARIABLE-29-29'></a>
+
+- [variable] **\*MAT-HEADERS\*** *T*
+
+    If enabled, a header with [`MAT-CTYPE`][d2c9] and [`MAT-SIZE`][1caf] is written by
+    [`WRITE-MAT`][2e67] before the contents and [`READ-MAT`][dc10] checks that these match
+    the matrix into which it is reading.
+
 <a name='x-28MGL-MAT-3AWRITE-MAT-20GENERIC-FUNCTION-29'></a>
 
 - [generic-function] **WRITE-MAT** *MAT STREAM*
 
     Write `MAT` to `STREAM` in portable binary format.
-    Displacement and size are taken into account, only visible elements
-    are written.
+    Return `MAT`. Displacement and size are taken into account, only
+    visible elements are written. Also see [`*MAT-HEADERS*`][c01b].
 
 <a name='x-28MGL-MAT-3AREAD-MAT-20GENERIC-FUNCTION-29'></a>
 
@@ -1025,8 +1033,9 @@ Unless noted these work efficiently with CUDA.
 
     Destructively modify the visible portion (with
     regards to displacement and shape) of `MAT` by reading [`MAT-SIZE`][1caf] number
-    of elements from `STREAM`. No sanity checks are performed, [`READ-MAT`][dc10]
-    may return without error even if `STREAM` contains garbage.
+    of elements from `STREAM`. Return `MAT`. No sanity checks are performed,
+    [`READ-MAT`][dc10] may return without error even if `STREAM` contains garbage.
+    Also see [`*MAT-HEADERS*`][c01b].
 
 <a name='x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29'></a>
 
@@ -2309,6 +2318,7 @@ Also see [Lifetime][767f].
   [2cb4]: #x-28MGL-CUBE-3ADESTROY-CUBE-20FUNCTION-29 "(MGL-CUBE:DESTROY-CUBE FUNCTION)"
   [2e01]: #x-28MGL-CUBE-3A-40CUBE-FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29 "Facet Extension API"
   [2e14]: #x-28MGL-MAT-3AWITH-CUDA-2A-20-28MGL-PAX-3AMACRO-29-29 "(MGL-MAT:WITH-CUDA* (MGL-PAX:MACRO))"
+  [2e67]: #x-28MGL-MAT-3AWRITE-MAT-20GENERIC-FUNCTION-29 "(MGL-MAT:WRITE-MAT GENERIC-FUNCTION)"
   [32c2]: #x-28MGL-CUBE-3AFACET-NAME-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29 "(MGL-CUBE:FACET-NAME (MGL-PAX:STRUCTURE-ACCESSOR))"
   [3424]: #x-28MGL-CUBE-3AREMOVE-FACET-REFERENCE-BY-NAME-20FUNCTION-29 "(MGL-CUBE:REMOVE-FACET-REFERENCE-BY-NAME FUNCTION)"
   [34a4]: #x-28MGL-CUBE-3A-40CUBE-FACETS-20MGL-PAX-3ASECTION-29 "Facets"
@@ -2373,12 +2383,14 @@ Also see [Lifetime][767f].
   [bd5b]: #x-28MGL-CUBE-3AFACETS-20FUNCTION-29 "(MGL-CUBE:FACETS FUNCTION)"
   [bdd6]: #x-28MGL-CUBE-3ADESTROY-FACET-20FUNCTION-29 "(MGL-CUBE:DESTROY-FACET FUNCTION)"
   [bf18]: #x-28MGL-MAT-3ADEFINE-CUDA-KERNEL-20-28MGL-PAX-3AMACRO-29-29 "(MGL-MAT:DEFINE-CUDA-KERNEL (MGL-PAX:MACRO))"
+  [c01b]: #x-28MGL-MAT-3A-2AMAT-HEADERS-2A-20-28VARIABLE-29-29 "(MGL-MAT:*MAT-HEADERS* (VARIABLE))"
   [c062]: #x-28MGL-MAT-3A-2ADEFAULT-MAT-CTYPE-2A-20-28VARIABLE-29-29 "(MGL-MAT:*DEFAULT-MAT-CTYPE* (VARIABLE))"
   [c07a]: #x-28MGL-MAT-3AREPLACE-21-20FUNCTION-29 "(MGL-MAT:REPLACE! FUNCTION)"
   [c597]: #x-28MGL-MAT-3A-2ACURAND-STATE-2A-20-28VARIABLE-29-29 "(MGL-MAT:*CURAND-STATE* (VARIABLE))"
   [c7ae]: #x-28MGL-CUBE-3A-2AMAYBE-SYNCHRONIZE-CUBE-2A-20-28VARIABLE-29-29 "(MGL-CUBE:*MAYBE-SYNCHRONIZE-CUBE* (VARIABLE))"
   [caa5]: #x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29 "CURAND"
   [d17b]: #x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29 "(MGL-CUBE:FACET-UP-TO-DATE-P (MGL-PAX:STRUCTURE-ACCESSOR))"
+  [d2c9]: #x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-CTYPE (MGL-PAX:READER MGL-MAT:MAT))"
   [d34e]: #x-28MGL-CUBE-3AFACET-20CLASS-29 "(MGL-CUBE:FACET CLASS)"
   [d56c]: #x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29 "Where to Get it?"
   [d620]: #x-28MGL-CUBE-3AFACET-DESCRIPTION-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29 "(MGL-CUBE:FACET-DESCRIPTION (MGL-PAX:STRUCTURE-ACCESSOR))"

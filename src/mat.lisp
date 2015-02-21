@@ -1769,11 +1769,22 @@
 
 
 (defsection @mat-io (:title "I/O")
+  (*mat-headers* variable)
   (write-mat generic-function)
   (read-mat generic-function))
 
+(defvar *mat-headers* t
+  "If enabled, a header with MAT-CTYPE and MAT-SIZE is written by
+  WRITE-MAT before the contents and READ-MAT checks that these match
+  the matrix into which it is reading.")
+
 (defgeneric write-mat (mat stream)
+  (:documentation "Write MAT to STREAM in portable binary format.
+  Return MAT. Displacement and size are taken into account, only
+  visible elements are written. Also see *MAT-HEADERS*.")
   (:method ((mat mat) stream)
+    (when *mat-headers*
+      (write-mat-header mat stream))
     (let* ((start (mat-displacement mat))
            (end (+ start (mat-size mat))))
       (with-facets ((array (mat 'backing-array :direction :input)))
@@ -1781,13 +1792,18 @@
           ((:float)
            (write-single-float-vector array stream :start start :end end))
           ((:double)
-           (write-double-float-vector array stream :start start :end end))))))
-  (:documentation "Write MAT to STREAM in portable binary format.
-  Displacement and size are taken into account, only visible elements
-  are written."))
+           (write-double-float-vector array stream :start start :end end)))))
+    mat))
 
 (defgeneric read-mat (mat stream)
+  (:documentation "Destructively modify the visible portion (with
+  regards to displacement and shape) of MAT by reading MAT-SIZE number
+  of elements from STREAM. Return MAT. No sanity checks are performed,
+  READ-MAT may return without error even if STREAM contains garbage.
+  Also see *MAT-HEADERS*.")
   (:method ((mat mat) stream)
+    (when *mat-headers*
+      (read-mat-header mat stream))
     (let* ((start (mat-displacement mat))
            (end (+ start (mat-size mat))))
       (with-facets ((array (mat 'backing-array :direction :input)))
@@ -1795,11 +1811,26 @@
           ((:float)
            (read-single-float-vector array stream :start start :end end))
           ((:double)
-           (read-double-float-vector array stream :start start :end end))))))
-  (:documentation "Destructively modify the visible portion (with
-  regards to displacement and shape) of MAT by reading MAT-SIZE number
-  of elements from STREAM. No sanity checks are performed, READ-MAT
-  may return without error even if STREAM contains garbage."))
+           (read-double-float-vector array stream :start start :end end)))))
+    mat))
+
+(defun write-mat-header (mat stream)
+  (with-standard-io-syntax
+    (format stream "~S" `(:mat :size ,(mat-size mat)
+                               :ctype ,(mat-ctype mat)))))
+
+(defun read-mat-header (mat stream)
+  (handler-bind ((error (lambda (e)
+                          (error "~@<Reading MAT header failed: ~:_~A~@:>"
+                                 (format nil "~A" e)))))
+    (destructuring-bind (head &key size ctype) (with-standard-io-syntax
+                                                 (let ((*read-eval* nil))
+                                                   (read stream)))
+      (assert (eq head :mat) () "expected ~S got ~S." :mat head)
+      (assert (= size (mat-size mat)) () "expected size ~S got ~S."
+              (mat-size mat) size)
+      (assert (eq ctype (mat-ctype mat)) () "expected ctype ~S got ~S."
+              (mat-ctype mat) ctype))))
 
 
 (defsection @mat-debugging (:title "Debugging")
