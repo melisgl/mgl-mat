@@ -644,7 +644,11 @@ Level 3 BLAS operations
 
 - [function] **.EXPT!** *X POWER*
 
-    Raise matrix `X` to `POWER` in an elementwise manner. Return `X`.
+    Raise matrix `X` to `POWER` in an elementwise manner. Return `X`. Note
+    that CUDA and non-CUDA implementations may disagree on the treatment
+    of NaNs, infinities and complex results. In particular, the lisp
+    implementation always computes the `REALPART` of the results while
+    CUDA's pow() returns NaNs instead of complex numbers.
 
 <a name='x-28MGL-MAT-3A-2EINV-21-20FUNCTION-29'></a>
 

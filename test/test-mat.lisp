@@ -273,10 +273,12 @@
 
 (defun test-.expt! ()
   (do-configurations (.expt!)
-    (let ((x (make-mat 7 :initial-contents '(-2 -1 0 1 2 3 4))))
-      (.expt! x 3)
-      (assert (m= x (make-mat 7 :initial-contents '(-8 -1 0 1 8 27 64)))))))
-
+    (let ((x (make-mat 5 :initial-contents '(0 1 2 3 4))))
+      (.expt! x 2.5)
+      (assert-mat~=
+       x (make-mat 5 :initial-contents (loop for i in '(0 1 2 3 4)
+                                             collect (realpart
+                                                      (expt i 2.5))))))))
 (defun test-.<! ()
   (do-configurations (.<!)
     (let ((x (make-mat 5 :initial-contents '(0 1 2 3 4)))
