@@ -107,6 +107,11 @@
   ==> #<MAT 4 ABF #(6.0d0 6.0d0 6.0d0 6.0d0)>
   ```
 
+  The content of a matrix can be accessed in various representations
+  called _facets_. \\MGL-MAT takes care of synchronizing these facets
+  by copying data around lazily, but doing its best to share storage
+  for facets that allow it.
+
   Notice the `ABF` in the printed results. It illustrates that behind
   the scenes FILL! worked on the [BACKING-ARRAY][facet-name]
   facet (hence the `B`) that's basically a 1d lisp array. SCAL! on the

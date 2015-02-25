@@ -138,6 +138,11 @@ level operations:
 ==> #<MAT 4 ABF #(6.0d0 6.0d0 6.0d0 6.0d0)>
 ```
 
+The content of a matrix can be accessed in various representations
+called *facets*. MGL-MAT takes care of synchronizing these facets
+by copying data around lazily, but doing its best to share storage
+for facets that allow it.
+
 Notice the `ABF` in the printed results. It illustrates that behind
 the scenes [`FILL!`][6156] worked on the [`BACKING-ARRAY`][8a91]
 facet (hence the `B`) that's basically a 1d lisp array. [`SCAL!`][4c84] on the
@@ -184,7 +189,7 @@ accessing one of the facets directly, as in the following example:
 
 <a name='x-28MGL-MAT-3AMAT-20CLASS-29'></a>
 
-- [class] **MAT** *CUBE*
+- [class] **MAT** *[CUBE][9fcc]*
 
     A `MAT` is a data [`CUBE`][9fcc] that is much like a lisp
     array, it supports `DISPLACEMENT`, arbitrary `DIMENSIONS` and
@@ -1023,9 +1028,9 @@ Unless noted these work efficiently with CUDA.
 
 - [generic-function] **WRITE-MAT** *MAT STREAM*
 
-    Write `MAT` to `STREAM` in portable binary format.
-    Return `MAT`. Displacement and size are taken into account, only
-    visible elements are written. Also see [`*MAT-HEADERS*`][c01b].
+    Write `MAT` to binary `STREAM` in portable binary
+    format. Return `MAT`. Displacement and size are taken into account,
+    only visible elements are written. Also see [`*MAT-HEADERS*`][c01b].
 
 <a name='x-28MGL-MAT-3AREAD-MAT-20GENERIC-FUNCTION-29'></a>
 
@@ -1033,9 +1038,9 @@ Unless noted these work efficiently with CUDA.
 
     Destructively modify the visible portion (with
     regards to displacement and shape) of `MAT` by reading [`MAT-SIZE`][1caf] number
-    of elements from `STREAM`. Return `MAT`. No sanity checks are performed,
-    [`READ-MAT`][dc10] may return without error even if `STREAM` contains garbage.
-    Also see [`*MAT-HEADERS*`][c01b].
+    of elements from binary `STREAM`. Return `MAT`. No sanity checks are
+    performed, [`READ-MAT`][dc10] may return without error even if `STREAM` contains
+    garbage. Also see [`*MAT-HEADERS*`][c01b].
 
 <a name='x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29'></a>
 

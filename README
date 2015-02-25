@@ -92,6 +92,11 @@ level operations:
 ==> #<MAT 4 ABF #(6.0d0 6.0d0 6.0d0 6.0d0)>
 ```
 
+The content of a matrix can be accessed in various representations
+called *facets*. MGL-MAT takes care of synchronizing these facets
+by copying data around lazily, but doing its best to share storage
+for facets that allow it.
+
 Notice the `ABF` in the printed results. It illustrates that behind
 the scenes FILL! worked on the [BACKING-ARRAY][facet-name]
 facet (hence the `B`) that's basically a 1d lisp array. SCAL! on the
@@ -781,17 +786,17 @@ Unless noted these work efficiently with CUDA.
 
 - [generic-function] WRITE-MAT MAT STREAM
 
-    Write MAT to STREAM in portable binary format.
-    Return MAT. Displacement and size are taken into account, only
-    visible elements are written. Also see *MAT-HEADERS*.
+    Write MAT to binary STREAM in portable binary
+    format. Return MAT. Displacement and size are taken into account,
+    only visible elements are written. Also see *MAT-HEADERS*.
 
 - [generic-function] READ-MAT MAT STREAM
 
     Destructively modify the visible portion (with
     regards to displacement and shape) of MAT by reading MAT-SIZE number
-    of elements from STREAM. Return MAT. No sanity checks are performed,
-    READ-MAT may return without error even if STREAM contains garbage.
-    Also see *MAT-HEADERS*.
+    of elements from binary STREAM. Return MAT. No sanity checks are
+    performed, READ-MAT may return without error even if STREAM contains
+    garbage. Also see *MAT-HEADERS*.
 
 ## Debugging
 
