@@ -460,36 +460,46 @@
    (reusables :initform (make-hash-table) :accessor reusables)
    (lock :initform (bordeaux-threads:make-recursive-lock) :reader lock)
    (host-arrays-to-be-unregistered
-    :initform ()
+    :initform (make-list-holder)
     :accessor host-arrays-to-be-unregistered)
    (n-bytes-host-array-registered
     :initform 0
     :accessor n-bytes-host-array-registered)))
 
+;;; This provides a place on which COMPARE-AND-SWAP works the most
+;;; portably.
+(defstruct list-holder
+  list)
+
 (defun process-pool (cuda-pool)
   (maybe-unregister-pointers cuda-pool))
 
 (defun maybe-unregister-pointers (cuda-pool)
-  (when (host-arrays-to-be-unregistered cuda-pool)
-    (loop
-      (let ((host-arrays-to-be-unregistered
-              (host-arrays-to-be-unregistered cuda-pool)))
-        (when (mgl-cube::compare-and-swap
-               (slot-value cuda-pool 'host-arrays-to-be-unregistered)
-               host-arrays-to-be-unregistered ())
-          (dolist (cuda-host-array-and-callback host-arrays-to-be-unregistered)
-            (destructuring-bind (cuda-host-array . callback)
-                cuda-host-array-and-callback
-              (unregister-cuda-host-array-now cuda-host-array callback)))
-          (return))))))
+  (let ((host-arrays-to-be-unregistered
+          (host-arrays-to-be-unregistered cuda-pool)))
+    ;; FIXME: double checked locking
+    (when (list-holder-list host-arrays-to-be-unregistered)
+      (loop
+        (let ((list (list-holder-list host-arrays-to-be-unregistered)))
+          (when (mgl-cube::compare-and-swap
+                 (list-holder-list host-arrays-to-be-unregistered)
+                 list ())
+            (dolist (cuda-host-array-and-callback list)
+              (destructuring-bind (cuda-host-array . callback)
+                  cuda-host-array-and-callback
+                (unregister-cuda-host-array-now cuda-host-array callback)))
+            (return)))))))
 
 (defun add-host-array-to-be-unregistered (cuda-pool cuda-host-array callback)
-  (loop
-    (let* ((old (host-arrays-to-be-unregistered cuda-pool))
-           (new (cons (cons cuda-host-array callback) old)))
-      (when (mgl-cube::compare-and-swap
-             (slot-value cuda-pool 'host-arrays-to-be-unregistered) old new)
-        (return)))))
+  (let ((host-arrays-to-be-unregistered
+          (host-arrays-to-be-unregistered cuda-pool)))
+    (loop
+      (let* ((old (list-holder-list host-arrays-to-be-unregistered))
+             (new (cons (cons cuda-host-array callback) old)))
+        (when (mgl-cube::compare-and-swap
+               (list-holder-list host-arrays-to-be-unregistered)
+               old new)
+          (return))))))
 
 (defclass cuda-vector (offset-pointer)
   ((cuda-pool :initform *cuda-pool* :reader cuda-pool)))

@@ -34,11 +34,13 @@
     `(let ((,old-val-var ,old-value))
        (eq ,old-val-var (sb-ext:compare-and-swap ,place ,old-val-var
                                                  ,new-value))))
+  #+ccl
+  `(ccl::conditional-store ,place ,old-value ,new-value)
   #+lispworks
   `(system:compare-and-swap ,place ,old-value ,new-value)
   #+allegro
   `(excl:atomic-conditional-setf ,place ,new-value ,old-value)
-  #-(or allegro lispworks sbcl)
+  #-(or sbcl ccl lispworks allegro)
   (progn
     (format t "WARNING: Using UNSAFE kludge for COMPARE-AND-SWAP.~%")
     `(progn ,old-value (setf ,place ,new-value) t)))
@@ -261,14 +263,18 @@
   (n-watchers 0)
   (watcher-threads ())
   (direction nil :type direction)
+  (references (make-references)))
+
+(defstruct references
   ;; This is basically the number of references callers of
   ;; ADD-FACET-REFERENCE and REMOVE-FACET-REFERENCE have totalled on
-  ;; this facet. If it's non-zero, then this facet is protected against
-  ;; DESTROY-FACET. Since we are at the mercy the callers of these
-  ;; functions, we must also make sure that finalizers destroy the
-  ;; facet regardless of the number of references. When the facet is
-  ;; about to be destroyed we CAS NIL onto the CAR of this token.
-  (references-cons (cons 0 nil)))
+  ;; this facet. If it's non-zero, then this facet is protected
+  ;; against DESTROY-FACET. Since we are at the mercy the callers of
+  ;; these functions, we must also make sure that finalizers destroy
+  ;; the facet regardless of the number of references. When the facet
+  ;; is about to be destroyed we CAS NIL onto the CAR of this token.
+  (n 0)
+  (list ()))
 
 (setf (documentation 'facet-name 'function)
       "A symbol that uniquely identifies the facet within a cube.")
@@ -554,7 +560,7 @@
     (with-cube-locked (cube)
       (check-no-watchers cube nil "Cannot remove facet ~S" facet-name)
       (let ((v (find-facet cube facet-name)))
-        (when (and v (get-permission-to-destroy (facet-references-cons v)))
+        (when (and v (get-permission-to-destroy (facet-references v)))
           (setf (cdr (slot-value cube 'facets)) (remove v (facets cube)))
           (deregister-cube-facet cube facet-name)
           (setq facet v))))
@@ -578,7 +584,7 @@
   (loop
     (let ((facet (with-cube-locked (cube)
                    (ensure-facet cube facet-name nil))))
-      (when (incf-references (facet-references-cons facet) 1)
+      (when (incf-references (facet-references facet) 1)
         (return facet)))))
 
 (defun remove-facet-reference-by-name (cube facet-name)
@@ -590,7 +596,8 @@
                  ;; regards to facet creation.
                  (find-facet cube facet-name))))
     (assert facet)
-    (assert (not (minusp (incf-references (facet-references-cons facet) -1))))))
+    (assert (not (minusp (incf-references (facet-references facet)
+                                          -1))))))
 
 (defun remove-facet-reference (facet)
   "Decrement the reference count of FACET. It is an error if the facet
@@ -600,7 +607,7 @@
   argument, it's more suited for use in finalizers because it does not
   keep the whole CUBE alive."
   (check-type facet facet)
-  (let ((new-n-references (incf-references (facet-references-cons facet) -1)))
+  (let ((new-n-references (incf-references (facet-references facet) -1)))
     (assert new-n-references ()
             "Can't decrement reference count on a destroyed facet.")
     (assert (not (minusp new-n-references)) ()
@@ -716,9 +723,9 @@ destroyed by a facet barrier."
 
 ;;;; Implementation 
 
-(defun get-permission-to-destroy (references-cons &key being-finalized)
+(defun get-permission-to-destroy (references &key being-finalized)
   (loop
-    (let ((n-references (car references-cons)))
+    (let ((n-references (references-n references)))
       (when (null n-references)
         ;; already destroyed
         (return nil))
@@ -726,16 +733,16 @@ destroyed by a facet barrier."
         (return nil))
       ;; The remaining references if any must belong to a garbage
       ;; object.
-      (when (compare-and-swap (car references-cons) n-references nil)
+      (when (compare-and-swap (references-n references) n-references nil)
         (return t)))))
 
-(defun incf-references (references-cons delta)
+(defun incf-references (references delta)
   (loop
-    (let ((n-references (car references-cons)))
+    (let ((n-references (references-n references)))
       (when (null n-references)
         ;; already destroyed
         (return nil))
-      (when (compare-and-swap (car references-cons) n-references
+      (when (compare-and-swap (references-n references) n-references
                               (+ n-references delta))
         (return (+ n-references delta))))))
 
@@ -747,7 +754,7 @@ destroyed by a facet barrier."
                    (lambda ()
                      (dolist (facet (cdr facets))
                        (when (get-permission-to-destroy
-                              (facet-references-cons facet)
+                              (facet-references facet)
                               :being-finalized t)
                          (destroy-facet* (facet-name facet) facet)
                          (setf (facet-value facet) nil)
