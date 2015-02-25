@@ -504,11 +504,11 @@
                    (or (eq (facet-name facet) facet-name)
                        (not (has-writers-p facet))))
                  (facets cube))
-          () "~A because ~
-          ~S has active writers. If you are sure that this is a false ~
-          alarm then consider binding MGL-CUBE:*LET-INPUT-THROUGH-P* to ~
-          true."
-          (apply #'format nil message-format message-args) cube))
+          () "~@<~? ~:_because ~S ~:_has active writers. ~:_~
+             If you are sure that this is a false ~
+             alarm, ~:_then consider binding ~:_~
+             MGL-CUBE:*LET-INPUT-THROUGH-P* to true.~:@>"
+          message-format message-args cube))
 
 (defun check-no-watchers (cube facet-name message-format &rest message-args)
   "Signal an error if CUBE has facets (with names other than
@@ -519,11 +519,11 @@
                    (or (eq (facet-name facet) facet-name)
                        (not (has-watchers-p facet))))
                  (facets cube))
-          () "~A because ~
-           ~S has active facets. If you are sure that this is a false ~
-           alarm then consider binding MGL-CUBE:*LET-OUTPUT-THROUGH-P* to ~
-           true."
-          (apply #'format nil message-format message-args) cube))
+          () "~@<~? ~:_because ~S ~:_has active facets. ~:_~
+             If you are sure that this is a false ~
+             alarm, ~:_then consider binding ~:_~
+             MGL-CUBE:*LET-OUTPUT-THROUGH-P* to true.~:@>"
+          message-format message-args cube))
 
 
 (defsection @cube-lifetime (:title "Lifetime")
