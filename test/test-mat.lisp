@@ -431,6 +431,10 @@
                      (foo)))
           (foo)))))
 
+;;; FIXME: This runs into an assertion failure on CCL with some
+;;; regularity, but is stable on AllegroCL and SBCL.
+;;; MGL-CUBE::COMPARE-AND-SWAP, finalizers and weak hash tables make
+;;; this very hard to debug.
 (defun test-pool ()
   (when (and *cuda-enabled* (cuda-available-p))
     (let* ((stop-gc-thread nil)
