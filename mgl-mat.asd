@@ -16,8 +16,8 @@
   code. BLAS and CUBLAS bindings are available."
   :in-order-to ((asdf:test-op (asdf:test-op "mgl-mat-test")))
   :depends-on (#:alexandria #:bordeaux-threads #:cffi #:cffi-grovel #:cl-cuda
-                            #:ieee-floats #:lla #:mgl-pax #:static-vectors
-                            #:trivial-garbage)
+                            #:flexi-streams #:ieee-floats #:lla #:mgl-pax
+                            #:static-vectors #:trivial-garbage)
   :components ((:module "src"
                 :serial t
                 :components ((:file "package")

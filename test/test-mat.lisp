@@ -484,31 +484,34 @@
 (defun test-io ()
   (do-configurations (io)
     (dolist (*mat-headers* '(nil t))
-      (let ((x (make-mat 8))
-            (x2 (array-to-mat #(-1 -2 -3 -4 -5 -6 -7))))
-        (reshape-and-displace! x '(3 2) 1)
-        (replace! x '((1 2) (3 4) (5 6)))
-        ;; FIXME: On some implementations writing to disk has a separate
-        ;; code path, we should test the other streams too.
-        (cl-fad:with-open-temporary-file (stream :direction :io)
-          (write-mat x stream)
-          (write-mat x2 stream)
-          (assert (= (file-position stream)
-                     (+ (cond ((not *mat-headers*)
-                               0)
-                              ((eq *default-mat-ctype* :double)
-                               (* 2 (length "(:mat :size 7 :ctype :double) ")))
-                              (t
-                               (* 2 (length "(:mat :size 7 :ctype :float) "))))
-                        (* (ctype-size *default-mat-ctype*) (+ 6 7)))))
-          (file-position stream 0)
-          (let ((y (make-mat 10))
-                (y2 (make-mat 7)))
-            (reshape-and-displace! y 6 2)
-            (read-mat y stream)
-            (read-mat y2 stream)
-            (assert-mat~= y (array-to-mat #(0 0 1 2 3 4 5 6 0 0)))
-            (assert-mat~= x2 y2)))))))
+      (dolist (element-type '((unsigned-byte 8)))
+        (let ((x (make-mat 8))
+              (x2 (array-to-mat #(-1 -2 -3 -4 -5 -6 -7))))
+          (reshape-and-displace! x '(3 2) 1)
+          (replace! x '((1 2) (3 4) (5 6)))
+          ;; FIXME: On some implementations writing to disk has a separate
+          ;; code path, we should test the other streams too.
+          (cl-fad:with-open-temporary-file (stream :direction :io
+                                                   :element-type element-type)
+            (write-mat x stream)
+            (write-mat x2 stream)
+            (assert
+             (= (file-position stream)
+                (+ (cond ((not *mat-headers*)
+                          0)
+                         ((eq *default-mat-ctype* :double)
+                          (* 2 (length "(:mat :size 7 :ctype :double)")))
+                         (t
+                          (* 2 (length "(:mat :size 7 :ctype :float)"))))
+                   (* (ctype-size *default-mat-ctype*) (+ 6 7)))))
+            (file-position stream 0)
+            (let ((y (make-mat 10))
+                  (y2 (make-mat 7)))
+              (reshape-and-displace! y 6 2)
+              (read-mat y stream)
+              (assert-mat~= y (array-to-mat #(0 0 1 2 3 4 5 6 0 0)))
+              (read-mat y2 stream)
+              (assert-mat~= x2 y2))))))))
 
 (defun test-with-syncing-cuda-facets ()
   (with-cuda* ()
@@ -583,8 +586,6 @@
   (test-pool)
   (test-scale-rows!)
   (test-scale-columns!)
-  ;; most streams on CCL are not bivalent
-  #-ccl
   (test-io)
   (test-with-syncing-cuda-facets)
   (trivial-garbage:gc :full t)

@@ -1789,10 +1789,20 @@
   WRITE-MAT before the contents and READ-MAT checks that these match
   the matrix into which it is reading.")
 
+(defmacro with-character-stream ((var stream) &body body)
+  (alexandria:once-only (stream)
+    `(let ((,var (if (subtypep 'base-char (stream-element-type stream))
+                     ,stream
+                     (flexi-streams:make-flexi-stream
+                      ,stream :external-format :latin-1))))
+       (unwind-protect
+            (locally ,@body)
+         (finish-output ,var)))))
+
 (defgeneric write-mat (mat stream)
-  (:documentation "Write MAT to STREAM in portable binary format.
-  Return MAT. Displacement and size are taken into account, only
-  visible elements are written. Also see *MAT-HEADERS*.")
+  (:documentation "Write MAT to binary STREAM in portable binary
+  format. Return MAT. Displacement and size are taken into account,
+  only visible elements are written. Also see *MAT-HEADERS*.")
   (:method ((mat mat) stream)
     (when *mat-headers*
       (write-mat-header mat stream))
@@ -1809,9 +1819,9 @@
 (defgeneric read-mat (mat stream)
   (:documentation "Destructively modify the visible portion (with
   regards to displacement and shape) of MAT by reading MAT-SIZE number
-  of elements from STREAM. Return MAT. No sanity checks are performed,
-  READ-MAT may return without error even if STREAM contains garbage.
-  Also see *MAT-HEADERS*.")
+  of elements from binary STREAM. Return MAT. No sanity checks are
+  performed, READ-MAT may return without error even if STREAM contains
+  garbage. Also see *MAT-HEADERS*.")
   (:method ((mat mat) stream)
     (when *mat-headers*
       (read-mat-header mat stream))
@@ -1826,17 +1836,20 @@
     mat))
 
 (defun write-mat-header (mat stream)
-  (with-standard-io-syntax
-    (format stream "~S " `(:mat :size ,(mat-size mat)
-                                :ctype ,(mat-ctype mat)))))
+  (with-character-stream (stream stream)
+    (with-standard-io-syntax
+      (format stream "~S" `(:mat :size ,(mat-size mat)
+                                 :ctype ,(mat-ctype mat))))))
 
 (defun read-mat-header (mat stream)
   (handler-bind ((error (lambda (e)
                           (error "~@<Reading MAT header failed: ~:_~A~@:>"
                                  (format nil "~A" e)))))
-    (destructuring-bind (head &key size ctype) (with-standard-io-syntax
-                                                 (let ((*read-eval* nil))
-                                                   (read stream)))
+    (destructuring-bind (head &key size ctype)
+        (with-character-stream (stream stream)
+          (with-standard-io-syntax
+            (let ((*read-eval* nil))
+              (read-preserving-whitespace stream))))
       (assert (eq head :mat) () "expected ~S got ~S." :mat head)
       (assert (= size (mat-size mat)) () "expected size ~S got ~S."
               (mat-size mat) size)
