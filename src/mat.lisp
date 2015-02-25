@@ -371,8 +371,19 @@
     (void ((x :mat :io) (index int) (value float)))
   (set (aref x index) value))
 
+#-ccl
 (defsetf mref (mat &rest indices) (value)
   `(set-mref ,value ,mat ,@indices))
+
+;;; Work around CCL compiler bug.
+#+ccl
+(define-setf-expander mref (mat &rest indices)
+  (let ((store (gensym)))
+    (values ()
+            ()
+            `(,store)
+            `(set-mref ,store ,mat ,@indices)
+            `(mref ,mat ,@indices))))
 
 (defun row-major-mref (mat index)
   "Like ROW-MAJOR-AREF for arrays. Don't use this if you care about
