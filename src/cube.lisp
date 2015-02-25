@@ -34,14 +34,14 @@
     `(let ((,old-val-var ,old-value))
        (eq ,old-val-var (sb-ext:compare-and-swap ,place ,old-val-var
                                                  ,new-value))))
-  #+ccl
-  `(ccl::conditional-store ,place ,old-value ,new-value)
   #+lispworks
   `(system:compare-and-swap ,place ,old-value ,new-value)
   #+allegro
   `(excl:atomic-conditional-setf ,place ,new-value ,old-value)
-  #-(or allegro lispworks ccl sbcl)
-  (error "Not supported."))
+  #-(or allegro lispworks sbcl)
+  (progn
+    (format t "WARNING: Using UNSAFE kludge for COMPARE-AND-SWAP.~%")
+    `(progn ,old-value (setf ,place ,new-value) t)))
 
 (defmacro without-interrupts (&body body)
   #+sbcl
