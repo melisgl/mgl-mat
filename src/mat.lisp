@@ -1816,8 +1816,8 @@
 
 (defun write-mat-header (mat stream)
   (with-standard-io-syntax
-    (format stream "~S" `(:mat :size ,(mat-size mat)
-                               :ctype ,(mat-ctype mat)))))
+    (format stream "~S " `(:mat :size ,(mat-size mat)
+                                :ctype ,(mat-ctype mat)))))
 
 (defun read-mat-header (mat stream)
   (handler-bind ((error (lambda (e)

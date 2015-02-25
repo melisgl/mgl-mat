@@ -497,9 +497,9 @@
                      (+ (cond ((not *mat-headers*)
                                0)
                               ((eq *default-mat-ctype* :double)
-                               (* 2 (length "(:mat :size 7 :ctype :double)")))
+                               (* 2 (length "(:mat :size 7 :ctype :double) ")))
                               (t
-                               (* 2 (length "(:mat :size 7 :ctype :float)"))))
+                               (* 2 (length "(:mat :size 7 :ctype :float) "))))
                         (* (ctype-size *default-mat-ctype*) (+ 6 7)))))
           (file-position stream 0)
           (let ((y (make-mat 10))
