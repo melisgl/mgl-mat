@@ -583,6 +583,8 @@
   (test-pool)
   (test-scale-rows!)
   (test-scale-columns!)
+  ;; most streams on CCL are not bivalent
+  #-ccl
   (test-io)
   (test-with-syncing-cuda-facets)
   (trivial-garbage:gc :full t)
