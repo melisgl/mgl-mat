@@ -189,8 +189,8 @@
 (defclass mat (cube)
   ((displacement
     :initform 0 :initarg :displacement :reader mat-displacement
-    :documentation "A value in the [0,MAX-SIZE] interval. This is like
-    the DISPLACED-INDEX-OFFSET of a lisp array.")
+    :documentation "A value in the `[0,MAX-SIZE]` interval. This is
+    like the DISPLACED-INDEX-OFFSET of a lisp array.")
    (dimensions
     :initarg :dimensions :reader mat-dimensions
     :documentation "Like ARRAY-DIMENSIONS. It holds a list of
@@ -228,9 +228,9 @@
     type. If NIL, then no initialization is performed.")
    (max-size
     :initarg :max-size :reader mat-max-size
-    :documentation "The total size can be larger than MAT-SIZE, but
-    cannot change. Also DISPLACEMENT + SIZE must not exceed it. This
-    is not"))
+    :documentation "The number of elements for which storage is
+    allocated. This is DISPLACEMENT + MAT-SIZE + `SLACK` where `SLACK`
+    is the number of trailing invisible elements."))
   (:documentation "A MAT is a data CUBE that is much like a lisp
    array, it supports DISPLACEMENT, arbitrary DIMENSIONS and
    INITIAL-ELEMENT with the usual semantics. However, a MAT supports
@@ -255,11 +255,16 @@
     (assert (null initial-element-p) ()
             "INITIAL-ELEMENT cannot be supplied together with DISPLACED-TO.")
     (assert (null initial-contents-p) ()
-            "INITIAL-CONTENTS cannot be supplied together with DISPLACED-TO."))
+            "INITIAL-CONTENTS cannot be supplied together with DISPLACED-TO.")
+    (assert (eq ctype (vec-ctype (vec displaced-to))) ()
+            "Attempt displace a matrix of CTYPE ~S to matrix of CTYPE ~S."
+            ctype (vec-ctype (vec displaced-to))))
   (unless (listp (mat-dimensions mat))
     (setf (slot-value mat 'dimensions)
           (list (mat-dimensions mat))))
-  (setf (slot-value mat 'size) (mat-size-from-dimensions (mat-dimensions mat)))
+  (setf (slot-value mat 'size) (dimensions-total-size (mat-dimensions mat)))
+  (when displaced-to
+    (incf (slot-value mat 'displacement) (mat-displacement displaced-to)))
   (setf (slot-value mat 'vec)
         (if displaced-to
             (vec displaced-to)
@@ -272,7 +277,7 @@
     (replace! mat initial-contents)))
 
 ;;; Optimized version of (REDUCE #'* DIMENSIONS).
-(defun mat-size-from-dimensions (dimensions)
+(defun dimensions-total-size (dimensions)
   (let ((product 1))
     (declare (type index product)
              (optimize speed))
@@ -299,28 +304,23 @@
   @CUBE-SYNCHRONIZATION section.
 
   If specified, DISPLACED-TO must be a MAT object large enough (in the
-  sense of its MAT-MAX-SIZE), to hold `(REDUCE #'* DIMENSIONS)` plus
-  DISPLACEMENT elements. Just like with MAKE-ARRAY, INITIAL-ELEMENT
+  sense of its MAT-SIZE), to hold DISPLACEMENT plus `(REDUCE #'*
+  DIMENSIONS)` elements. Just like with MAKE-ARRAY, INITIAL-ELEMENT
   and INITIAL-CONTENTS must not be supplied together with
   DISPLACED-TO.
 
   ```commonlisp
-  (let* ((base (make-mat 10 :initial-element 5))
+  (let* ((base (make-mat 10 :initial-element 5 :displacement 1))
          (mat (make-mat 6 :displaced-to base :displacement 2)))
     (fill! 1 mat)
     (values base mat))
-  ==> #<MAT 10 A #(5.0d0 5.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 5.0d0
-  -->              5.0d0)>
-  ==> #<MAT 2+6+2 AB #(1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0)>
+  ==> #<MAT 1+10+0 A #(5.0d0 5.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 5.0d0
+  -->                  5.0d0)>
+  ==> #<MAT 3+6+2 AB #(1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0)>
   ```
 
   Note that matrices can be displaced and oversized even without
-  DISPLACED-TO:
-
-  ```commonlisp
-  (make-mat 3 :displacement 2 :max-size 7)
-  ==> #<MAT 2+3+2 A #(0.0d0 0.0d0 0.0d0)>
-  ```"
+  DISPLACED-TO just like `BASE` in the above example."
   (declare (ignore displacement max-size initial-element initial-contents
                    displaced-to cuda-enabled)
            (optimize speed)
@@ -379,7 +379,7 @@
 
 (defun replace-vector (vector start dimensions seq-of-seqs ctype)
   (let ((i start)
-        (n (mat-size-from-dimensions dimensions)))
+        (n (dimensions-total-size dimensions)))
     (labels ((foo (dims seq-of-seqs)
                (let ((n-dims (length dims)))
                  (cond ((= 0 n-dims)
@@ -554,26 +554,54 @@
 
 
 (defsection @mat-shaping (:title "Shaping")
-  "Reshaping and displacement of MAT objects works somewhat similarly
-  to lisp arrays. The key difference is that they are destructive
-  operations. See RESHAPE-AND-DISPLACE!, RESHAPE!, DISPLACE!,
-  RESHAPE-TO-ROW-MATRIX! and WITH-SHAPE-AND-DISPLACEMENT. ADJUST! is
-  the odd one out, it may create a new MAT.
+  "One way to reshape and displace MAT objects is with MAKE-MAT and
+  its DISPLACED-TO argument whose semantics are similar to that of
+  MAKE-ARRAY in that the displacement is _relative_ to the visible
+  portion of the DISPLACED-TO.
 
-  Existing facets are adjusted by all operations. For
-  [ARRAY][facet-name] facets, this means creating a new lisp array
-  displaced to the backing array. The backing array stays the same,
-  clients are supposed to observe MAT-DISPLACEMENT, MAT-DIMENSIONS or
-  MAT-SIZE. The [FOREIGN-ARRAY][facet-name] and
-  [CUDA-ARRAY][facet-name] facets are [OFFSET-POINTER][class] objects
-  so displacement is done by changing the offset. Clients need to
-  observe MAT-DIMENSIONS in any case."
+  In contrast to that, the following functions interpret DISPLACEMENT
+  as _absolute_, i.e. as an index into conceptual non-displaced vector
+  used to store the elements."
+  (reshape-and-displace function)
+  (reshape function)
+  (displace function)
+  "The following destructive operations don't alter the contents of
+  the matrix, but change what is visible. See RESHAPE-AND-DISPLACE!,
+  RESHAPE!, DISPLACE!, RESHAPE-TO-ROW-MATRIX! and
+  WITH-SHAPE-AND-DISPLACEMENT. ADJUST! is the odd one out, it may
+  create a new MAT.
+
+  The low-level view is that existing facets are adjusted by all
+  operations. For [ARRAY][facet-name] facets, this means creating a
+  new lisp array displaced to the backing array. The backing array
+  stays the same, since clients are supposed to observe
+  MAT-DISPLACEMENT, MAT-DIMENSIONS or MAT-SIZE. The
+  [FOREIGN-ARRAY][facet-name] and [CUDA-ARRAY][facet-name] facets are
+  [OFFSET-POINTER][class] objects so displacement is done by changing
+  the offset. Clients need to observe MAT-DIMENSIONS in any case."
   (reshape-and-displace! function)
   (reshape! function)
   (displace! function)
   (reshape-to-row-matrix! function)
   (with-shape-and-displacement macro)
   (adjust! function))
+
+(defun reshape-and-displace (mat dimensions displacement)
+  "Return a new matrix of DIMENSIONS that aliases MAT's storage at
+  offset DISPLACEMENT."
+  (make-mat dimensions :displacement displacement :ctype (mat-ctype mat)))
+
+(defun reshape (mat dimensions)
+  "Return a new matrix of DIMENSIONS that aliases MAT's storage at
+  offset 0."
+  (make-mat dimensions :displacement (mat-displacement mat)
+            :ctype (mat-ctype mat)))
+
+(defun displace (mat displacement)
+  "Return a new matrix that aliases MAT's storage at offset
+  DISPLACEMENT. The returned matrix has the same dimensions as MAT."
+  (make-mat (mat-dimensions mat) :displacement displacement
+            :ctype (mat-ctype mat)))
 
 (defun reshape-and-displace! (mat dimensions displacement)
   "Change the visible (or active) portion of MAT by altering its
@@ -592,7 +620,7 @@
   (let ((dimensions (alexandria:ensure-list dimensions)))
     (when (or (not (equal (mat-dimensions mat) dimensions))
               (not (= (mat-displacement mat) displacement)))
-      (let ((size (mat-size-from-dimensions dimensions)))
+      (let ((size (dimensions-total-size dimensions)))
         (assert (<= (+ displacement size) (mat-max-size mat)))
         (setf (slot-value mat 'dimensions) dimensions)
         (setf (slot-value mat 'displacement) displacement)
@@ -658,7 +686,7 @@
   copied over and the old matrix is destroyed with DESTROY-CUBE if
   DESTROY-OLD-P."
   (let* ((dimensions (alexandria:ensure-list dimensions))
-         (size (mat-size-from-dimensions dimensions)))
+         (size (dimensions-total-size dimensions)))
     (if (<= (+ displacement size) (mat-max-size mat))
         (reshape-and-displace! mat dimensions displacement)
         (prog1
@@ -1679,7 +1707,7 @@
   ```"
   (let ((displacement-step
           (or displacement-step
-              (mat-size-from-dimensions (alexandria:ensure-list dimensions))))
+              (dimensions-total-size (alexandria:ensure-list dimensions))))
         (displacement (mat-displacement mat))
         (size (mat-size mat)))
     (with-shape-and-displacement (mat)

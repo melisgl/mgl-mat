@@ -168,8 +168,8 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 - [reader] MAT-DISPLACEMENT MAT (:DISPLACEMENT = 0)
 
-    A value in the [0,MAX-SIZE][] interval. This is like
-    the DISPLACED-INDEX-OFFSET of a lisp array.
+    A value in the `[0,MAX-SIZE]` interval. This is
+    like the DISPLACED-INDEX-OFFSET of a lisp array.
 
 - [reader] MAT-DIMENSIONS MAT (:DIMENSIONS)
 
@@ -195,11 +195,11 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 - [reader] MAT-MAX-SIZE MAT (:MAX-SIZE)
 
-    The total size can be larger than MAT-SIZE, but
-    cannot change. Also DISPLACEMENT + SIZE must not exceed it. This
-    is not
+    The number of elements for which storage is
+    allocated. This is DISPLACEMENT + MAT-SIZE + `SLACK` where `SLACK`
+    is the number of trailing invisible elements.
 
-- [function] MAKE-MAT DIMENSIONS &REST ARGS &KEY CTYPE DISPLACEMENT MAX-SIZE INITIAL-ELEMENT INITIAL-CONTENTS SYNCHRONIZATION DISPLACED-TO CUDA-ENABLED
+- [function] MAKE-MAT DIMENSIONS &REST ARGS &KEY (CTYPE *DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE INITIAL-ELEMENT INITIAL-CONTENTS (SYNCHRONIZATION *DEFAULT-SYNCHRONIZATION*) DISPLACED-TO (CUDA-ENABLED *DEFAULT-MAT-CUDA-ENABLED*)
 
     Return a new MAT object. If INITIAL-CONTENTS is given then the
     matrix contents are initialized with REPLACE!. See class MAT for the
@@ -210,31 +210,25 @@ algorithms. MGL-MAT does its best to keep them separate.
     @CUBE-SYNCHRONIZATION section.
     
     If specified, DISPLACED-TO must be a MAT object large enough (in the
-    sense of its MAT-MAX-SIZE), to hold `(REDUCE #'* DIMENSIONS)` plus
-    DISPLACEMENT elements. Just like with MAKE-ARRAY, INITIAL-ELEMENT
+    sense of its MAT-SIZE), to hold DISPLACEMENT plus `(REDUCE #'*
+    DIMENSIONS)` elements. Just like with MAKE-ARRAY, INITIAL-ELEMENT
     and INITIAL-CONTENTS must not be supplied together with
     DISPLACED-TO.
     
     ```commonlisp
-    (let* ((base (make-mat 10 :initial-element 5))
+    (let* ((base (make-mat 10 :initial-element 5 :displacement 1))
            (mat (make-mat 6 :displaced-to base :displacement 2)))
       (fill! 1 mat)
       (values base mat))
-    ==> #<MAT 10 A #(5.0d0 5.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 5.0d0
-    -->              5.0d0)>
-    ==> #<MAT 2+6+2 AB #(1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0)>
+    ==> #<MAT 1+10+0 A #(5.0d0 5.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 5.0d0
+    -->                  5.0d0)>
+    ==> #<MAT 3+6+2 AB #(1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0)>
     ```
     
     Note that matrices can be displaced and oversized even without
-    DISPLACED-TO:
-    
-    ```commonlisp
-    (make-mat 3 :displacement 2 :max-size 7)
-    ==> #<MAT 2+3+2 A #(0.0d0 0.0d0 0.0d0)>
-    ```
+    DISPLACED-TO just like `BASE` in the above example.
 
-
-- [function] ARRAY-TO-MAT ARRAY &KEY CTYPE SYNCHRONIZATION
+- [function] ARRAY-TO-MAT ARRAY &KEY CTYPE (SYNCHRONIZATION *DEFAULT-SYNCHRONIZATION*)
 
     Create a MAT that's equivalent to ARRAY. Displacement of the
     created array will be 0 and the size will be equal to
@@ -299,7 +293,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     By default MATs are created with this ctype. One of :FLOAT
     or :DOUBLE.
 
-- [function] COERCE-TO-CTYPE X &KEY CTYPE
+- [function] COERCE-TO-CTYPE X &KEY (CTYPE *DEFAULT-MAT-CTYPE*)
 
     Coerce the scalar X to the lisp type corresponding to CTYPE.
 
@@ -322,20 +316,44 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 ## Shaping
 
-Reshaping and displacement of MAT objects works somewhat similarly
-to lisp arrays. The key difference is that they are destructive
-operations. See RESHAPE-AND-DISPLACE!, RESHAPE!, DISPLACE!,
-RESHAPE-TO-ROW-MATRIX! and WITH-SHAPE-AND-DISPLACEMENT. ADJUST! is
-the odd one out, it may create a new MAT.
+One way to reshape and displace MAT objects is with MAKE-MAT and
+its DISPLACED-TO argument whose semantics are similar to that of
+MAKE-ARRAY in that the displacement is *relative* to the visible
+portion of the DISPLACED-TO.
 
-Existing facets are adjusted by all operations. For
-[ARRAY][facet-name] facets, this means creating a new lisp array
-displaced to the backing array. The backing array stays the same,
-clients are supposed to observe MAT-DISPLACEMENT, MAT-DIMENSIONS or
-MAT-SIZE. The [FOREIGN-ARRAY][facet-name] and
-[CUDA-ARRAY][facet-name] facets are [OFFSET-POINTER][class] objects
-so displacement is done by changing the offset. Clients need to
-observe MAT-DIMENSIONS in any case.
+In contrast to that, the following functions interpret DISPLACEMENT
+as *absolute*, i.e. as an index to conceptual non-displaced vector
+used to store the elements.
+
+- [function] RESHAPE-AND-DISPLACE MAT DIMENSIONS DISPLACEMENT
+
+    Return a new matrix of DIMENSIONS that aliases MAT's storage at
+    offset DISPLACEMENT.
+
+- [function] RESHAPE MAT DIMENSIONS
+
+    Return a new matrix of DIMENSIONS that aliases MAT's storage at
+    offset 0.
+
+- [function] DISPLACE MAT DISPLACEMENT
+
+    Return a new matrix that aliases MAT's storage at offset
+    DISPLACEMENT. The returned matrix has the same dimensions as MAT.
+
+The following destructive operations don't alter the contents of
+the matrix, but change what is visible. See RESHAPE-AND-DISPLACE!,
+RESHAPE!, DISPLACE!, RESHAPE-TO-ROW-MATRIX! and
+WITH-SHAPE-AND-DISPLACEMENT. ADJUST! is the odd one out, it may
+create a new MAT.
+
+The low-level view is that existing facets are adjusted by all
+operations. For [ARRAY][facet-name] facets, this means creating a
+new lisp array displaced to the backing array. The backing array
+stays the same, since clients are supposed to observe
+MAT-DISPLACEMENT, MAT-DIMENSIONS or MAT-SIZE. The
+[FOREIGN-ARRAY][facet-name] and [CUDA-ARRAY][facet-name] facets are
+[OFFSET-POINTER][class] objects so displacement is done by changing
+the offset. Clients need to observe MAT-DIMENSIONS in any case.
 
 - [function] RESHAPE-AND-DISPLACE! MAT DIMENSIONS DISPLACEMENT
 
@@ -363,14 +381,14 @@ observe MAT-DIMENSIONS in any case.
     possible by the row-major layout, hence no column counterpart.
     Return MAT.
 
-- [macro] WITH-SHAPE-AND-DISPLACEMENT (MAT &OPTIONAL DIMENSIONS DISPLACEMENT) &BODY BODY
+- [macro] WITH-SHAPE-AND-DISPLACEMENT (MAT &OPTIONAL (DIMENSIONS NIL DIMENSIONSP) (DISPLACEMENT NIL DISPLACEMENTP)) &BODY BODY
 
     Reshape and displace MAT if DIMENSIONS and/or DISPLACEMENT is given
     and restore the original shape and displacement after BODY is
     executed. If neither is specificed, then nothing will be changed,
     but BODY is still allowed to alter the shape and displacement.
 
-- [function] ADJUST! MAT DIMENSIONS DISPLACEMENT &KEY DESTROY-OLD-P
+- [function] ADJUST! MAT DIMENSIONS DISPLACEMENT &KEY (DESTROY-OLD-P T)
 
     Like RESHAPE-AND-DISPLACE! but creates a new matrix if MAT isn't
     large enough. If a new matrix is created, the contents are not
@@ -390,7 +408,7 @@ The functions here assemble a single MAT from a number of
     supported. All dimensions except for AXIS must be the same for all
     MATS.
 
-- [function] STACK AXIS MATS &KEY CTYPE
+- [function] STACK AXIS MATS &KEY (CTYPE *DEFAULT-MAT-CTYPE*)
 
     Like STACK! but return a new MAT of CTYPE.
     
@@ -420,7 +438,7 @@ To prevent this, the cached object is removed from the cache while
 it is used so other invocations will create a fresh one which isn't
 particularly efficient but at least it's safe.
 
-- [macro] WITH-THREAD-CACHED-MAT (VAR DIMENSIONS &REST ARGS &KEY PLACE CTYPE DISPLACEMENT MAX-SIZE INITIAL-ELEMENT INITIAL-CONTENTS) &BODY BODY
+- [macro] WITH-THREAD-CACHED-MAT (VAR DIMENSIONS &REST ARGS &KEY (PLACE :SCRATCH) (CTYPE '*DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS) &BODY BODY
 
     Bind VAR to a matrix of DIMENSIONS, CTYPE, etc. Cache this matrix,
     and possibly reuse it later by reshaping it. When BODY exits the
@@ -452,7 +470,7 @@ particularly efficient but at least it's safe.
     ```
 
 
-- [macro] WITH-ONES (VAR DIMENSIONS &KEY CTYPE PLACE) &BODY BODY
+- [macro] WITH-ONES (VAR DIMENSIONS &KEY (CTYPE '*DEFAULT-MAT-CTYPE*) (PLACE :ONES)) &BODY BODY
 
     Bind VAR to a matrix of DIMENSIONS whose every element is 1. The
     matrix is cached for efficiency.
@@ -465,29 +483,29 @@ initialized and enabled (see USE-CUDA-P).
 
 Level 1 BLAS operations
 
-- [function] ASUM X &KEY N INCX
+- [function] ASUM X &KEY (N (MAT-SIZE X)) (INCX 1)
 
     Return the l1 norm of X, that is, sum of the absolute values of its
     elements.
 
-- [function] AXPY! ALPHA X Y &KEY N INCX INCY
+- [function] AXPY! ALPHA X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)
 
     Set Y to ALPHA \* X + Y. Return Y.
 
-- [function] COPY! X Y &KEY N INCX INCY
+- [function] COPY! X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)
 
     Copy X into Y. Return Y.
 
-- [function] DOT X Y &KEY N INCX INCY
+- [function] DOT X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)
 
     Return the dot product of X and Y.
 
-- [function] NRM2 X &KEY N INCX
+- [function] NRM2 X &KEY (N (MAT-SIZE X)) (INCX 1)
 
     Return the l2 norm of X, which is the square root of the sum of the
     squares of its elements.
 
-- [function] SCAL! ALPHA X &KEY N INCX
+- [function] SCAL! ALPHA X &KEY (N (MAT-SIZE X)) (INCX 1)
 
     Set X to ALPHA \* X. Return X.
 
@@ -526,19 +544,19 @@ Level 3 BLAS operations
 
 ## Destructive API
 
-- [function] .SQUARE! X &KEY N
+- [function] .SQUARE! X &KEY (N (MAT-SIZE X))
 
     Set X to its elementwise square. Return X.
 
-- [function] .SQRT! X &KEY N
+- [function] .SQRT! X &KEY (N (MAT-SIZE X))
 
     Set X to its elementwise square root. Return X.
 
-- [function] .LOG! X &KEY N
+- [function] .LOG! X &KEY (N (MAT-SIZE X))
 
     Set X to its elementwise natural logarithm. Return X.
 
-- [function] .EXP! X &KEY N
+- [function] .EXP! X &KEY (N (MAT-SIZE X))
 
     Apply EXP elementwise to X in a destructive manner. Return X.
 
@@ -550,11 +568,11 @@ Level 3 BLAS operations
     implementation always computes the REALPART of the results while
     CUDA's pow() returns NaNs instead of complex numbers.
 
-- [function] .INV! X &KEY N
+- [function] .INV! X &KEY (N (MAT-SIZE X))
 
     Set X to its elementwise inverse `(/ 1 X)`. Return X.
 
-- [function] .LOGISTIC! X &KEY N
+- [function] .LOGISTIC! X &KEY (N (MAT-SIZE X))
 
     Destructively apply the logistic function to X in an elementwise
     manner. Return X.
@@ -599,23 +617,23 @@ Level 3 BLAS operations
     positive numbers respectively) of A times ALPHA to BETA \* B. Return
     B.
 
-- [function] FILL! ALPHA X &KEY N
+- [function] FILL! ALPHA X &KEY (N (MAT-SIZE X))
 
     Fill matrix X with ALPHA. Return X.
 
-- [function] SUM! X Y &KEY AXIS ALPHA BETA
+- [function] SUM! X Y &KEY AXIS (ALPHA 1) (BETA 0)
 
     Sum matrix X along AXIS and add ALPHA \* SUMS to BETA \* Y
     destructively modifying Y. Return Y. On a 2d matrix (nothing else is
     supported currently), if AXIS is 0, then columns are summed, if AXIS
     is 1 then rows are summed.
 
-- [function] SCALE-ROWS! SCALES A &KEY RESULT
+- [function] SCALE-ROWS! SCALES A &KEY (RESULT A)
 
     Set RESULT to `DIAG(SCALES)*A` and return it. `A` is an `MxN`
     matrix, SCALES is treated as a length `M` vector.
 
-- [function] SCALE-COLUMNS! SCALES A &KEY RESULT
+- [function] SCALE-COLUMNS! SCALES A &KEY (RESULT A)
 
     Set RESULT to `A*DIAG(SCALES)` and return it. `A` is an `MxN`
     matrix, SCALES is treated as a length `N` vector.
@@ -696,7 +714,7 @@ Finally, some neural network operations.
 
     Return the first element of A. A must be of size 1.
 
-- [function] SCALAR-AS-MAT X &KEY CTYPE
+- [function] SCALAR-AS-MAT X &KEY (CTYPE (LISP->CTYPE (TYPE-OF X)))
 
     Return a matrix of one dimension and one element: X. CTYPE, the
     type of the matrix, defaults to the ctype corresponding to the type
@@ -761,7 +779,7 @@ Finally, some neural network operations.
     ```
 
 
-- [function] MAP-DISPLACEMENTS FN MAT DIMENSIONS &KEY DISPLACEMENT-START DISPLACEMENT-STEP
+- [function] MAP-DISPLACEMENTS FN MAT DIMENSIONS &KEY (DISPLACEMENT-START 0) DISPLACEMENT-STEP
 
     Call FN with MAT reshaped to DIMENSIONS, first displaced by
     DISPLACEMENT-START that's incremented by DISPLACEMENT-STEP each
@@ -796,12 +814,12 @@ Unless noted these work efficiently with CUDA.
     Return a copy of STATE be it a lisp or cuda random
     state.
 
-- [function] UNIFORM-RANDOM! MAT &KEY LIMIT
+- [function] UNIFORM-RANDOM! MAT &KEY (LIMIT 1)
 
     Fill MAT with random numbers sampled uniformly from the [0,LIMIT)
     interval of MAT's type.
 
-- [function] GAUSSIAN-RANDOM! MAT &KEY MEAN STDDEV
+- [function] GAUSSIAN-RANDOM! MAT &KEY (MEAN 0) (STDDEV 1)
 
     Fill MAT with independent normally distributed random numbers with
     MEAN and STDDEV.
@@ -812,7 +830,7 @@ Unless noted these work efficiently with CUDA.
     distribution defined by MEANS (Nx1) and COVARIANCES (NxN). No CUDA
     implementation.
 
-- [function] ORTHOGONAL-RANDOM! M &KEY SCALE
+- [function] ORTHOGONAL-RANDOM! M &KEY (SCALE 1)
 
     Fill the matrix M with random values in such a way that `M^T * M`
     is the identity matrix (or something close if M is wide). Return M.
@@ -860,7 +878,7 @@ now, the easy way out is to debug the code with CUDA disabled (see
 Another thing that tends to come up is figuring out where memory is
 used.
 
-- [function] MAT-ROOM &KEY STREAM VERBOSE
+- [function] MAT-ROOM &KEY (STREAM *STANDARD-OUTPUT*) (VERBOSE T)
 
     Calls FOREIGN-ROOM and CUDA-ROOM.
 
@@ -1047,7 +1065,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     doesn't move the array in memory. Currently this is only supported on
     SBCL gencgc platforms.
 
-- [function] FOREIGN-ROOM &KEY STREAM VERBOSE
+- [function] FOREIGN-ROOM &KEY (STREAM *STANDARD-OUTPUT*) (VERBOSE T)
 
     Print a summary of foreign memory usage to STREAM. If VERBOSE, make
     the output human easily readable, else try to present it in a very
@@ -1067,12 +1085,12 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
 
 ### CUDA
 
-- [function] CUDA-AVAILABLE-P &KEY DEVICE-ID
+- [function] CUDA-AVAILABLE-P &KEY (DEVICE-ID 0)
 
     Check a cuda context is already in initialized in the current
     thread or a device with DEVICE-ID is available.
 
-- [macro] WITH-CUDA* (&KEY ENABLED DEVICE-ID RANDOM-SEED N-RANDOM-STATES OVERRIDE-ARCH-P N-POOL-BYTES) &BODY BODY
+- [macro] WITH-CUDA* (&KEY (ENABLED '*CUDA-ENABLED*) (DEVICE-ID '*CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED '*CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES '*CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T) N-POOL-BYTES) &BODY BODY
 
     Initializes CUDA with with all bells and whistles before BODY and
     deinitializes it after. Simply wrapping WITH-CUDA\* around a piece
@@ -1094,7 +1112,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     
     Else - that is, if CUDA is not available, BODY is simply executed.
 
-- [function] CALL-WITH-CUDA FN &KEY ((:ENABLED *CUDA-ENABLED*)) DEVICE-ID RANDOM-SEED N-RANDOM-STATES OVERRIDE-ARCH-P N-POOL-BYTES
+- [function] CALL-WITH-CUDA FN &KEY ((:ENABLED *CUDA-ENABLED*) *CUDA-ENABLED*) (DEVICE-ID *CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED *CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES *CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T) N-POOL-BYTES
 
     Like WITH-CUDA\*, but takes a no argument function instead of the
     macro's BODY.
@@ -1164,7 +1182,7 @@ WITH-CUDA\*. N-POOL-BYTES being NIL means no limit.
     satisfied (either because of N-POOL-BYTES or physical device memory
     limits being reached), then CUDA-OUT-OF-MEMORY is signalled.
 
-- [function] CUDA-ROOM &KEY STREAM VERBOSE
+- [function] CUDA-ROOM &KEY (STREAM *STANDARD-OUTPUT*) (VERBOSE T)
 
     When CUDA is in use (see USE-CUDA-P), print a summary of memory
     usage in the current CUDA context to STREAM. If VERBOSE, make the
@@ -1192,7 +1210,7 @@ very hard to do if the data doesn't fit in device memory which is
 often a very limited resource. In this case the next best thing is
 to do the copying concurrently with computation.
 
-- [macro] WITH-SYNCING-CUDA-FACETS (MATS-TO-CUDA MATS-TO-CUDA-HOST &KEY SAFEP) &BODY BODY
+- [macro] WITH-SYNCING-CUDA-FACETS (MATS-TO-CUDA MATS-TO-CUDA-HOST &KEY (SAFEP '*SYNCING-CUDA-FACETS-SAFE-P*)) &BODY BODY
 
     Update CUDA facets in a possibly asynchronous way while BODY
     executes. Behind the scenes, a separate CUDA stream is used to copy
@@ -1234,7 +1252,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 ### Lisp Extensions
 
-- [macro] DEFINE-LISP-KERNEL (NAME &KEY CTYPES) (&REST PARAMS) &BODY BODY
+- [macro] DEFINE-LISP-KERNEL (NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (&REST PARAMS) &BODY BODY
 
     This is very much like DEFINE-CUDA-KERNEL but for normal lisp code.
     It knows how to deal with MAT objects and can define the same
@@ -1267,7 +1285,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     SINGLE-FLOAT are coerced to that type and the appropriate kernel is
     called.
 
-- [variable] *DEFAULT-LISP-KERNEL-DECLARATIONS* ((OPTIMIZE SPEED (SPEED 3)))
+- [variable] *DEFAULT-LISP-KERNEL-DECLARATIONS* ((OPTIMIZE SPEED (SB-C::INSERT-ARRAY-BOUNDS-CHECKS 0)))
 
     These declarations are added automatically to kernel functions.
 
@@ -1375,7 +1393,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     ```
 
 
-- [macro] DEFINE-CUDA-KERNEL (NAME &KEY CTYPES) (RETURN-TYPE PARAMS) &BODY BODY
+- [macro] DEFINE-CUDA-KERNEL (NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (RETURN-TYPE PARAMS) &BODY BODY
 
     This is an extended CL-CUDA:DEFKERNEL macro. It knows how to deal
     with MAT objects and can define the same function for multiple
@@ -1423,11 +1441,11 @@ use these at all.
 
 - [function] CUBLAS-CREATE HANDLE
 
-- [function] CUBLAS-DESTROY &KEY HANDLE
+- [function] CUBLAS-DESTROY &KEY (HANDLE *CUBLAS-HANDLE*)
 
 - [macro] WITH-CUBLAS-HANDLE NIL &BODY BODY
 
-- [function] CUBLAS-GET-VERSION VERSION &KEY HANDLE
+- [function] CUBLAS-GET-VERSION VERSION &KEY (HANDLE *CUBLAS-HANDLE*)
 
 #### CURAND
 
@@ -1484,7 +1502,7 @@ WITH-FACET.
     
     Also see @CUBE-LIFETIME and @CUBE-FACET-BARRIER.
 
-- [macro] WITH-FACET (VAR (CUBE FACET-NAME &KEY DIRECTION TYPE)) &BODY BODY
+- [macro] WITH-FACET (VAR (CUBE FACET-NAME &KEY (DIRECTION :IO) TYPE)) &BODY BODY
 
     Find or create the facet with FACET-NAME in CUBE and bind VAR to
     the representation of CUBE's data provided by that facet. This
@@ -1867,7 +1885,7 @@ Also see @CUBE-LIFETIME.
     that facets whose extent is tied to some dynamic boundary (such as
     the thread in which they were created) are destroyed.
 
-- [function] COUNT-BARRED-FACETS FACET-NAME &KEY TYPE
+- [function] COUNT-BARRED-FACETS FACET-NAME &KEY (TYPE 'CUBE)
 
     Count facets with FACET-NAME of cubes of TYPE which will be
     destroyed by a facet barrier.
