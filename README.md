@@ -267,19 +267,44 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a name='x-28MGL-MAT-3AMAKE-MAT-20FUNCTION-29'></a>
 
-- [function] **MAKE-MAT** *DIMENSIONS &REST ARGS &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS (SYNCHRONIZATION \*DEFAULT-SYNCHRONIZATION\*) (CUDA-ENABLED \*DEFAULT-MAT-CUDA-ENABLED\*)*
+- [function] **MAKE-MAT** *DIMENSIONS &REST ARGS &KEY CTYPE DISPLACEMENT MAX-SIZE INITIAL-ELEMENT INITIAL-CONTENTS SYNCHRONIZATION DISPLACED-TO CUDA-ENABLED*
 
     Return a new [`MAT`][773f] object. If `INITIAL-CONTENTS` is given then the
-    matrix contents are copied with [`REPLACE!`][c07a]. See class [`MAT`][773f] for the
+    matrix contents are initialized with [`REPLACE!`][c07a]. See class [`MAT`][773f] for the
     description of the rest of the parameters. This is exactly
     what (`MAKE-INSTANCE` '[`MAT`][773f] ...) does except `DIMENSIONS` is not a
     keyword argument so that [`MAKE-MAT`][4cc3] looks more like `MAKE-ARRAY`. The
     semantics of `SYNCHRONIZATION` are desribed in the
     [Synchronization][688d] section.
+    
+    If specified, `DISPLACED-TO` must be a [`MAT`][773f] object large enough (in the
+    sense of its [`MAT-MAX-SIZE`][3cf7]), to hold `(REDUCE #'* DIMENSIONS)` plus
+    `DISPLACEMENT` elements. Just like with `MAKE-ARRAY`, `INITIAL-ELEMENT`
+    and `INITIAL-CONTENTS` must not be supplied together with
+    `DISPLACED-TO`.
+    
+    ```commonlisp
+    (let* ((base (make-mat 10 :initial-element 5))
+           (mat (make-mat 6 :displaced-to base :displacement 2)))
+      (fill! 1 mat)
+      (values base mat))
+    ==> #<MAT 10 A #(5.0d0 5.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 5.0d0
+    -->              5.0d0)>
+    ==> #<MAT 2+6+2 AB #(1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0)>
+    ```
+    
+    Note that matrices can be displaced and oversized even without
+    `DISPLACED-TO`:
+    
+    ```commonlisp
+    (make-mat 3 :displacement 2 :max-size 7)
+    ==> #<MAT 2+3+2 A #(0.0d0 0.0d0 0.0d0)>
+    ```
+
 
 <a name='x-28MGL-MAT-3AARRAY-TO-MAT-20FUNCTION-29'></a>
 
-- [function] **ARRAY-TO-MAT** *ARRAY &KEY CTYPE (SYNCHRONIZATION \*DEFAULT-SYNCHRONIZATION\*)*
+- [function] **ARRAY-TO-MAT** *ARRAY &KEY CTYPE SYNCHRONIZATION*
 
     Create a [`MAT`][773f] that's equivalent to `ARRAY`. Displacement of the
     created array will be 0 and the size will be equal to
@@ -364,7 +389,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a name='x-28MGL-MAT-3ACOERCE-TO-CTYPE-20FUNCTION-29'></a>
 
-- [function] **COERCE-TO-CTYPE** *X &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*)*
+- [function] **COERCE-TO-CTYPE** *X &KEY CTYPE*
 
     Coerce the scalar `X` to the lisp type corresponding to `CTYPE`.
 
@@ -401,14 +426,14 @@ operations. See [`RESHAPE-AND-DISPLACE!`][0f32], [`RESHAPE!`][58e7], [`DISPLACE!
 [`RESHAPE-TO-ROW-MATRIX!`][58bb] and [`WITH-SHAPE-AND-DISPLACEMENT`][0a7a]. [`ADJUST!`][52cb] is
 the odd one out, it may create a new [`MAT`][773f].
 
-Existing facets are adjusted by all operations. For LISP-ARRAY
-facets, this means creating a new lisp array displaced to the
-backing array. The backing array stays the same, clients are
-supposed to observe [`MAT-DISPLACEMENT`][0521], [`MAT-DIMENSIONS`][f5c1] or [`MAT-SIZE`][1caf].
-The [`FOREIGN-ARRAY`][4e9b] and [`CUDA-ARRAY`][b706] facets
-are [OFFSET-POINTER][class] objects so displacement is done by
-changing the offset. Clients need to observe [`MAT-DIMENSIONS`][f5c1] in any
-case.
+Existing facets are adjusted by all operations. For
+[`ARRAY`][4417] facets, this means creating a new lisp array
+displaced to the backing array. The backing array stays the same,
+clients are supposed to observe [`MAT-DISPLACEMENT`][0521], [`MAT-DIMENSIONS`][f5c1] or
+[`MAT-SIZE`][1caf]. The [`FOREIGN-ARRAY`][4e9b] and
+[`CUDA-ARRAY`][b706] facets are [OFFSET-POINTER][class] objects
+so displacement is done by changing the offset. Clients need to
+observe [`MAT-DIMENSIONS`][f5c1] in any case.
 
 <a name='x-28MGL-MAT-3ARESHAPE-AND-DISPLACE-21-20FUNCTION-29'></a>
 
@@ -446,7 +471,7 @@ case.
 
 <a name='x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20-28MGL-PAX-3AMACRO-29-29'></a>
 
-- [macro] **WITH-SHAPE-AND-DISPLACEMENT** *(MAT &OPTIONAL (DIMENSIONS NIL DIMENSIONSP) (DISPLACEMENT NIL DISPLACEMENTP)) &BODY BODY*
+- [macro] **WITH-SHAPE-AND-DISPLACEMENT** *(MAT &OPTIONAL DIMENSIONS DISPLACEMENT) &BODY BODY*
 
     Reshape and displace `MAT` if `DIMENSIONS` and/or `DISPLACEMENT` is given
     and restore the original shape and displacement after `BODY` is
@@ -455,7 +480,7 @@ case.
 
 <a name='x-28MGL-MAT-3AADJUST-21-20FUNCTION-29'></a>
 
-- [function] **ADJUST!** *MAT DIMENSIONS DISPLACEMENT &KEY (DESTROY-OLD-P T)*
+- [function] **ADJUST!** *MAT DIMENSIONS DISPLACEMENT &KEY DESTROY-OLD-P*
 
     Like [`RESHAPE-AND-DISPLACE!`][0f32] but creates a new matrix if `MAT` isn't
     large enough. If a new matrix is created, the contents are not
@@ -481,7 +506,7 @@ The functions here assemble a single [`MAT`][773f] from a number of
 
 <a name='x-28MGL-MAT-3ASTACK-20FUNCTION-29'></a>
 
-- [function] **STACK** *AXIS MATS &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*)*
+- [function] **STACK** *AXIS MATS &KEY CTYPE*
 
     Like [`STACK!`][552a] but return a new [`MAT`][773f] of `CTYPE`.
     
@@ -515,7 +540,7 @@ particularly efficient but at least it's safe.
 
 <a name='x-28MGL-MAT-3AWITH-THREAD-CACHED-MAT-20-28MGL-PAX-3AMACRO-29-29'></a>
 
-- [macro] **WITH-THREAD-CACHED-MAT** *(VAR DIMENSIONS &REST ARGS &KEY (PLACE :SCRATCH) (CTYPE '\*DEFAULT-MAT-CTYPE\*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS) &BODY BODY*
+- [macro] **WITH-THREAD-CACHED-MAT** *(VAR DIMENSIONS &REST ARGS &KEY PLACE CTYPE DISPLACEMENT MAX-SIZE INITIAL-ELEMENT INITIAL-CONTENTS) &BODY BODY*
 
     Bind `VAR` to a matrix of `DIMENSIONS`, `CTYPE`, etc. Cache this matrix,
     and possibly reuse it later by reshaping it. When `BODY` exits the
@@ -551,7 +576,7 @@ particularly efficient but at least it's safe.
 
 <a name='x-28MGL-MAT-3AWITH-ONES-20-28MGL-PAX-3AMACRO-29-29'></a>
 
-- [macro] **WITH-ONES** *(VAR DIMENSIONS &KEY (CTYPE '\*DEFAULT-MAT-CTYPE\*) (PLACE :ONES)) &BODY BODY*
+- [macro] **WITH-ONES** *(VAR DIMENSIONS &KEY CTYPE PLACE) &BODY BODY*
 
     Bind `VAR` to a matrix of `DIMENSIONS` whose every element is 1. The
     matrix is cached for efficiency.
@@ -568,39 +593,39 @@ Level 1 BLAS operations
 
 <a name='x-28MGL-MAT-3AASUM-20FUNCTION-29'></a>
 
-- [function] **ASUM** *X &KEY (N (MAT-SIZE X)) (INCX 1)*
+- [function] **ASUM** *X &KEY N INCX*
 
     Return the l1 norm of `X`, that is, sum of the absolute values of its
     elements.
 
 <a name='x-28MGL-MAT-3AAXPY-21-20FUNCTION-29'></a>
 
-- [function] **AXPY!** *ALPHA X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)*
+- [function] **AXPY!** *ALPHA X Y &KEY N INCX INCY*
 
     Set `Y` to `ALPHA` \* `X` + `Y`. Return `Y`.
 
 <a name='x-28MGL-MAT-3ACOPY-21-20FUNCTION-29'></a>
 
-- [function] **COPY!** *X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)*
+- [function] **COPY!** *X Y &KEY N INCX INCY*
 
     Copy `X` into `Y`. Return `Y`.
 
 <a name='x-28CL-CUDA-2ELANG-2EBUILT-IN-3ADOT-20FUNCTION-29'></a>
 
-- [function] **DOT** *X Y &KEY (N (MAT-SIZE X)) (INCX 1) (INCY 1)*
+- [function] **DOT** *X Y &KEY N INCX INCY*
 
     Return the dot product of `X` and `Y`.
 
 <a name='x-28MGL-MAT-3ANRM2-20FUNCTION-29'></a>
 
-- [function] **NRM2** *X &KEY (N (MAT-SIZE X)) (INCX 1)*
+- [function] **NRM2** *X &KEY N INCX*
 
     Return the l2 norm of `X`, which is the square root of the sum of the
     squares of its elements.
 
 <a name='x-28MGL-MAT-3ASCAL-21-20FUNCTION-29'></a>
 
-- [function] **SCAL!** *ALPHA X &KEY (N (MAT-SIZE X)) (INCX 1)*
+- [function] **SCAL!** *ALPHA X &KEY N INCX*
 
     Set `X` to `ALPHA` \* `X`. Return `X`.
 
@@ -645,25 +670,25 @@ Level 3 BLAS operations
 
 <a name='x-28MGL-MAT-3A-2ESQUARE-21-20FUNCTION-29'></a>
 
-- [function] **.SQUARE!** *X &KEY (N (MAT-SIZE X))*
+- [function] **.SQUARE!** *X &KEY N*
 
     Set `X` to its elementwise square. Return `X`.
 
 <a name='x-28MGL-MAT-3A-2ESQRT-21-20FUNCTION-29'></a>
 
-- [function] **.SQRT!** *X &KEY (N (MAT-SIZE X))*
+- [function] **.SQRT!** *X &KEY N*
 
     Set `X` to its elementwise square root. Return `X`.
 
 <a name='x-28MGL-MAT-3A-2ELOG-21-20FUNCTION-29'></a>
 
-- [function] **.LOG!** *X &KEY (N (MAT-SIZE X))*
+- [function] **.LOG!** *X &KEY N*
 
     Set `X` to its elementwise natural logarithm. Return `X`.
 
 <a name='x-28MGL-MAT-3A-2EEXP-21-20FUNCTION-29'></a>
 
-- [function] **.EXP!** *X &KEY (N (MAT-SIZE X))*
+- [function] **.EXP!** *X &KEY N*
 
     Apply `EXP` elementwise to `X` in a destructive manner. Return `X`.
 
@@ -679,13 +704,13 @@ Level 3 BLAS operations
 
 <a name='x-28MGL-MAT-3A-2EINV-21-20FUNCTION-29'></a>
 
-- [function] **.INV!** *X &KEY (N (MAT-SIZE X))*
+- [function] **.INV!** *X &KEY N*
 
     Set `X` to its elementwise inverse `(/ 1 X)`. Return `X`.
 
 <a name='x-28MGL-MAT-3A-2ELOGISTIC-21-20FUNCTION-29'></a>
 
-- [function] **.LOGISTIC!** *X &KEY (N (MAT-SIZE X))*
+- [function] **.LOGISTIC!** *X &KEY N*
 
     Destructively apply the logistic function to `X` in an elementwise
     manner. Return `X`.
@@ -748,13 +773,13 @@ Level 3 BLAS operations
 
 <a name='x-28MGL-MAT-3AFILL-21-20FUNCTION-29'></a>
 
-- [function] **FILL!** *ALPHA X &KEY (N (MAT-SIZE X))*
+- [function] **FILL!** *ALPHA X &KEY N*
 
     Fill matrix `X` with `ALPHA`. Return `X`.
 
 <a name='x-28MGL-MAT-3ASUM-21-20FUNCTION-29'></a>
 
-- [function] **SUM!** *X Y &KEY AXIS (ALPHA 1) (BETA 0)*
+- [function] **SUM!** *X Y &KEY AXIS ALPHA BETA*
 
     Sum matrix `X` along `AXIS` and add `ALPHA` \* SUMS to `BETA` \* `Y`
     destructively modifying `Y`. Return `Y`. On a 2d matrix (nothing else is
@@ -763,14 +788,14 @@ Level 3 BLAS operations
 
 <a name='x-28MGL-MAT-3ASCALE-ROWS-21-20FUNCTION-29'></a>
 
-- [function] **SCALE-ROWS!** *SCALES A &KEY (RESULT A)*
+- [function] **SCALE-ROWS!** *SCALES A &KEY RESULT*
 
     Set `RESULT` to `DIAG(SCALES)*A` and return it. `A` is an `MxN`
     matrix, `SCALES` is treated as a length `M` vector.
 
 <a name='x-28MGL-MAT-3ASCALE-COLUMNS-21-20FUNCTION-29'></a>
 
-- [function] **SCALE-COLUMNS!** *SCALES A &KEY (RESULT A)*
+- [function] **SCALE-COLUMNS!** *SCALES A &KEY RESULT*
 
     Set `RESULT` to `A*DIAG(SCALES)` and return it. `A` is an `MxN`
     matrix, `SCALES` is treated as a length `N` vector.
@@ -871,7 +896,7 @@ Finally, some neural network operations.
 
 <a name='x-28MGL-MAT-3ASCALAR-AS-MAT-20FUNCTION-29'></a>
 
-- [function] **SCALAR-AS-MAT** *X &KEY (CTYPE (LISP-\>CTYPE (TYPE-OF X)))*
+- [function] **SCALAR-AS-MAT** *X &KEY CTYPE*
 
     Return a matrix of one dimension and one element: `X`. `CTYPE`, the
     type of the matrix, defaults to the ctype corresponding to the type
@@ -958,7 +983,7 @@ Finally, some neural network operations.
 
 <a name='x-28MGL-MAT-3AMAP-DISPLACEMENTS-20FUNCTION-29'></a>
 
-- [function] **MAP-DISPLACEMENTS** *FN MAT DIMENSIONS &KEY (DISPLACEMENT-START 0) DISPLACEMENT-STEP*
+- [function] **MAP-DISPLACEMENTS** *FN MAT DIMENSIONS &KEY DISPLACEMENT-START DISPLACEMENT-STEP*
 
     Call `FN` with `MAT` reshaped to `DIMENSIONS`, first displaced by
     `DISPLACEMENT-START` that's incremented by `DISPLACEMENT-STEP` each
@@ -1001,14 +1026,14 @@ Unless noted these work efficiently with CUDA.
 
 <a name='x-28MGL-MAT-3AUNIFORM-RANDOM-21-20FUNCTION-29'></a>
 
-- [function] **UNIFORM-RANDOM!** *MAT &KEY (LIMIT 1)*
+- [function] **UNIFORM-RANDOM!** *MAT &KEY LIMIT*
 
     Fill `MAT` with random numbers sampled uniformly from the [0,LIMIT)
     interval of `MAT`'s type.
 
 <a name='x-28MGL-MAT-3AGAUSSIAN-RANDOM-21-20FUNCTION-29'></a>
 
-- [function] **GAUSSIAN-RANDOM!** *MAT &KEY (MEAN 0) (STDDEV 1)*
+- [function] **GAUSSIAN-RANDOM!** *MAT &KEY MEAN STDDEV*
 
     Fill `MAT` with independent normally distributed random numbers with
     `MEAN` and `STDDEV`.
@@ -1023,7 +1048,7 @@ Unless noted these work efficiently with CUDA.
 
 <a name='x-28MGL-MAT-3AORTHOGONAL-RANDOM-21-20FUNCTION-29'></a>
 
-- [function] **ORTHOGONAL-RANDOM!** *M &KEY (SCALE 1)*
+- [function] **ORTHOGONAL-RANDOM!** *M &KEY SCALE*
 
     Fill the matrix `M` with random values in such a way that `M^T * M`
     is the identity matrix (or something close if `M` is wide). Return `M`.
@@ -1083,7 +1108,7 @@ used.
 
 <a name='x-28MGL-MAT-3AMAT-ROOM-20FUNCTION-29'></a>
 
-- [function] **MAT-ROOM** *&KEY (STREAM \*STANDARD-OUTPUT\*) (VERBOSE T)*
+- [function] **MAT-ROOM** *&KEY STREAM VERBOSE*
 
     Calls [`FOREIGN-ROOM`][12bc] and [`CUDA-ROOM`][1dbc].
 
@@ -1298,7 +1323,7 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a name='x-28MGL-MAT-3AFOREIGN-ROOM-20FUNCTION-29'></a>
 
-- [function] **FOREIGN-ROOM** *&KEY (STREAM \*STANDARD-OUTPUT\*) (VERBOSE T)*
+- [function] **FOREIGN-ROOM** *&KEY STREAM VERBOSE*
 
     Print a summary of foreign memory usage to `STREAM`. If `VERBOSE`, make
     the output human easily readable, else try to present it in a very
@@ -1322,14 +1347,14 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a name='x-28MGL-MAT-3ACUDA-AVAILABLE-P-20FUNCTION-29'></a>
 
-- [function] **CUDA-AVAILABLE-P** *&KEY (DEVICE-ID 0)*
+- [function] **CUDA-AVAILABLE-P** *&KEY DEVICE-ID*
 
     Check a cuda context is already in initialized in the current
     thread or a device with `DEVICE-ID` is available.
 
 <a name='x-28MGL-MAT-3AWITH-CUDA-2A-20-28MGL-PAX-3AMACRO-29-29'></a>
 
-- [macro] **WITH-CUDA\*** *(&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID '\*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED '\*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES '\*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T) N-POOL-BYTES) &BODY BODY*
+- [macro] **WITH-CUDA\*** *(&KEY ENABLED DEVICE-ID RANDOM-SEED N-RANDOM-STATES OVERRIDE-ARCH-P N-POOL-BYTES) &BODY BODY*
 
     Initializes CUDA with with all bells and whistles before `BODY` and
     deinitializes it after. Simply wrapping [`WITH-CUDA*`][2e14] around a piece
@@ -1353,7 +1378,7 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a name='x-28MGL-MAT-3ACALL-WITH-CUDA-20FUNCTION-29'></a>
 
-- [function] **CALL-WITH-CUDA** *FN &KEY ((:ENABLED \*CUDA-ENABLED\*) \*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T) N-POOL-BYTES*
+- [function] **CALL-WITH-CUDA** *FN &KEY ((:ENABLED \*CUDA-ENABLED\*)) DEVICE-ID RANDOM-SEED N-RANDOM-STATES OVERRIDE-ARCH-P N-POOL-BYTES*
 
     Like [`WITH-CUDA*`][2e14], but takes a no argument function instead of the
     macro's `BODY`.
@@ -1445,7 +1470,7 @@ unused but cached) is never more than `N-POOL-BYTES` as specified in
 
 <a name='x-28MGL-MAT-3ACUDA-ROOM-20FUNCTION-29'></a>
 
-- [function] **CUDA-ROOM** *&KEY (STREAM \*STANDARD-OUTPUT\*) (VERBOSE T)*
+- [function] **CUDA-ROOM** *&KEY STREAM VERBOSE*
 
     When CUDA is in use (see [`USE-CUDA-P`][51e4]), print a summary of memory
     usage in the current CUDA context to `STREAM`. If `VERBOSE`, make the
@@ -1475,7 +1500,7 @@ to do the copying concurrently with computation.
 
 <a name='x-28MGL-MAT-3AWITH-SYNCING-CUDA-FACETS-20-28MGL-PAX-3AMACRO-29-29'></a>
 
-- [macro] **WITH-SYNCING-CUDA-FACETS** *(MATS-TO-CUDA MATS-TO-CUDA-HOST &KEY (SAFEP '\*SYNCING-CUDA-FACETS-SAFE-P\*)) &BODY BODY*
+- [macro] **WITH-SYNCING-CUDA-FACETS** *(MATS-TO-CUDA MATS-TO-CUDA-HOST &KEY SAFEP) &BODY BODY*
 
     Update CUDA facets in a possibly asynchronous way while `BODY`
     executes. Behind the scenes, a separate CUDA stream is used to copy
@@ -1525,7 +1550,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 <a name='x-28MGL-MAT-3ADEFINE-LISP-KERNEL-20-28MGL-PAX-3AMACRO-29-29'></a>
 
-- [macro] **DEFINE-LISP-KERNEL** *(NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (&REST PARAMS) &BODY BODY*
+- [macro] **DEFINE-LISP-KERNEL** *(NAME &KEY CTYPES) (&REST PARAMS) &BODY BODY*
 
     This is very much like [`DEFINE-CUDA-KERNEL`][bf18] but for normal lisp code.
     It knows how to deal with [`MAT`][773f] objects and can define the same
@@ -1560,7 +1585,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 <a name='x-28MGL-MAT-3A-2ADEFAULT-LISP-KERNEL-DECLARATIONS-2A-20-28VARIABLE-29-29'></a>
 
-- [variable] **\*DEFAULT-LISP-KERNEL-DECLARATIONS\*** *((OPTIMIZE SPEED (SB-C::INSERT-ARRAY-BOUNDS-CHECKS 0)))*
+- [variable] **\*DEFAULT-LISP-KERNEL-DECLARATIONS\*** *((OPTIMIZE SPEED (SPEED 3)))*
 
     These declarations are added automatically to kernel functions.
 
@@ -1680,7 +1705,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 <a name='x-28MGL-MAT-3ADEFINE-CUDA-KERNEL-20-28MGL-PAX-3AMACRO-29-29'></a>
 
-- [macro] **DEFINE-CUDA-KERNEL** *(NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (RETURN-TYPE PARAMS) &BODY BODY*
+- [macro] **DEFINE-CUDA-KERNEL** *(NAME &KEY CTYPES) (RETURN-TYPE PARAMS) &BODY BODY*
 
     This is an extended `CL-CUDA:DEFKERNEL` macro. It knows how to deal
     with [`MAT`][773f] objects and can define the same function for multiple
@@ -1742,7 +1767,7 @@ use these at all.
 
 <a name='x-28MGL-MAT-3ACUBLAS-DESTROY-20FUNCTION-29'></a>
 
-- [function] **CUBLAS-DESTROY** *&KEY (HANDLE \*CUBLAS-HANDLE\*)*
+- [function] **CUBLAS-DESTROY** *&KEY HANDLE*
 
 <a name='x-28MGL-MAT-3AWITH-CUBLAS-HANDLE-20-28MGL-PAX-3AMACRO-29-29'></a>
 
@@ -1750,7 +1775,7 @@ use these at all.
 
 <a name='x-28MGL-MAT-3ACUBLAS-GET-VERSION-20FUNCTION-29'></a>
 
-- [function] **CUBLAS-GET-VERSION** *VERSION &KEY (HANDLE \*CUBLAS-HANDLE\*)*
+- [function] **CUBLAS-GET-VERSION** *VERSION &KEY HANDLE*
 
 <a name='x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29'></a>
 
@@ -1840,7 +1865,7 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
 
 <a name='x-28MGL-CUBE-3AWITH-FACET-20-28MGL-PAX-3AMACRO-29-29'></a>
 
-- [macro] **WITH-FACET** *(VAR (CUBE FACET-NAME &KEY (DIRECTION :IO) TYPE)) &BODY BODY*
+- [macro] **WITH-FACET** *(VAR (CUBE FACET-NAME &KEY DIRECTION TYPE)) &BODY BODY*
 
     Find or create the facet with `FACET-NAME` in `CUBE` and bind `VAR` to
     the representation of `CUBE`'s data provided by that facet. This
@@ -2309,7 +2334,7 @@ Also see [Lifetime][767f].
 
 <a name='x-28MGL-CUBE-3ACOUNT-BARRED-FACETS-20FUNCTION-29'></a>
 
-- [function] **COUNT-BARRED-FACETS** *FACET-NAME &KEY (TYPE 'CUBE)*
+- [function] **COUNT-BARRED-FACETS** *FACET-NAME &KEY TYPE*
 
     Count facets with `FACET-NAME` of cubes of `TYPE` which will be
     destroyed by a facet barrier.

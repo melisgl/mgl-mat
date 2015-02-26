@@ -246,19 +246,27 @@
 (defmethod mat-max-size ((mat mat))
   (vec-size (vec mat)))
 
-(defmethod initialize-instance :after ((mat mat) &key initial-contents
-                                       (ctype *default-mat-ctype*)
-                                       (initial-element 0)
-                                       max-size
+(defmethod initialize-instance :after ((mat mat) &key ctype
+                                       (initial-element 0 initial-element-p)
+                                       (initial-contents nil initial-contents-p)
+                                       displaced-to max-size
                                        &allow-other-keys)
+  (when displaced-to
+    (assert (null initial-element-p) ()
+            "INITIAL-ELEMENT cannot be supplied together with DISPLACED-TO.")
+    (assert (null initial-contents-p) ()
+            "INITIAL-CONTENTS cannot be supplied together with DISPLACED-TO."))
   (unless (listp (mat-dimensions mat))
     (setf (slot-value mat 'dimensions)
           (list (mat-dimensions mat))))
   (setf (slot-value mat 'size) (mat-size-from-dimensions (mat-dimensions mat)))
   (setf (slot-value mat 'vec)
-        (make-instance 'vec :ctype ctype :initial-element initial-element
-                       :size (or max-size
-                                 (+ (mat-displacement mat) (mat-size mat)))))
+        (if displaced-to
+            (vec displaced-to)
+            (make-instance 'vec :ctype ctype :initial-element initial-element
+                           :size (or max-size
+                                     (+ (mat-displacement mat)
+                                        (mat-size mat))))))
   (assert (<= (+ (mat-displacement mat) (mat-size mat)) (mat-max-size mat)))
   (when initial-contents
     (replace! mat initial-contents)))
@@ -279,22 +287,47 @@
   (elt (mat-dimensions mat) axis-number))
 
 (defun make-mat (dimensions &rest args &key (ctype *default-mat-ctype*)
-                 (displacement 0) max-size (initial-element 0)
+                 (displacement 0) max-size initial-element
                  initial-contents (synchronization *default-synchronization*)
-                 (cuda-enabled *default-mat-cuda-enabled*))
+                 displaced-to (cuda-enabled *default-mat-cuda-enabled*))
   "Return a new MAT object. If INITIAL-CONTENTS is given then the
-  matrix contents are copied with REPLACE!. See class MAT for the
+  matrix contents are initialized with REPLACE!. See class MAT for the
   description of the rest of the parameters. This is exactly
   what (MAKE-INSTANCE 'MAT ...) does except DIMENSIONS is not a
   keyword argument so that MAKE-MAT looks more like MAKE-ARRAY. The
   semantics of SYNCHRONIZATION are desribed in the
-  @CUBE-SYNCHRONIZATION section."
+  @CUBE-SYNCHRONIZATION section.
+
+  If specified, DISPLACED-TO must be a MAT object large enough (in the
+  sense of its MAT-MAX-SIZE), to hold `(REDUCE #'* DIMENSIONS)` plus
+  DISPLACEMENT elements. Just like with MAKE-ARRAY, INITIAL-ELEMENT
+  and INITIAL-CONTENTS must not be supplied together with
+  DISPLACED-TO.
+
+  ```commonlisp
+  (let* ((base (make-mat 10 :initial-element 5))
+         (mat (make-mat 6 :displaced-to base :displacement 2)))
+    (fill! 1 mat)
+    (values base mat))
+  ==> #<MAT 10 A #(5.0d0 5.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 5.0d0
+  -->              5.0d0)>
+  ==> #<MAT 2+6+2 AB #(1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0)>
+  ```
+
+  Note that matrices can be displaced and oversized even without
+  DISPLACED-TO:
+
+  ```commonlisp
+  (make-mat 3 :displacement 2 :max-size 7)
+  ==> #<MAT 2+3+2 A #(0.0d0 0.0d0 0.0d0)>
+  ```"
   (declare (ignore displacement max-size initial-element initial-contents
-                   cuda-enabled)
+                   displaced-to cuda-enabled)
            (optimize speed)
            (dynamic-extent args))
   (apply #'make-instance 'mat :ctype ctype :dimensions dimensions
-         :synchronization synchronization args))
+         :synchronization synchronization
+         args))
 
 (defun array-to-mat (array &key ctype
                      (synchronization *default-synchronization*))
@@ -527,14 +560,14 @@
   RESHAPE-TO-ROW-MATRIX! and WITH-SHAPE-AND-DISPLACEMENT. ADJUST! is
   the odd one out, it may create a new MAT.
 
-  Existing facets are adjusted by all operations. For LISP-ARRAY
-  facets, this means creating a new lisp array displaced to the
-  backing array. The backing array stays the same, clients are
-  supposed to observe MAT-DISPLACEMENT, MAT-DIMENSIONS or MAT-SIZE.
-  The [FOREIGN-ARRAY][facet-name] and [CUDA-ARRAY][facet-name] facets
-  are [OFFSET-POINTER][class] objects so displacement is done by
-  changing the offset. Clients need to observe MAT-DIMENSIONS in any
-  case."
+  Existing facets are adjusted by all operations. For
+  [ARRAY][facet-name] facets, this means creating a new lisp array
+  displaced to the backing array. The backing array stays the same,
+  clients are supposed to observe MAT-DISPLACEMENT, MAT-DIMENSIONS or
+  MAT-SIZE. The [FOREIGN-ARRAY][facet-name] and
+  [CUDA-ARRAY][facet-name] facets are [OFFSET-POINTER][class] objects
+  so displacement is done by changing the offset. Clients need to
+  observe MAT-DIMENSIONS in any case."
   (reshape-and-displace! function)
   (reshape! function)
   (displace! function)
