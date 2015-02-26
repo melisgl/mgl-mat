@@ -70,8 +70,8 @@ supported, but it would be easy to add single and double precision
 complex types too. Other numeric types, such as byte and native
 integer, can be added too, but they are not supported by CUBLAS.
 There are no restrictions on the number of dimensions, and reshaping
-is possible. The CUBLAS functions operate on the visible portion of
-the matrix (which is subject to displacement and shaping), invisible
+is possible. All functions operate on the visible portion of the
+matrix (which is subject to displacement and shaping), invisible
 elements are not affected.
 
 <a name='x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29'></a>
@@ -182,6 +182,22 @@ accessing one of the facets directly, as in the following example:
     (lla:logdet array)))
 
 ```
+
+Notice that [`LOGDET`][ed9a] doesn't know about CUDA at all. [`WITH-FACETS`][bb1d]
+gives it the content of the matrix as a normal multidimensional lisp
+array, copying the data from the GPU or elsewhere if necessary. This
+allows new representations ([`FACET`][d34e]s) to be added easily and it also
+avoids copying if the facet is already up-to-date. Of course, adding
+CUDA support to [`LOGDET`][ed9a] could make it more efficient.
+
+Adding support for matrices that, for instance, live on a remote
+machine is thus possible with a new facet type and existing code
+would continue to work (albeit possibly slowly). Then one could
+optimize the bottleneck operations by sending commands over the
+network instead of copying data.
+
+It is a bad idea to conflate resource management policy and
+algorithms. MGL-MAT does its best to keep them separate.
 
 <a name='x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29'></a>
 
@@ -2407,6 +2423,7 @@ Also see [Lifetime][767f].
   [dd58]: #x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29 "What kind of matrices are supported?"
   [e71c]: #x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29 "Destructive API"
   [e8e7]: #x-28MGL-MAT-3A-40MAT-CACHING-20MGL-PAX-3ASECTION-29 "Caching"
+  [ed9a]: #x-28MGL-MAT-3ALOGDET-20FUNCTION-29 "(MGL-MAT:LOGDET FUNCTION)"
   [edb0]: #x-28MGL-MAT-3AWITH-SYNCING-CUDA-FACETS-20-28MGL-PAX-3AMACRO-29-29 "(MGL-MAT:WITH-SYNCING-CUDA-FACETS (MGL-PAX:MACRO))"
   [edce]: #x-28MGL-CUBE-3ACHECK-NO-WRITERS-20FUNCTION-29 "(MGL-CUBE:CHECK-NO-WRITERS FUNCTION)"
   [ee90]: #x-28MGL-CUBE-3AUNWATCH-FACET-20GENERIC-FUNCTION-29 "(MGL-CUBE:UNWATCH-FACET GENERIC-FUNCTION)"

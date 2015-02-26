@@ -3,6 +3,11 @@
 ;;;; - doc: OFFSET-POINTER, BASE-POINTER, CUDA-ARRAY
 ;;;;
 ;;;; - doc: separate cuda extension api
+;;;;
+;;;; - Make operations defer the choice of which implementation to use
+;;;;   to generic functions instead of doing the USE-CUDA-P dance
+;;;;   themselves. This could allow most (all?) of CUDA code to be
+;;;;   factored out.
 
 (in-package :mgl-mat)
 
@@ -44,8 +49,8 @@
   complex types too. Other numeric types, such as byte and native
   integer, can be added too, but they are not supported by CUBLAS.
   There are no restrictions on the number of dimensions, and reshaping
-  is possible. The CUBLAS functions operate on the visible portion of
-  the matrix (which is subject to displacement and shaping), invisible
+  is possible. All functions operate on the visible portion of the
+  matrix (which is subject to displacement and shaping), invisible
   elements are not affected.")
 
 (defsection @mat-installation (:title "Where to Get it?")
@@ -143,7 +148,22 @@
   (log-det-example (include (:start (logdet function)
                                     :end (end-of-logdet-example variable))
                             :header-nl "```commonlisp"
-                            :footer-nl "```")))
+                            :footer-nl "```"))
+  "Notice that LOGDET doesn't know about CUDA at all. WITH-FACETS
+  gives it the content of the matrix as a normal multidimensional lisp
+  array, copying the data from the GPU or elsewhere if necessary. This
+  allows new representations (`FACET`s) to be added easily and it also
+  avoids copying if the facet is already up-to-date. Of course, adding
+  CUDA support to LOGDET could make it more efficient.
+
+  Adding support for matrices that, for instance, live on a remote
+  machine is thus possible with a new facet type and existing code
+  would continue to work (albeit possibly slowly). Then one could
+  optimize the bottleneck operations by sending commands over the
+  network instead of copying data.
+
+  It is a bad idea to conflate resource management policy and
+  algorithms. \\MGL-MAT does its best to keep them separate.")
 
 
 (defsection @mat-basics (:title "Basics")

@@ -10,7 +10,6 @@
   ((ctype
     :type ctype :initform *default-mat-ctype*
     :initarg :ctype :reader vec-ctype)
-   ;; FIXME: support it
    (initial-element
     :initform 0 :initarg :initial-element
     :reader vec-initial-element)
