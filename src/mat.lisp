@@ -190,7 +190,8 @@
   ((displacement
     :initform 0 :initarg :displacement :reader mat-displacement
     :documentation "A value in the `[0,MAX-SIZE]` interval. This is
-    like the DISPLACED-INDEX-OFFSET of a lisp array.")
+    like the DISPLACED-INDEX-OFFSET of a lisp array, but displacement
+    is relative to the start of the underlying storage vector.")
    (dimensions
     :initarg :dimensions :reader mat-dimensions
     :documentation "Like ARRAY-DIMENSIONS. It holds a list of
@@ -228,7 +229,7 @@
     type. If NIL, then no initialization is performed.")
    (max-size
     :initarg :max-size :reader mat-max-size
-    :documentation "The number of elements for which storage is
+    :documentation "The number of elements for which storage may be
     allocated. This is DISPLACEMENT + MAT-SIZE + `SLACK` where `SLACK`
     is the number of trailing invisible elements."))
   (:documentation "A MAT is a data CUBE that is much like a lisp
@@ -265,6 +266,8 @@
   (setf (slot-value mat 'size) (dimensions-total-size (mat-dimensions mat)))
   (when displaced-to
     (incf (slot-value mat 'displacement) (mat-displacement displaced-to)))
+  (assert (<= 0 (mat-displacement mat)) ()
+          "Negative displacement ~S is illegal." (mat-displacement mat))
   (setf (slot-value mat 'vec)
         (if displaced-to
             (vec displaced-to)
@@ -307,20 +310,7 @@
   sense of its MAT-SIZE), to hold DISPLACEMENT plus `(REDUCE #'*
   DIMENSIONS)` elements. Just like with MAKE-ARRAY, INITIAL-ELEMENT
   and INITIAL-CONTENTS must not be supplied together with
-  DISPLACED-TO.
-
-  ```commonlisp
-  (let* ((base (make-mat 10 :initial-element 5 :displacement 1))
-         (mat (make-mat 6 :displaced-to base :displacement 2)))
-    (fill! 1 mat)
-    (values base mat))
-  ==> #<MAT 1+10+0 A #(5.0d0 5.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 5.0d0
-  -->                  5.0d0)>
-  ==> #<MAT 3+6+2 AB #(1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0)>
-  ```
-
-  Note that matrices can be displaced and oversized even without
-  DISPLACED-TO just like `BASE` in the above example."
+  DISPLACED-TO. See @MAT-SHAPING for more."
   (declare (ignore displacement max-size initial-element initial-contents
                    displaced-to cuda-enabled)
            (optimize speed)
@@ -554,54 +544,104 @@
 
 
 (defsection @mat-shaping (:title "Shaping")
+  "We are going to discuss various ways to change the visible portion
+  and dimensions of matrices. Conceptually a matrix has an _underlying
+  non-displaced storage vector_. For `(MAKE-MAT 10 :DISPLACEMENT
+  7 :MAX-SIZE 21)` this underlying vector looks like this:
+
+      displacement | visible elements  | slack
+      . . . . . . . 0 0 0 0 0 0 0 0 0 0 . . . .
+
+  Whenever a matrix is reshaped (or _displaced to_ in lisp
+  terminology), its displacement and dimensions change but the
+  underlying vector does not.
+
+  The rules for accessing displaced matrices is the same as always:
+  multiple readers can run in parallel, but attempts to write will
+  result in an error if there are either readers or writers on any of
+  the matrices that share the same underlying vector."
+  (@mat-shaping-comparison-to-lisp section)
+  (@mat-shaping-functional section)
+  (@mat-shaping-destructive section))
+
+(defsection @mat-shaping-comparison-to-lisp (:title "Comparison to Lisp Arrays")
   "One way to reshape and displace MAT objects is with MAKE-MAT and
   its DISPLACED-TO argument whose semantics are similar to that of
-  MAKE-ARRAY in that the displacement is _relative_ to the visible
-  portion of the DISPLACED-TO.
+  MAKE-ARRAY in that the displacement is _relative_ to the
+  displacement of DISPLACED-TO.
 
-  In contrast to that, the following functions interpret DISPLACEMENT
-  as _absolute_, i.e. as an index into conceptual non-displaced vector
-  used to store the elements."
+  ```commonlisp
+  (let* ((base (make-mat 10 :initial-element 5 :displacement 1))
+         (mat (make-mat 6 :displaced-to base :displacement 2)))
+    (fill! 1 mat)
+    (values base mat))
+  ==> #<MAT 1+10+0 A #(5.0d0 5.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 5.0d0
+  -->                  5.0d0)>
+  ==> #<MAT 3+6+2 AB #(1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0)>
+  ```
+
+  There are important semantic differences compared to lisp arrays all
+  which follow from the fact that displacement operates on the
+  underlying conceptual non-displaced vector.
+
+  - Matrices can be displaced and have slack even without DISPLACED-TO
+    just like `BASE` in the above example.
+
+  - It's legal to alias invisible elements of DISPLACED-TO as long as
+    the new matrix fits into the underlying storage.
+
+  - Negative displacements are allowed with DISPLACED-TO as long as
+    the adjusted displacement is non-negative.
+
+  - Further shaping operations can make invisible portions of the
+    DISPLACED-TO matrix visible by changing the displacement.
+
+  - In contrast to ARRAY-DISPLACEMENT, MAT-DISPLACEMENT only returns
+    an offset into the underlying storage vector.")
+
+
+(defsection @mat-shaping-functional (:title "Functional Shaping")
+  "The following functions are collectively called the functional
+  shaping operations, since they don't alter their arguments in any
+  way. Still, since storage is aliased modification to the returned
+  matrix will affect the original."
   (reshape-and-displace function)
   (reshape function)
-  (displace function)
-  "The following destructive operations don't alter the contents of
-  the matrix, but change what is visible. See RESHAPE-AND-DISPLACE!,
-  RESHAPE!, DISPLACE!, RESHAPE-TO-ROW-MATRIX! and
-  WITH-SHAPE-AND-DISPLACEMENT. ADJUST! is the odd one out, it may
-  create a new MAT.
+  (displace function))
 
-  The low-level view is that existing facets are adjusted by all
-  operations. For [ARRAY][facet-name] facets, this means creating a
-  new lisp array displaced to the backing array. The backing array
-  stays the same, since clients are supposed to observe
-  MAT-DISPLACEMENT, MAT-DIMENSIONS or MAT-SIZE. The
-  [FOREIGN-ARRAY][facet-name] and [CUDA-ARRAY][facet-name] facets are
-  [OFFSET-POINTER][class] objects so displacement is done by changing
-  the offset. Clients need to observe MAT-DIMENSIONS in any case."
+(defun reshape-and-displace (mat dimensions displacement)
+  "Return a new matrix of DIMENSIONS that aliases MAT's storage at
+  offset DISPLACEMENT. DISPLACEMENT 0 is equivalent to the start of
+  the storage of MAT regardless of MAT's displacement."
+  (make-mat dimensions :ctype (mat-ctype mat)
+            :displaced-to mat
+            :displacement (- displacement (mat-displacement mat))))
+
+(defun reshape (mat dimensions)
+  "Return a new matrix of DIMENSIONS whose displacement is the same as
+  the displacement of MAT."
+  (make-mat dimensions :ctype (mat-ctype mat) :displaced-to mat))
+
+(defun displace (mat displacement)
+  "Return a new matrix that aliases MAT's storage at offset
+  DISPLACEMENT. DISPLACEMENT 0 is equivalent to the start of the
+  storage of MAT regardless of MAT's displacement. The returned matrix
+  has the same dimensions as MAT."
+  (make-mat (mat-dimensions mat) :ctype (mat-ctype mat)
+            :displaced-to mat
+            :displacement (- displacement (mat-displacement mat))))
+
+
+(defsection @mat-shaping-destructive (:title "Destructive Shaping")
+  "The following destructive operations don't alter the contents of
+  the matrix, but change what is visible. ADJUST! is the odd one out,
+  it may create a new MAT."
   (reshape-and-displace! function)
   (reshape! function)
   (displace! function)
   (reshape-to-row-matrix! function)
   (with-shape-and-displacement macro)
   (adjust! function))
-
-(defun reshape-and-displace (mat dimensions displacement)
-  "Return a new matrix of DIMENSIONS that aliases MAT's storage at
-  offset DISPLACEMENT."
-  (make-mat dimensions :displacement displacement :ctype (mat-ctype mat)))
-
-(defun reshape (mat dimensions)
-  "Return a new matrix of DIMENSIONS that aliases MAT's storage at
-  offset 0."
-  (make-mat dimensions :displacement (mat-displacement mat)
-            :ctype (mat-ctype mat)))
-
-(defun displace (mat displacement)
-  "Return a new matrix that aliases MAT's storage at offset
-  DISPLACEMENT. The returned matrix has the same dimensions as MAT."
-  (make-mat (mat-dimensions mat) :displacement displacement
-            :ctype (mat-ctype mat)))
 
 (defun reshape-and-displace! (mat dimensions displacement)
   "Change the visible (or active) portion of MAT by altering its

@@ -14,6 +14,9 @@
 - [5 Element types][00a6]
 - [6 Printing][6ccf]
 - [7 Shaping][8866]
+    - [7.1 Comparison to Lisp Arrays][1a3b]
+    - [7.2 Functional Shaping][296c]
+    - [7.3 Destructive Shaping][481f]
 - [8 Assembling][8816]
 - [9 Caching][e8e7]
 - [10 BLAS Operations][0386]
@@ -225,7 +228,8 @@ algorithms. MGL-MAT does its best to keep them separate.
 - [reader] **MAT-DISPLACEMENT** *MAT* *(:DISPLACEMENT = 0)*
 
     A value in the `[0,MAX-SIZE]` interval. This is
-    like the DISPLACED-INDEX-OFFSET of a lisp array.
+    like the DISPLACED-INDEX-OFFSET of a lisp array, but displacement
+    is relative to the start of the underlying storage vector.
 
 <a name='x-28MGL-MAT-3AMAT-DIMENSIONS-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a>
 
@@ -261,7 +265,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 - [reader] **MAT-MAX-SIZE** *MAT* *(:MAX-SIZE)*
 
-    The number of elements for which storage is
+    The number of elements for which storage may be
     allocated. This is `DISPLACEMENT` + [`MAT-SIZE`][1caf] + `SLACK` where `SLACK`
     is the number of trailing invisible elements.
 
@@ -281,20 +285,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     sense of its [`MAT-SIZE`][1caf]), to hold `DISPLACEMENT` plus `(REDUCE #'*
     DIMENSIONS)` elements. Just like with `MAKE-ARRAY`, `INITIAL-ELEMENT`
     and `INITIAL-CONTENTS` must not be supplied together with
-    `DISPLACED-TO`.
-    
-    ```commonlisp
-    (let* ((base (make-mat 10 :initial-element 5 :displacement 1))
-           (mat (make-mat 6 :displaced-to base :displacement 2)))
-      (fill! 1 mat)
-      (values base mat))
-    ==> #<MAT 1+10+0 A #(5.0d0 5.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 5.0d0
-    -->                  5.0d0)>
-    ==> #<MAT 3+6+2 AB #(1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0)>
-    ```
-    
-    Note that matrices can be displaced and oversized even without
-    `DISPLACED-TO` just like `BASE` in the above example.
+    `DISPLACED-TO`. See [Shaping][8866] for more.
 
 <a name='x-28MGL-MAT-3AARRAY-TO-MAT-20FUNCTION-29'></a>
 
@@ -414,50 +405,102 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 ## 7 Shaping
 
+We are going to discuss various ways to change the visible portion
+and dimensions of matrices. Conceptually a matrix has an *underlying
+non-displaced storage vector*. For `(MAKE-MAT 10 :DISPLACEMENT
+7 :MAX-SIZE 21)` this underlying vector looks like this:
+
+    displacement | visible elements  | slack
+    . . . . . . . 0 0 0 0 0 0 0 0 0 0 . . . .
+
+Whenever a matrix is reshaped (or *displaced to* in lisp
+terminology), its displacement and dimensions change but the
+underlying vector does not.
+
+The rules for accessing displaced matrices is the same as always:
+multiple readers can run in parallel, but attempts to write will
+result in an error if there are either readers or writers on any of
+the matrices that share the same underlying vector.
+
+<a name='x-28MGL-MAT-3A-40MAT-SHAPING-COMPARISON-TO-LISP-20MGL-PAX-3ASECTION-29'></a>
+
+### 7.1 Comparison to Lisp Arrays
+
 One way to reshape and displace [`MAT`][773f] objects is with [`MAKE-MAT`][4cc3] and
 its `DISPLACED-TO` argument whose semantics are similar to that of
-`MAKE-ARRAY` in that the displacement is *relative* to the visible
-portion of the `DISPLACED-TO`.
+`MAKE-ARRAY` in that the displacement is *relative* to the
+displacement of `DISPLACED-TO`.
 
-In contrast to that, the following functions interpret `DISPLACEMENT`
-as *absolute*, i.e. as an index to conceptual non-displaced vector
-used to store the elements.
+```commonlisp
+(let* ((base (make-mat 10 :initial-element 5 :displacement 1))
+       (mat (make-mat 6 :displaced-to base :displacement 2)))
+  (fill! 1 mat)
+  (values base mat))
+==> #<MAT 1+10+0 A #(5.0d0 5.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 5.0d0
+-->                  5.0d0)>
+==> #<MAT 3+6+2 AB #(1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0)>
+```
+
+There are important semantic differences compared to lisp arrays all
+which follow from the fact that displacement operates on the
+underlying conceptual non-displaced vector.
+
+- Matrices can be displaced and have slack even without `DISPLACED-TO`
+  just like `BASE` in the above example.
+
+- It's legal to alias invisible elements of `DISPLACED-TO` as long as
+  the new matrix fits into the underlying storage.
+
+- Negative displacements are allowed with `DISPLACED-TO` as long as
+  the adjusted displacement is non-negative.
+
+- Further shaping operations can make invisible portions of the
+  `DISPLACED-TO` matrix visible by changing the displacement.
+
+- In contrast to `ARRAY-DISPLACEMENT`, [`MAT-DISPLACEMENT`][0521] only returns
+  an offset into the underlying storage vector.
+
+
+<a name='x-28MGL-MAT-3A-40MAT-SHAPING-FUNCTIONAL-20MGL-PAX-3ASECTION-29'></a>
+
+### 7.2 Functional Shaping
+
+The following functions are collectively called the functional
+shaping operations, since they don't alter their arguments in any
+way. Still, since storage is aliased modification to the returned
+matrix will affect the original.
 
 <a name='x-28MGL-MAT-3ARESHAPE-AND-DISPLACE-20FUNCTION-29'></a>
 
 - [function] **RESHAPE-AND-DISPLACE** *MAT DIMENSIONS DISPLACEMENT*
 
     Return a new matrix of `DIMENSIONS` that aliases `MAT`'s storage at
-    offset `DISPLACEMENT`.
+    offset `DISPLACEMENT`. `DISPLACEMENT` 0 is equivalent to the start of
+    the storage of `MAT` regardless of `MAT`'s displacement.
 
 <a name='x-28MGL-MAT-3ARESHAPE-20FUNCTION-29'></a>
 
 - [function] **RESHAPE** *MAT DIMENSIONS*
 
-    Return a new matrix of `DIMENSIONS` that aliases `MAT`'s storage at
-    offset 0.
+    Return a new matrix of `DIMENSIONS` whose displacement is the same as
+    the displacement of `MAT`.
 
 <a name='x-28MGL-MAT-3ADISPLACE-20FUNCTION-29'></a>
 
 - [function] **DISPLACE** *MAT DISPLACEMENT*
 
     Return a new matrix that aliases `MAT`'s storage at offset
-    `DISPLACEMENT`. The returned matrix has the same dimensions as `MAT`.
+    `DISPLACEMENT`. `DISPLACEMENT` 0 is equivalent to the start of the
+    storage of `MAT` regardless of `MAT`'s displacement. The returned matrix
+    has the same dimensions as `MAT`.
+
+<a name='x-28MGL-MAT-3A-40MAT-SHAPING-DESTRUCTIVE-20MGL-PAX-3ASECTION-29'></a>
+
+### 7.3 Destructive Shaping
 
 The following destructive operations don't alter the contents of
-the matrix, but change what is visible. See [`RESHAPE-AND-DISPLACE!`][0f32],
-[`RESHAPE!`][58e7], [`DISPLACE!`][4802], [`RESHAPE-TO-ROW-MATRIX!`][58bb] and
-[`WITH-SHAPE-AND-DISPLACEMENT`][0a7a]. [`ADJUST!`][52cb] is the odd one out, it may
-create a new [`MAT`][773f].
-
-The low-level view is that existing facets are adjusted by all
-operations. For [`ARRAY`][4417] facets, this means creating a
-new lisp array displaced to the backing array. The backing array
-stays the same, since clients are supposed to observe
-[`MAT-DISPLACEMENT`][0521], [`MAT-DIMENSIONS`][f5c1] or [`MAT-SIZE`][1caf]. The
-[`FOREIGN-ARRAY`][4e9b] and [`CUDA-ARRAY`][b706] facets are
-[OFFSET-POINTER][class] objects so displacement is done by changing
-the offset. Clients need to observe [`MAT-DIMENSIONS`][f5c1] in any case.
+the matrix, but change what is visible. [`ADJUST!`][52cb] is the odd one out,
+it may create a new [`MAT`][773f].
 
 <a name='x-28MGL-MAT-3ARESHAPE-AND-DISPLACE-21-20FUNCTION-29'></a>
 
@@ -2369,7 +2412,6 @@ Also see [Lifetime][767f].
   [03a5]: #x-28MGL-MAT-3A-2AN-MEMCPY-HOST-TO-DEVICE-2A-20-28VARIABLE-29-29 "(MGL-MAT:*N-MEMCPY-HOST-TO-DEVICE* (VARIABLE))"
   [0521]: #x-28MGL-MAT-3AMAT-DISPLACEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-DISPLACEMENT (MGL-PAX:READER MGL-MAT:MAT))"
   [0752]: #x-28MGL-CUBE-3A-40CUBE-INTRODUCTION-20MGL-PAX-3ASECTION-29 "Introduction"
-  [0a7a]: #x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20-28MGL-PAX-3AMACRO-29-29 "(MGL-MAT:WITH-SHAPE-AND-DISPLACEMENT (MGL-PAX:MACRO))"
   [0d9d]: #x-28MGL-MAT-3A-40MAT-CUDA-EXTENSIONS-20MGL-PAX-3ASECTION-29 "CUDA Extensions"
   [0ee2]: #x-28MGL-MAT-3AROW-MAJOR-MREF-20FUNCTION-29 "(MGL-MAT:ROW-MAJOR-MREF FUNCTION)"
   [0f32]: #x-28MGL-MAT-3ARESHAPE-AND-DISPLACE-21-20FUNCTION-29 "(MGL-MAT:RESHAPE-AND-DISPLACE! FUNCTION)"
@@ -2380,10 +2422,12 @@ Also see [Lifetime][767f].
   [12bc]: #x-28MGL-MAT-3AFOREIGN-ROOM-20FUNCTION-29 "(MGL-MAT:FOREIGN-ROOM FUNCTION)"
   [1458]: #x-28MGL-MAT-3ACUDA-HOST-ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29 "(MGL-MAT:CUDA-HOST-ARRAY (MGL-CUBE:FACET-NAME))"
   [165a]: #x-28MGL-MAT-3A-2ASUPPORTED-CTYPES-2A-20-28VARIABLE-29-29 "(MGL-MAT:*SUPPORTED-CTYPES* (VARIABLE))"
+  [1a3b]: #x-28MGL-MAT-3A-40MAT-SHAPING-COMPARISON-TO-LISP-20MGL-PAX-3ASECTION-29 "Comparison to Lisp Arrays"
   [1caf]: #x-28MGL-MAT-3AMAT-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-SIZE (MGL-PAX:READER MGL-MAT:MAT))"
   [1dbc]: #x-28MGL-MAT-3ACUDA-ROOM-20FUNCTION-29 "(MGL-MAT:CUDA-ROOM FUNCTION)"
   [2629]: #x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29 "MAT Manual"
   [28eb]: #x-28MGL-MAT-3AMREF-20FUNCTION-29 "(MGL-MAT:MREF FUNCTION)"
+  [296c]: #x-28MGL-MAT-3A-40MAT-SHAPING-FUNCTIONAL-20MGL-PAX-3ASECTION-29 "Functional Shaping"
   [2a64]: #x-28MGL-CUBE-3AMAKE-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:MAKE-FACET* GENERIC-FUNCTION)"
   [2cb4]: #x-28MGL-CUBE-3ADESTROY-CUBE-20FUNCTION-29 "(MGL-CUBE:DESTROY-CUBE FUNCTION)"
   [2e01]: #x-28MGL-CUBE-3A-40CUBE-FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29 "Facet Extension API"
@@ -2400,7 +2444,7 @@ Also see [Lifetime][767f].
   [423c]: #x-28MGL-CUBE-3AFACET-VALUE-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29 "(MGL-CUBE:FACET-VALUE (MGL-PAX:STRUCTURE-ACCESSOR))"
   [4417]: #x-28ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29 "(ARRAY (MGL-CUBE:FACET-NAME))"
   [46c5]: #x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:CALL-WITH-FACET* GENERIC-FUNCTION)"
-  [4802]: #x-28MGL-MAT-3ADISPLACE-21-20FUNCTION-29 "(MGL-MAT:DISPLACE! FUNCTION)"
+  [481f]: #x-28MGL-MAT-3A-40MAT-SHAPING-DESTRUCTIVE-20MGL-PAX-3ASECTION-29 "Destructive Shaping"
   [4c84]: #x-28MGL-MAT-3ASCAL-21-20FUNCTION-29 "(MGL-MAT:SCAL! FUNCTION)"
   [4cc3]: #x-28MGL-MAT-3AMAKE-MAT-20FUNCTION-29 "(MGL-MAT:MAKE-MAT FUNCTION)"
   [4d1e]: #x-28MGL-MAT-3A-40MAT-FOREIGN-20MGL-PAX-3ASECTION-29 "Foreign arrays"
@@ -2408,8 +2452,6 @@ Also see [Lifetime][767f].
   [51e4]: #x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29 "(MGL-MAT:USE-CUDA-P FUNCTION)"
   [52cb]: #x-28MGL-MAT-3AADJUST-21-20FUNCTION-29 "(MGL-MAT:ADJUST! FUNCTION)"
   [552a]: #x-28MGL-MAT-3ASTACK-21-20FUNCTION-29 "(MGL-MAT:STACK! FUNCTION)"
-  [58bb]: #x-28MGL-MAT-3ARESHAPE-TO-ROW-MATRIX-21-20FUNCTION-29 "(MGL-MAT:RESHAPE-TO-ROW-MATRIX! FUNCTION)"
-  [58e7]: #x-28MGL-MAT-3ARESHAPE-21-20FUNCTION-29 "(MGL-MAT:RESHAPE! FUNCTION)"
   [5acc]: #x-28MGL-CUBE-3ADEFINE-FACET-NAME-20-28MGL-PAX-3AMACRO-29-29 "(MGL-CUBE:DEFINE-FACET-NAME (MGL-PAX:MACRO))"
   [5eab]: #x-28MGL-CUBE-3A-40CUBE-FACET-BARRIER-20MGL-PAX-3ASECTION-29 "Facet Barriers"
   [5ed3]: #x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:CUDA-ENABLED (MGL-PAX:ACCESSOR MGL-MAT:MAT))"

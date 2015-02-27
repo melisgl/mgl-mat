@@ -169,7 +169,8 @@ algorithms. MGL-MAT does its best to keep them separate.
 - [reader] MAT-DISPLACEMENT MAT (:DISPLACEMENT = 0)
 
     A value in the `[0,MAX-SIZE]` interval. This is
-    like the DISPLACED-INDEX-OFFSET of a lisp array.
+    like the DISPLACED-INDEX-OFFSET of a lisp array, but displacement
+    is relative to the start of the underlying storage vector.
 
 - [reader] MAT-DIMENSIONS MAT (:DIMENSIONS)
 
@@ -195,7 +196,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 - [reader] MAT-MAX-SIZE MAT (:MAX-SIZE)
 
-    The number of elements for which storage is
+    The number of elements for which storage may be
     allocated. This is DISPLACEMENT + MAT-SIZE + `SLACK` where `SLACK`
     is the number of trailing invisible elements.
 
@@ -213,20 +214,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     sense of its MAT-SIZE), to hold DISPLACEMENT plus `(REDUCE #'*
     DIMENSIONS)` elements. Just like with MAKE-ARRAY, INITIAL-ELEMENT
     and INITIAL-CONTENTS must not be supplied together with
-    DISPLACED-TO.
-    
-    ```commonlisp
-    (let* ((base (make-mat 10 :initial-element 5 :displacement 1))
-           (mat (make-mat 6 :displaced-to base :displacement 2)))
-      (fill! 1 mat)
-      (values base mat))
-    ==> #<MAT 1+10+0 A #(5.0d0 5.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 5.0d0
-    -->                  5.0d0)>
-    ==> #<MAT 3+6+2 AB #(1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0)>
-    ```
-    
-    Note that matrices can be displaced and oversized even without
-    DISPLACED-TO just like `BASE` in the above example.
+    DISPLACED-TO. See @MAT-SHAPING for more.
 
 - [function] ARRAY-TO-MAT ARRAY &KEY CTYPE (SYNCHRONIZATION *DEFAULT-SYNCHRONIZATION*)
 
@@ -316,44 +304,90 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 ## Shaping
 
+We are going to discuss various ways to change the visible portion
+and dimensions of matrices. Conceptually a matrix has an *underlying
+non-displaced storage vector*. For `(MAKE-MAT 10 :DISPLACEMENT
+7 :MAX-SIZE 21)` this underlying vector looks like this:
+
+    displacement | visible elements  | slack
+    . . . . . . . 0 0 0 0 0 0 0 0 0 0 . . . .
+
+Whenever a matrix is reshaped (or *displaced to* in lisp
+terminology), its displacement and dimensions change but the
+underlying vector does not.
+
+The rules for accessing displaced matrices is the same as always:
+multiple readers can run in parallel, but attempts to write will
+result in an error if there are either readers or writers on any of
+the matrices that share the same underlying vector.
+
+### Comparison to Lisp Arrays
+
 One way to reshape and displace MAT objects is with MAKE-MAT and
 its DISPLACED-TO argument whose semantics are similar to that of
-MAKE-ARRAY in that the displacement is *relative* to the visible
-portion of the DISPLACED-TO.
+MAKE-ARRAY in that the displacement is *relative* to the
+displacement of DISPLACED-TO.
 
-In contrast to that, the following functions interpret DISPLACEMENT
-as *absolute*, i.e. as an index to conceptual non-displaced vector
-used to store the elements.
+```commonlisp
+(let* ((base (make-mat 10 :initial-element 5 :displacement 1))
+       (mat (make-mat 6 :displaced-to base :displacement 2)))
+  (fill! 1 mat)
+  (values base mat))
+==> #<MAT 1+10+0 A #(5.0d0 5.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 5.0d0
+-->                  5.0d0)>
+==> #<MAT 3+6+2 AB #(1.0d0 1.0d0 1.0d0 1.0d0 1.0d0 1.0d0)>
+```
+
+There are important semantic differences compared to lisp arrays all
+which follow from the fact that displacement operates on the
+underlying conceptual non-displaced vector.
+
+- Matrices can be displaced and have slack even without DISPLACED-TO
+  just like `BASE` in the above example.
+
+- It's legal to alias invisible elements of DISPLACED-TO as long as
+  the new matrix fits into the underlying storage.
+
+- Negative displacements are allowed with DISPLACED-TO as long as
+  the adjusted displacement is non-negative.
+
+- Further shaping operations can make invisible portions of the
+  DISPLACED-TO matrix visible by changing the displacement.
+
+- In contrast to ARRAY-DISPLACEMENT, MAT-DISPLACEMENT only returns
+  an offset into the underlying storage vector.
+
+
+### Functional Shaping
+
+The following functions are collectively called the functional
+shaping operations, since they don't alter their arguments in any
+way. Still, since storage is aliased modification to the returned
+matrix will affect the original.
 
 - [function] RESHAPE-AND-DISPLACE MAT DIMENSIONS DISPLACEMENT
 
     Return a new matrix of DIMENSIONS that aliases MAT's storage at
-    offset DISPLACEMENT.
+    offset DISPLACEMENT. DISPLACEMENT 0 is equivalent to the start of
+    the storage of MAT regardless of MAT's displacement.
 
 - [function] RESHAPE MAT DIMENSIONS
 
-    Return a new matrix of DIMENSIONS that aliases MAT's storage at
-    offset 0.
+    Return a new matrix of DIMENSIONS whose displacement is the same as
+    the displacement of MAT.
 
 - [function] DISPLACE MAT DISPLACEMENT
 
     Return a new matrix that aliases MAT's storage at offset
-    DISPLACEMENT. The returned matrix has the same dimensions as MAT.
+    DISPLACEMENT. DISPLACEMENT 0 is equivalent to the start of the
+    storage of MAT regardless of MAT's displacement. The returned matrix
+    has the same dimensions as MAT.
+
+### Destructive Shaping
 
 The following destructive operations don't alter the contents of
-the matrix, but change what is visible. See RESHAPE-AND-DISPLACE!,
-RESHAPE!, DISPLACE!, RESHAPE-TO-ROW-MATRIX! and
-WITH-SHAPE-AND-DISPLACEMENT. ADJUST! is the odd one out, it may
-create a new MAT.
-
-The low-level view is that existing facets are adjusted by all
-operations. For [ARRAY][facet-name] facets, this means creating a
-new lisp array displaced to the backing array. The backing array
-stays the same, since clients are supposed to observe
-MAT-DISPLACEMENT, MAT-DIMENSIONS or MAT-SIZE. The
-[FOREIGN-ARRAY][facet-name] and [CUDA-ARRAY][facet-name] facets are
-[OFFSET-POINTER][class] objects so displacement is done by changing
-the offset. Clients need to observe MAT-DIMENSIONS in any case.
+the matrix, but change what is visible. ADJUST! is the odd one out,
+it may create a new MAT.
 
 - [function] RESHAPE-AND-DISPLACE! MAT DIMENSIONS DISPLACEMENT
 
