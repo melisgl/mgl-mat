@@ -1128,7 +1128,7 @@ Unless noted these work efficiently with CUDA.
 
 - [variable] **\*MAT-HEADERS\*** *T*
 
-    If enabled, a header with [`MAT-CTYPE`][d2c9] and [`MAT-SIZE`][1caf] is written by
+    If true, a header with [`MAT-CTYPE`][d2c9] and [`MAT-SIZE`][1caf] is written by
     [`WRITE-MAT`][2e67] before the contents and [`READ-MAT`][dc10] checks that these match
     the matrix into which it is reading.
 
@@ -1146,9 +1146,8 @@ Unless noted these work efficiently with CUDA.
 
     Destructively modify the visible portion (with
     regards to displacement and shape) of `MAT` by reading [`MAT-SIZE`][1caf] number
-    of elements from binary `STREAM`. Return `MAT`. No sanity checks are
-    performed, [`READ-MAT`][dc10] may return without error even if `STREAM` contains
-    garbage. Also see [`*MAT-HEADERS*`][c01b].
+    of elements from binary `STREAM`. Return `MAT`. Also see
+    [`*MAT-HEADERS*`][c01b].
 
 <a name='x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29'></a>
 

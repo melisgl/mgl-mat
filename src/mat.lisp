@@ -1911,7 +1911,7 @@
   (read-mat generic-function))
 
 (defvar *mat-headers* t
-  "If enabled, a header with MAT-CTYPE and MAT-SIZE is written by
+  "If true, a header with MAT-CTYPE and MAT-SIZE is written by
   WRITE-MAT before the contents and READ-MAT checks that these match
   the matrix into which it is reading.")
 
@@ -1945,9 +1945,8 @@
 (defgeneric read-mat (mat stream)
   (:documentation "Destructively modify the visible portion (with
   regards to displacement and shape) of MAT by reading MAT-SIZE number
-  of elements from binary STREAM. Return MAT. No sanity checks are
-  performed, READ-MAT may return without error even if STREAM contains
-  garbage. Also see *MAT-HEADERS*.")
+  of elements from binary STREAM. Return MAT. Also see
+  *MAT-HEADERS*.")
   (:method ((mat mat) stream)
     (when *mat-headers*
       (read-mat-header mat stream))
