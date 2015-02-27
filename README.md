@@ -218,7 +218,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a name='x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a>
 
-- [reader] **MAT-CTYPE** *MAT* *(:CTYPE = \*DEFAULT-MAT-CTYPE\*)*
+- [reader] **MAT-CTYPE** *MAT* *(:CTYPE = *DEFAULT-MAT-CTYPE*)*
 
     One of [`*SUPPORTED-CTYPES*`][165a]. The matrix can hold
     only values of this type.
@@ -1462,7 +1462,7 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a name='x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29'></a>
 
-- [accessor] **CUDA-ENABLED** *MAT* *(CUDA-ENABLED = \*DEFAULT-MAT-CUDA-ENABLED\*)*
+- [accessor] **CUDA-ENABLED** *MAT* *(:CUDA-ENABLED = *DEFAULT-MAT-CUDA-ENABLED*)*
 
     The control provided by [`*CUDA-ENABLED*`][d91f] can be too
     coarse. This flag provides a per-object mechanism to turn cuda
@@ -2015,7 +2015,7 @@ signal safe.
 
 <a name='x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29'></a>
 
-- [accessor] **SYNCHRONIZATION** *CUBE* *(:SYNCHRONIZATION = \*DEFAULT-SYNCHRONIZATION\*)*
+- [accessor] **SYNCHRONIZATION** *CUBE* *(:SYNCHRONIZATION = *DEFAULT-SYNCHRONIZATION*)*
 
     By default, setup and teardown of facets by
     [`WITH-FACET`][8543] is performed in a thread safe way. Corrupting internal

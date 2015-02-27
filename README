@@ -200,7 +200,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     allocated. This is DISPLACEMENT + MAT-SIZE + `SLACK` where `SLACK`
     is the number of trailing invisible elements.
 
-- [function] MAKE-MAT DIMENSIONS &REST ARGS &KEY (CTYPE *DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE INITIAL-ELEMENT INITIAL-CONTENTS (SYNCHRONIZATION *DEFAULT-SYNCHRONIZATION*) DISPLACED-TO (CUDA-ENABLED *DEFAULT-MAT-CUDA-ENABLED*)
+- [function] MAKE-MAT DIMENSIONS &REST ARGS &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*) (DISPLACEMENT 0) MAX-SIZE INITIAL-ELEMENT INITIAL-CONTENTS (SYNCHRONIZATION \*DEFAULT-SYNCHRONIZATION\*) DISPLACED-TO (CUDA-ENABLED \*DEFAULT-MAT-CUDA-ENABLED\*)
 
     Return a new MAT object. If INITIAL-CONTENTS is given then the
     matrix contents are initialized with REPLACE!. See class MAT for the
@@ -216,7 +216,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     and INITIAL-CONTENTS must not be supplied together with
     DISPLACED-TO. See @MAT-SHAPING for more.
 
-- [function] ARRAY-TO-MAT ARRAY &KEY CTYPE (SYNCHRONIZATION *DEFAULT-SYNCHRONIZATION*)
+- [function] ARRAY-TO-MAT ARRAY &KEY CTYPE (SYNCHRONIZATION \*DEFAULT-SYNCHRONIZATION\*)
 
     Create a MAT that's equivalent to ARRAY. Displacement of the
     created array will be 0 and the size will be equal to
@@ -281,7 +281,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     By default MATs are created with this ctype. One of :FLOAT
     or :DOUBLE.
 
-- [function] COERCE-TO-CTYPE X &KEY (CTYPE *DEFAULT-MAT-CTYPE*)
+- [function] COERCE-TO-CTYPE X &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*)
 
     Coerce the scalar X to the lisp type corresponding to CTYPE.
 
@@ -442,7 +442,7 @@ The functions here assemble a single MAT from a number of
     supported. All dimensions except for AXIS must be the same for all
     MATS.
 
-- [function] STACK AXIS MATS &KEY (CTYPE *DEFAULT-MAT-CTYPE*)
+- [function] STACK AXIS MATS &KEY (CTYPE \*DEFAULT-MAT-CTYPE\*)
 
     Like STACK! but return a new MAT of CTYPE.
     
@@ -472,7 +472,7 @@ To prevent this, the cached object is removed from the cache while
 it is used so other invocations will create a fresh one which isn't
 particularly efficient but at least it's safe.
 
-- [macro] WITH-THREAD-CACHED-MAT (VAR DIMENSIONS &REST ARGS &KEY (PLACE :SCRATCH) (CTYPE '*DEFAULT-MAT-CTYPE*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS) &BODY BODY
+- [macro] WITH-THREAD-CACHED-MAT (VAR DIMENSIONS &REST ARGS &KEY (PLACE :SCRATCH) (CTYPE '\*DEFAULT-MAT-CTYPE\*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS) &BODY BODY
 
     Bind VAR to a matrix of DIMENSIONS, CTYPE, etc. Cache this matrix,
     and possibly reuse it later by reshaping it. When BODY exits the
@@ -504,7 +504,7 @@ particularly efficient but at least it's safe.
     ```
 
 
-- [macro] WITH-ONES (VAR DIMENSIONS &KEY (CTYPE '*DEFAULT-MAT-CTYPE*) (PLACE :ONES)) &BODY BODY
+- [macro] WITH-ONES (VAR DIMENSIONS &KEY (CTYPE '\*DEFAULT-MAT-CTYPE\*) (PLACE :ONES)) &BODY BODY
 
     Bind VAR to a matrix of DIMENSIONS whose every element is 1. The
     matrix is cached for efficiency.
@@ -748,7 +748,7 @@ Finally, some neural network operations.
 
     Return the first element of A. A must be of size 1.
 
-- [function] SCALAR-AS-MAT X &KEY (CTYPE (LISP->CTYPE (TYPE-OF X)))
+- [function] SCALAR-AS-MAT X &KEY (CTYPE (LISP-\>CTYPE (TYPE-OF X)))
 
     Return a matrix of one dimension and one element: X. CTYPE, the
     type of the matrix, defaults to the ctype corresponding to the type
@@ -912,7 +912,7 @@ now, the easy way out is to debug the code with CUDA disabled (see
 Another thing that tends to come up is figuring out where memory is
 used.
 
-- [function] MAT-ROOM &KEY (STREAM *STANDARD-OUTPUT*) (VERBOSE T)
+- [function] MAT-ROOM &KEY (STREAM \*STANDARD-OUTPUT\*) (VERBOSE T)
 
     Calls FOREIGN-ROOM and CUDA-ROOM.
 
@@ -1099,7 +1099,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     doesn't move the array in memory. Currently this is only supported on
     SBCL gencgc platforms.
 
-- [function] FOREIGN-ROOM &KEY (STREAM *STANDARD-OUTPUT*) (VERBOSE T)
+- [function] FOREIGN-ROOM &KEY (STREAM \*STANDARD-OUTPUT\*) (VERBOSE T)
 
     Print a summary of foreign memory usage to STREAM. If VERBOSE, make
     the output human easily readable, else try to present it in a very
@@ -1124,7 +1124,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     Check a cuda context is already in initialized in the current
     thread or a device with DEVICE-ID is available.
 
-- [macro] WITH-CUDA* (&KEY (ENABLED '*CUDA-ENABLED*) (DEVICE-ID '*CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED '*CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES '*CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T) N-POOL-BYTES) &BODY BODY
+- [macro] WITH-CUDA* (&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID '\*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED '\*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES '\*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T) N-POOL-BYTES) &BODY BODY
 
     Initializes CUDA with with all bells and whistles before BODY and
     deinitializes it after. Simply wrapping WITH-CUDA\* around a piece
@@ -1146,7 +1146,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     
     Else - that is, if CUDA is not available, BODY is simply executed.
 
-- [function] CALL-WITH-CUDA FN &KEY ((:ENABLED *CUDA-ENABLED*) *CUDA-ENABLED*) (DEVICE-ID *CUDA-DEFAULT-DEVICE-ID*) (RANDOM-SEED *CUDA-DEFAULT-RANDOM-SEED*) (N-RANDOM-STATES *CUDA-DEFAULT-N-RANDOM-STATES*) (OVERRIDE-ARCH-P T) N-POOL-BYTES
+- [function] CALL-WITH-CUDA FN &KEY ((:ENABLED \*CUDA-ENABLED\*) \*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T) N-POOL-BYTES
 
     Like WITH-CUDA\*, but takes a no argument function instead of the
     macro's BODY.
@@ -1159,7 +1159,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     values of the ENABLED argument of any future [WITH-CUDA\*][]s which
     turns off cuda initialization entirely.
 
-- [accessor] CUDA-ENABLED MAT (CUDA-ENABLED = *DEFAULT-MAT-CUDA-ENABLED*)
+- [accessor] CUDA-ENABLED MAT (:CUDA-ENABLED = *DEFAULT-MAT-CUDA-ENABLED*)
 
     The control provided by *CUDA-ENABLED* can be too
     coarse. This flag provides a per-object mechanism to turn cuda
@@ -1216,7 +1216,7 @@ WITH-CUDA\*. N-POOL-BYTES being NIL means no limit.
     satisfied (either because of N-POOL-BYTES or physical device memory
     limits being reached), then CUDA-OUT-OF-MEMORY is signalled.
 
-- [function] CUDA-ROOM &KEY (STREAM *STANDARD-OUTPUT*) (VERBOSE T)
+- [function] CUDA-ROOM &KEY (STREAM \*STANDARD-OUTPUT\*) (VERBOSE T)
 
     When CUDA is in use (see USE-CUDA-P), print a summary of memory
     usage in the current CUDA context to STREAM. If VERBOSE, make the
@@ -1244,7 +1244,7 @@ very hard to do if the data doesn't fit in device memory which is
 often a very limited resource. In this case the next best thing is
 to do the copying concurrently with computation.
 
-- [macro] WITH-SYNCING-CUDA-FACETS (MATS-TO-CUDA MATS-TO-CUDA-HOST &KEY (SAFEP '*SYNCING-CUDA-FACETS-SAFE-P*)) &BODY BODY
+- [macro] WITH-SYNCING-CUDA-FACETS (MATS-TO-CUDA MATS-TO-CUDA-HOST &KEY (SAFEP '\*SYNCING-CUDA-FACETS-SAFE-P\*)) &BODY BODY
 
     Update CUDA facets in a possibly asynchronous way while BODY
     executes. Behind the scenes, a separate CUDA stream is used to copy
@@ -1475,11 +1475,11 @@ use these at all.
 
 - [function] CUBLAS-CREATE HANDLE
 
-- [function] CUBLAS-DESTROY &KEY (HANDLE *CUBLAS-HANDLE*)
+- [function] CUBLAS-DESTROY &KEY (HANDLE \*CUBLAS-HANDLE\*)
 
 - [macro] WITH-CUBLAS-HANDLE NIL &BODY BODY
 
-- [function] CUBLAS-GET-VERSION VERSION &KEY (HANDLE *CUBLAS-HANDLE*)
+- [function] CUBLAS-GET-VERSION VERSION &KEY (HANDLE \*CUBLAS-HANDLE\*)
 
 #### CURAND
 

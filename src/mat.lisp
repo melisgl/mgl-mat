@@ -203,7 +203,7 @@
     MAT-DIMENSIONS and is similar to ARRAY-TOTAL-SIZE.")
    (cuda-enabled
     :initform *default-mat-cuda-enabled*
-    :initarg cuda-enabled :accessor cuda-enabled
+    :initarg :cuda-enabled :accessor cuda-enabled
     :documentation "The control provided by *CUDA-ENABLED* can be too
     coarse. This flag provides a per-object mechanism to turn cuda
     off. If it is set to NIL, then any operation that pays attention
