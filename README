@@ -1120,7 +1120,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
 
 - [function] CUDA-AVAILABLE-P &KEY (DEVICE-ID 0)
 
-    Check a cuda context is already in initialized in the current
+    Check that a cuda context is already in initialized in the current
     thread or a device with DEVICE-ID is available.
 
 - [macro] WITH-CUDA* (&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID '\*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED '\*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES '\*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T) N-POOL-BYTES) &BODY BODY

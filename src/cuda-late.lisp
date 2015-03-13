@@ -119,7 +119,7 @@
          (funcall fn))))
 
 (defun cuda-available-p (&key (device-id 0))
-  "Check a cuda context is already in initialized in the current
+  "Check that a cuda context is already in initialized in the current
   thread or a device with DEVICE-ID is available."
   (let ((*show-messages* nil))
     (or (boundp '*cuda-context*)
