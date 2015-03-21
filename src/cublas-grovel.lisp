@@ -1,5 +1,4 @@
-#+darwin (include "cuda/include/cublas_v2.h")
-#-darwin (include "cublas_v2.h")
+(include "cublas_v2.h")
 
 (in-package :mgl-mat)
 

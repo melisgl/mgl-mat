@@ -5,6 +5,15 @@
 (eval-when (:load-toplevel :execute)
   (asdf:operate 'asdf:load-op '#:cl-cuda))
 
+;;; This should really be in CFFI-GROVEL.
+(defmethod asdf:perform :around ((op cffi-grovel::process-op)
+                                 (file cffi-grovel::cc-flags-mixin))
+  (declare (ignorable op))
+  (let ((cffi-grovel::*cc-flags*
+          (append (cffi-grovel::ensure-list (cffi-grovel::cc-flags-of file))
+                  cffi-grovel::*cc-flags*)))
+    (call-next-method)))
+
 (asdf:defsystem #:mgl-mat
   :licence "MIT, see COPYING."
   :version "0.1.0"
@@ -25,7 +34,13 @@
                              (:file "util")
                              (:file "blas")
                              (:file "blas-functions")
-                             (cl-cuda-asd::cuda-grovel-file "cublas-grovel")
+                             (cl-cuda-asd::cuda-grovel-file
+                              "cublas-grovel"
+                              ;; Work around cublas_v2.h not found on
+                              ;; OS X issue.
+                              ;;
+                              ;; https://github.com/melisgl/mgl-mat/issues/1
+                              :cc-flags ("-I" "/usr/local/cuda/include/"))
                              (:file "cublas")
                              (:file "cublas-functions")
                              (:file "foreign")
