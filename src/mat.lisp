@@ -943,6 +943,12 @@
   (sum! function)
   (scale-rows! function)
   (scale-columns! function)
+  (.sin! function)
+  (.cos! function)
+  (.tan! function)
+  (.sinh! function)
+  (.cosh! function)
+  (.tanh! function)
   "Finally, some neural network operations."
   (convolve! function)
   (derive-convolve! function)
@@ -1413,6 +1419,37 @@
             for yi of-type index upfrom (+ start-y column) by n-columns
             repeat n-rows
             do (setf (aref y yi) (* scale (aref x xi)))))))
+
+
+(define-elementwise-dispatcher .sin! cuda-.sin! lisp-.sin!
+  "Apply SIN elementwise to X in a destructive manner. Return X.")
+(define-elementwise-cuda-kernel cuda-.sin! (e) (sin e))
+(define-elementwise-lisp-kernel lisp-.sin! (e) (sin e))
+
+(define-elementwise-dispatcher .cos! cuda-.cos! lisp-.cos!
+  "Apply COS elementwise to X in a destructive manner. Return X.")
+(define-elementwise-cuda-kernel cuda-.cos! (e) (cos e))
+(define-elementwise-lisp-kernel lisp-.cos! (e) (cos e))
+
+(define-elementwise-dispatcher .tan! cuda-.tan! lisp-.tan!
+  "Apply TAN elementwise to X in a destructive manner. Return X.")
+(define-elementwise-cuda-kernel cuda-.tan! (e) (tan e))
+(define-elementwise-lisp-kernel lisp-.tan! (e) (tan e))
+
+(define-elementwise-dispatcher .sinh! cuda-.sinh! lisp-.sinh!
+  "Apply SINH elementwise to X in a destructive manner. Return X.")
+(define-elementwise-cuda-kernel cuda-.sinh! (e) (sinh e))
+(define-elementwise-lisp-kernel lisp-.sinh! (e) (sinh e))
+
+(define-elementwise-dispatcher .cosh! cuda-.cosh! lisp-.cosh!
+  "Apply COSH elementwise to X in a destructive manner. Return X.")
+(define-elementwise-cuda-kernel cuda-.cosh! (e) (cosh e))
+(define-elementwise-lisp-kernel lisp-.cosh! (e) (cosh e))
+
+(define-elementwise-dispatcher .tanh! cuda-.tanh! lisp-.tanh!
+  "Apply TANH elementwise to X in a destructive manner. Return X.")
+(define-elementwise-cuda-kernel cuda-.tanh! (e) (tanh e))
+(define-elementwise-lisp-kernel lisp-.tanh! (e) (tanh e))
 
 
 (defsection @mat-blas (:title "BLAS Operations")
