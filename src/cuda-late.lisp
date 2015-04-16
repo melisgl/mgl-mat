@@ -62,7 +62,7 @@
 
 (defun remove-arch-nvcc-option (options)
   (remove-if (lambda (option)
-               (zerop (search "-arch=" option)))
+               (eql 0 (search "-arch=" option)))
              options))
 
 (defmacro with-cuda-stream ((stream) &body body)
