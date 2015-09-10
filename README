@@ -672,6 +672,30 @@ Level 3 BLAS operations
     Set RESULT to `A*DIAG(SCALES)` and return it. `A` is an `MxN`
     matrix, SCALES is treated as a length `N` vector.
 
+- [function] .SIN! X &KEY (N (MAT-SIZE X))
+
+    Apply SIN elementwise to X in a destructive manner. Return X.
+
+- [function] .COS! X &KEY (N (MAT-SIZE X))
+
+    Apply COS elementwise to X in a destructive manner. Return X.
+
+- [function] .TAN! X &KEY (N (MAT-SIZE X))
+
+    Apply TAN elementwise to X in a destructive manner. Return X.
+
+- [function] .SINH! X &KEY (N (MAT-SIZE X))
+
+    Apply SINH elementwise to X in a destructive manner. Return X.
+
+- [function] .COSH! X &KEY (N (MAT-SIZE X))
+
+    Apply COSH elementwise to X in a destructive manner. Return X.
+
+- [function] .TANH! X &KEY (N (MAT-SIZE X))
+
+    Apply TANH elementwise to X in a destructive manner. Return X.
+
 Finally, some neural network operations.
 
 - [function] CONVOLVE! X W Y &KEY START STRIDE ANCHOR BATCHED

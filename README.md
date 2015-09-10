@@ -867,6 +867,42 @@ Level 3 BLAS operations
     Set `RESULT` to `A*DIAG(SCALES)` and return it. `A` is an `MxN`
     matrix, `SCALES` is treated as a length `N` vector.
 
+<a id='x-28MGL-MAT-3A-2ESIN-21-20FUNCTION-29'></a>
+
+- [function] **.SIN!** *X &KEY (N (MAT-SIZE X))*
+
+    Apply `SIN` elementwise to `X` in a destructive manner. Return `X`.
+
+<a id='x-28MGL-MAT-3A-2ECOS-21-20FUNCTION-29'></a>
+
+- [function] **.COS!** *X &KEY (N (MAT-SIZE X))*
+
+    Apply `COS` elementwise to `X` in a destructive manner. Return `X`.
+
+<a id='x-28MGL-MAT-3A-2ETAN-21-20FUNCTION-29'></a>
+
+- [function] **.TAN!** *X &KEY (N (MAT-SIZE X))*
+
+    Apply `TAN` elementwise to `X` in a destructive manner. Return `X`.
+
+<a id='x-28MGL-MAT-3A-2ESINH-21-20FUNCTION-29'></a>
+
+- [function] **.SINH!** *X &KEY (N (MAT-SIZE X))*
+
+    Apply `SINH` elementwise to `X` in a destructive manner. Return `X`.
+
+<a id='x-28MGL-MAT-3A-2ECOSH-21-20FUNCTION-29'></a>
+
+- [function] **.COSH!** *X &KEY (N (MAT-SIZE X))*
+
+    Apply `COSH` elementwise to `X` in a destructive manner. Return `X`.
+
+<a id='x-28MGL-MAT-3A-2ETANH-21-20FUNCTION-29'></a>
+
+- [function] **.TANH!** *X &KEY (N (MAT-SIZE X))*
+
+    Apply `TANH` elementwise to `X` in a destructive manner. Return `X`.
+
 Finally, some neural network operations.
 
 <a id='x-28MGL-MAT-3ACONVOLVE-21-20FUNCTION-29'></a>
