@@ -804,11 +804,11 @@ Level 3 BLAS operations
 
 - [function] **GEERV!** *ALPHA A X BETA B*
 
-    GEneric Elementwise Row - Vector multiplication. `B` = beta \* `B` + alpha \* a
-    \* diag(x). In other words, perform elementwise multiplication on
-    each row of `A` with the vector `X` and add the scaled result to the
-    corresponding row of `B`. Return `B`. This is not a standard BLAS
-    routine.
+    GEneric Elementwise Row - Vector multiplication. `B = beta * B +
+    alpha a .* X*` where `X*` is a matrix of the same shape as `A` whose
+    every row is `X`. Perform elementwise multiplication on each row of `A`
+    with the vector `X` and add the scaled result to the corresponding row
+    of `B`. Return `B`. This is not a standard BLAS routine.
 
 <a id='x-28MGL-MAT-3A-2E-3C-21-20FUNCTION-29'></a>
 

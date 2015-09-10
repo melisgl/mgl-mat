@@ -1088,11 +1088,11 @@
                                 (* beta (aref c ci))))))
 
 (defun geerv! (alpha a x beta b)
-  "GEneric Elementwise Row - Vector multiplication. B = beta * B + alpha * a
-  * diag(x). In other words, perform elementwise multiplication on
-  each row of A with the vector X and add the scaled result to the
-  corresponding row of B. Return B. This is not a standard BLAS
-  routine."
+  "GEneric Elementwise Row - Vector multiplication. `B = beta * B +
+  alpha a .* X*` where `X*` is a matrix of the same shape as A whose
+  every row is X. Perform elementwise multiplication on each row of A
+  with the vector X and add the scaled result to the corresponding row
+  of B. Return B. This is not a standard BLAS routine."
   (assert (equal (mat-dimensions a) (mat-dimensions b)))
   (let* ((ctype (mat-ctype a))
          (alpha (coerce-to-ctype alpha :ctype ctype))
