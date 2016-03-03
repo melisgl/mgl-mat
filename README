@@ -1156,7 +1156,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     Check that a cuda context is already in initialized in the current
     thread or a device with DEVICE-ID is available.
 
-- [macro] WITH-CUDA* (&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID '\*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED '\*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES '\*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T) N-POOL-BYTES) &BODY BODY
+- [macro] WITH-CUDA* (&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID '\*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED '\*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES '\*CUDA-DEFAULT-N-RANDOM-STATES\*) N-POOL-BYTES) &BODY BODY
 
     Initializes CUDA with with all bells and whistles before BODY and
     deinitializes it after. Simply wrapping WITH-CUDA\* around a piece
@@ -1169,16 +1169,15 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     
     Else, if CUDA is available and ENABLED, then in addition to the
     facet barrier, a CUDA context is set up, *N-MEMCPY-HOST-TO-DEVICE*,
-    *N-MEMCPY-DEVICE-TO-HOST* are bound to zero, the highest possible
-    -arch option for the device is added to *CL-CUDA:NVCC-OPTIONS* (if
-    OVERRIDE-ARCH-P), a cublas handle created, and *CURAND-STATE* is
-    bound to a CURAND-XORWOW-STATE with N-RANDOM-STATES, seeded with
-    RANDOM-SEED, and allocation of device memory is limited to
-    N-POOL-BYTES (NIL means no limit, see @MAT-CUDA-MEMORY-MANAGEMENT).
+    *N-MEMCPY-DEVICE-TO-HOST* are bound to zero, a cublas handle
+    created, and *CURAND-STATE* is bound to a CURAND-XORWOW-STATE with
+    N-RANDOM-STATES, seeded with RANDOM-SEED, and allocation of device
+    memory is limited to N-POOL-BYTES (NIL means no limit, see
+    @MAT-CUDA-MEMORY-MANAGEMENT).
     
     Else - that is, if CUDA is not available, BODY is simply executed.
 
-- [function] CALL-WITH-CUDA FN &KEY ((:ENABLED \*CUDA-ENABLED\*) \*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T) N-POOL-BYTES
+- [function] CALL-WITH-CUDA FN &KEY ((:ENABLED \*CUDA-ENABLED\*) \*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) N-POOL-BYTES
 
     Like WITH-CUDA\*, but takes a no argument function instead of the
     macro's BODY.

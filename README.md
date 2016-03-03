@@ -44,7 +44,7 @@
 ## 1 mgl-mat ASDF System Details
 
 - Version: 0.1.0
-- Description: MAT is library for working with multi-dimensional
+- Description: [`MAT`][773f] is library for working with multi-dimensional
   arrays which supports efficient interfacing to foreign and CUDA
   code. BLAS and CUBLAS bindings are available.
 - Licence: MIT, see COPYING.
@@ -381,7 +381,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 - [variable] **\*DEFAULT-MAT-CTYPE\*** *:DOUBLE*
 
-    By default MATs are created with this ctype. One of `:FLOAT`
+    By default `MATs` are created with this ctype. One of `:FLOAT`
     or `:DOUBLE`.
 
 <a id='x-28MGL-MAT-3ACOERCE-TO-CTYPE-20FUNCTION-29'></a>
@@ -860,7 +860,7 @@ Level 3 BLAS operations
 
 - [function] **SUM!** *X Y &KEY AXIS (ALPHA 1) (BETA 0)*
 
-    Sum matrix `X` along `AXIS` and add `ALPHA` \* SUMS to `BETA` \* `Y`
+    Sum matrix `X` along `AXIS` and add `ALPHA` \* `SUM`S to `BETA` \* `Y`
     destructively modifying `Y`. Return `Y`. On a 2d matrix (nothing else is
     supported currently), if `AXIS` is 0, then columns are summed, if `AXIS`
     is 1 then rows are summed.
@@ -1365,7 +1365,7 @@ See [`DIRECTION`][ef66] for a complete description of `:INPUT`, `:OUTPUT` and `:
 For [`MAT`][773f] objects, that needs to be refined. If a [`MAT`][773f] is reshaped
 and/or displaced in a way that not all elements are visible then
 those elements are always kept intact and copied around. This is
-accomplished by turning `:OUTPUT` into `:IO` automatically on such MATs.
+accomplished by turning `:OUTPUT` into `:IO` automatically on such `MATs`.
 
 We have finished our introduction to the various facets. It must be
 said though that one can do anything without ever accessing a facet
@@ -1468,7 +1468,7 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a id='x-28MGL-MAT-3AWITH-CUDA-2A-20-28MGL-PAX-3AMACRO-29-29'></a>
 
-- [macro] **WITH-CUDA\*** *(&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID '\*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED '\*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES '\*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T) N-POOL-BYTES) &BODY BODY*
+- [macro] **WITH-CUDA\*** *(&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID '\*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED '\*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES '\*CUDA-DEFAULT-N-RANDOM-STATES\*) N-POOL-BYTES) &BODY BODY*
 
     Initializes CUDA with with all bells and whistles before `BODY` and
     deinitializes it after. Simply wrapping [`WITH-CUDA*`][2e14] around a piece
@@ -1481,18 +1481,17 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
     
     Else, if CUDA is available and `ENABLED`, then in addition to the
     facet barrier, a CUDA context is set up, [`*N-MEMCPY-HOST-TO-DEVICE*`][03a5],
-    [`*N-MEMCPY-DEVICE-TO-HOST*`][fef2] are bound to zero, the highest possible
-    -arch option for the device is added to *CL-CUDA:NVCC-OPTIONS* (if
-    `OVERRIDE-ARCH-P`), a cublas handle created, and [`*CURAND-STATE*`][c597] is
-    bound to a [`CURAND-XORWOW-STATE`][fa6c] with `N-RANDOM-STATES`, seeded with
-    `RANDOM-SEED`, and allocation of device memory is limited to
-    `N-POOL-BYTES` (`NIL` means no limit, see [CUDA Memory Management][7191]).
+    [`*N-MEMCPY-DEVICE-TO-HOST*`][fef2] are bound to zero, a cublas handle
+    created, and [`*CURAND-STATE*`][c597] is bound to a [`CURAND-XORWOW-STATE`][fa6c] with
+    `N-RANDOM-STATES`, seeded with `RANDOM-SEED`, and allocation of device
+    memory is limited to `N-POOL-BYTES` (`NIL` means no limit, see
+    [CUDA Memory Management][7191]).
     
     Else - that is, if CUDA is not available, `BODY` is simply executed.
 
 <a id='x-28MGL-MAT-3ACALL-WITH-CUDA-20FUNCTION-29'></a>
 
-- [function] **CALL-WITH-CUDA** *FN &KEY ((:ENABLED \*CUDA-ENABLED\*) \*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) (OVERRIDE-ARCH-P T) N-POOL-BYTES*
+- [function] **CALL-WITH-CUDA** *FN &KEY ((:ENABLED \*CUDA-ENABLED\*) \*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) N-POOL-BYTES*
 
     Like [`WITH-CUDA*`][2e14], but takes a no argument function instead of the
     macro's `BODY`.
@@ -2265,7 +2264,7 @@ In summary, define `EQL` specializers on facet name arguments, and use
     place, so be careful not to get into endless recursion. The default
     method simply returns the first up-to-date facet.
 
-PAX integration follows, don't worry about it if you don't use PAX,
+`PAX` integration follows, don't worry about it if you don't use `PAX`,
 but you really should (see `MGL-PAX:@MGL-PAX-MANUAL`).
 
 <a id='x-28MGL-CUBE-3AFACET-NAME-20-28MGL-PAX-3ALOCATIVE-29-29'></a>
@@ -2446,7 +2445,7 @@ Also see [Lifetime][767f].
     - were created in the dynamic extent of `BODY`
     
     Before destroying the facets, it is ensured that facets with names
-    among `ENSURES` are up-to-date. WITH-FACET-BARRIERs can be nested, in
+    among `ENSURES` are up-to-date. [`WITH-FACET-BARRIER`][f6a0]s can be nested, in
     case of multiple barriers matching the cube's type and the created
     facet's name, the innermost one takes precedence.
     
