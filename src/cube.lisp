@@ -269,10 +269,11 @@
   ;; This is basically the number of references callers of
   ;; ADD-FACET-REFERENCE and REMOVE-FACET-REFERENCE have totalled on
   ;; this facet. If it's non-zero, then this facet is protected
-  ;; against DESTROY-FACET. Since we are at the mercy the callers of
-  ;; these functions, we must also make sure that finalizers destroy
-  ;; the facet regardless of the number of references. When the facet
-  ;; is about to be destroyed we CAS NIL onto the CAR of this token.
+  ;; against DESTROY-FACET. Since we are at the mercy of the callers
+  ;; of these functions, we must also make sure that finalizers
+  ;; destroy the facet regardless of the number of references. When
+  ;; the facet is about to be destroyed we CAS NIL onto the CAR of
+  ;; this token.
   (n 0)
   (list ()))
 
@@ -428,10 +429,10 @@
            (funcall fn facet))
       ;; The first thing we do in the cleanup is a WITHOUT-INTERRUPTS
       ;; which should minimize the chance for races and may be
-      ;; entirely free of races on a good, safepoint base
+      ;; entirely free of races on a good, safepoint based
       ;; implementation.
-      (with-cube-locked (cube)
-        (when facet-watched-p
+      (when facet-watched-p
+        (with-cube-locked (cube)
           (unwatch-facet cube facet-name))))))
 
 (defgeneric watch-facet (cube facet-name direction)
