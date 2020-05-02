@@ -34,13 +34,18 @@
                              (:file "util")
                              (:file "blas")
                              (:file "blas-functions")
+                             ;; When everyone has the new cl-cuda,
+                             ;; this should be just
+                             ;; CFFI-GROVEL:GROVEL-FILE. It is
+                             ;; redundant with the :IF-FEATURE below.
                              (cl-cuda-asd::cuda-grovel-file
                               "cublas-grovel"
                               ;; Work around cublas_v2.h not found on
                               ;; OS X issue.
                               ;;
                               ;; https://github.com/melisgl/mgl-mat/issues/1
-                              :cc-flags ("-I" "/usr/local/cuda/include/"))
+                              :cc-flags ("-I" "/usr/local/cuda/include/")
+                              :if-feature :cuda-sdk)
                              (:file "cublas")
                              (:file "cublas-functions")
                              (:file "foreign")
