@@ -5,37 +5,38 @@
 ## Table of Contents
 
 - [1 mgl-mat ASDF System Details][85d5]
-- [2 Introduction][b0b5]
-    - [2.1 What's MGL-MAT?][01b0]
-    - [2.2 What kind of matrices are supported?][dd58]
-    - [2.3 Where to Get it?][d56c]
-- [3 Tutorial][d951]
-- [4 Basics][f966]
-- [5 Element types][00a6]
-- [6 Printing][6ccf]
-- [7 Shaping][8866]
-    - [7.1 Comparison to Lisp Arrays][1a3b]
-    - [7.2 Functional Shaping][296c]
-    - [7.3 Destructive Shaping][481f]
-- [8 Assembling][8816]
-- [9 Caching][e8e7]
-- [10 BLAS Operations][0386]
-- [11 Destructive API][e71c]
-- [12 Non-destructive API][9984]
-- [13 Mappings][7388]
-- [14 Random numbers][ef83]
-- [15 I/O][78d7]
-- [16 Debugging][fe72]
-- [17 Facet API][82af]
-    - [17.1 Facets][9ddc]
-    - [17.2 Foreign arrays][4d1e]
-    - [17.3 CUDA][f291]
-        - [17.3.1 CUDA Memory Management][7191]
-- [18 Writing Extensions][1044]
-    - [18.1 Lisp Extensions][107c]
-    - [18.2 CUDA Extensions][0d9d]
-        - [18.2.1 CUBLAS][afa0]
-        - [18.2.2 CURAND][caa5]
+- [2 Links][586c]
+- [3 Introduction][b0b5]
+    - [3.1 What's MGL-MAT?][01b0]
+    - [3.2 What kind of matrices are supported?][dd58]
+    - [3.3 Where to Get it?][d56c]
+- [4 Tutorial][d951]
+- [5 Basics][f966]
+- [6 Element types][00a6]
+- [7 Printing][6ccf]
+- [8 Shaping][8866]
+    - [8.1 Comparison to Lisp Arrays][1a3b]
+    - [8.2 Functional Shaping][296c]
+    - [8.3 Destructive Shaping][481f]
+- [9 Assembling][8816]
+- [10 Caching][e8e7]
+- [11 BLAS Operations][0386]
+- [12 Destructive API][e71c]
+- [13 Non-destructive API][9984]
+- [14 Mappings][7388]
+- [15 Random numbers][ef83]
+- [16 I/O][78d7]
+- [17 Debugging][fe72]
+- [18 Facet API][82af]
+    - [18.1 Facets][9ddc]
+    - [18.2 Foreign arrays][4d1e]
+    - [18.3 CUDA][f291]
+        - [18.3.1 CUDA Memory Management][7191]
+- [19 Writing Extensions][1044]
+    - [19.1 Lisp Extensions][107c]
+    - [19.2 CUDA Extensions][0d9d]
+        - [19.2.1 CUBLAS][afa0]
+        - [19.2.2 CURAND][caa5]
 
 ###### \[in package MGL-MAT\]
 <a id='x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29'></a>
@@ -51,13 +52,22 @@
 - Mailto: [mega@retes.hu](mailto:mega@retes.hu)
 - Homepage: [http://quotenil.com](http://quotenil.com)
 
+<a id='x-28MGL-MAT-3A-40MAT-LINKS-20MGL-PAX-3ASECTION-29'></a>
+
+## 2 Links
+
+Here is the [official
+repository](https://github.com/melisgl/mgl-mat) and the [HTML
+documentation](http://melisgl.github.io/mgl-mat/mat-manual.html)
+for the latest version.
+
 <a id='x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29'></a>
 
-## 2 Introduction
+## 3 Introduction
 
 <a id='x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29'></a>
 
-### 2.1 What's MGL-MAT?
+### 3.1 What's MGL-MAT?
 
 MGL-MAT is library for working with multi-dimensional arrays
 which supports efficient interfacing to foreign and CUDA code with
@@ -66,7 +76,7 @@ and CUBLAS bindings are available.
 
 <a id='x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29'></a>
 
-### 2.2 What kind of matrices are supported?
+### 3.2 What kind of matrices are supported?
 
 Currently only row-major single and double float matrices are
 supported, but it would be easy to add single and double precision
@@ -79,7 +89,7 @@ elements are not affected.
 
 <a id='x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29'></a>
 
-### 2.3 Where to Get it?
+### 3.3 Where to Get it?
 
 All dependencies are in quicklisp except for
 [CL-CUDA](https://github.com/takagi/cl-cuda) that needs to be
@@ -94,7 +104,7 @@ as part of [PAX World](http://melisgl.github.io/mgl-pax-world/).
 
 <a id='x-28MGL-MAT-3A-40MAT-TUTORIAL-20MGL-PAX-3ASECTION-29'></a>
 
-## 3 Tutorial
+## 4 Tutorial
 
 We are going to see how to create matrices, access their contents.
 
@@ -204,7 +214,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id='x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29'></a>
 
-## 4 Basics
+## 5 Basics
 
 <a id='x-28MGL-MAT-3AMAT-20CLASS-29'></a>
 
@@ -353,7 +363,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id='x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29'></a>
 
-## 5 Element types
+## 6 Element types
 
 <a id='x-28MGL-MAT-3A-2ASUPPORTED-CTYPES-2A-20-28VARIABLE-29-29'></a>
 
@@ -380,7 +390,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id='x-28MGL-MAT-3A-40MAT-PRINTING-20MGL-PAX-3ASECTION-29'></a>
 
-## 6 Printing
+## 7 Printing
 
 <a id='x-28MGL-MAT-3A-2APRINT-MAT-2A-20-28VARIABLE-29-29'></a>
 
@@ -403,7 +413,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id='x-28MGL-MAT-3A-40MAT-SHAPING-20MGL-PAX-3ASECTION-29'></a>
 
-## 7 Shaping
+## 8 Shaping
 
 We are going to discuss various ways to change the visible portion
 and dimensions of matrices. Conceptually a matrix has an *underlying
@@ -424,7 +434,7 @@ the matrices that share the same underlying vector.
 
 <a id='x-28MGL-MAT-3A-40MAT-SHAPING-COMPARISON-TO-LISP-20MGL-PAX-3ASECTION-29'></a>
 
-### 7.1 Comparison to Lisp Arrays
+### 8.1 Comparison to Lisp Arrays
 
 One way to reshape and displace [`MAT`][773f] objects is with [`MAKE-MAT`][4cc3] and
 its `DISPLACED-TO` argument whose semantics are similar to that of
@@ -463,7 +473,7 @@ underlying conceptual non-displaced vector.
 
 <a id='x-28MGL-MAT-3A-40MAT-SHAPING-FUNCTIONAL-20MGL-PAX-3ASECTION-29'></a>
 
-### 7.2 Functional Shaping
+### 8.2 Functional Shaping
 
 The following functions are collectively called the functional
 shaping operations, since they don't alter their arguments in any
@@ -496,7 +506,7 @@ matrix will affect the original.
 
 <a id='x-28MGL-MAT-3A-40MAT-SHAPING-DESTRUCTIVE-20MGL-PAX-3ASECTION-29'></a>
 
-### 7.3 Destructive Shaping
+### 8.3 Destructive Shaping
 
 The following destructive operations don't alter the contents of
 the matrix, but change what is visible. [`ADJUST!`][52cb] is the odd one out,
@@ -538,7 +548,7 @@ it may create a new [`MAT`][773f].
 
 <a id='x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20-28MGL-PAX-3AMACRO-29-29'></a>
 
-- [macro] **WITH-SHAPE-AND-DISPLACEMENT** *(MAT &OPTIONAL (DIMENSIONS NIL DIMENSIONSP) (DISPLACEMENT NIL DISPLACEMENTP)) &BODY BODY*
+- [macro] **WITH-SHAPE-AND-DISPLACEMENT** *(MAT &OPTIONAL (DIMENSIONS NIL) (DISPLACEMENT NIL)) &BODY BODY*
 
     Reshape and displace `MAT` if `DIMENSIONS` and/or `DISPLACEMENT` is given
     and restore the original shape and displacement after `BODY` is
@@ -556,7 +566,7 @@ it may create a new [`MAT`][773f].
 
 <a id='x-28MGL-MAT-3A-40MAT-ASSEMBLING-20MGL-PAX-3ASECTION-29'></a>
 
-## 8 Assembling
+## 9 Assembling
 
 The functions here assemble a single [`MAT`][773f] from a number of
 [`MAT`][773f]s.
@@ -588,7 +598,7 @@ The functions here assemble a single [`MAT`][773f] from a number of
 
 <a id='x-28MGL-MAT-3A-40MAT-CACHING-20MGL-PAX-3ASECTION-29'></a>
 
-## 9 Caching
+## 10 Caching
 
 Allocating and initializing a [`MAT`][773f] object and its necessary facets
 can be expensive. The following macros remember the previous value
@@ -650,7 +660,7 @@ particularly efficient but at least it's safe.
 
 <a id='x-28MGL-MAT-3A-40MAT-BLAS-20MGL-PAX-3ASECTION-29'></a>
 
-## 10 BLAS Operations
+## 11 BLAS Operations
 
 Only some BLAS functions are implemented, but it should be easy to
 add more as needed. All of them default to using CUDA, if it is
@@ -733,7 +743,7 @@ Level 3 BLAS operations
 
 <a id='x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 11 Destructive API
+## 12 Destructive API
 
 <a id='x-28MGL-MAT-3A-2ESQUARE-21-20FUNCTION-29'></a>
 
@@ -970,7 +980,7 @@ Finally, some neural network operations.
 
 <a id='x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 12 Non-destructive API
+## 13 Non-destructive API
 
 <a id='x-28MGL-MAT-3ACOPY-MAT-20FUNCTION-29'></a>
 
@@ -1060,7 +1070,7 @@ Finally, some neural network operations.
 
 <a id='x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29'></a>
 
-## 13 Mappings
+## 14 Mappings
 
 <a id='x-28MGL-MAT-3AMAP-CONCAT-20FUNCTION-29'></a>
 
@@ -1116,7 +1126,7 @@ Finally, some neural network operations.
 
 <a id='x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29'></a>
 
-## 14 Random numbers
+## 15 Random numbers
 
 Unless noted these work efficiently with CUDA.
 
@@ -1158,7 +1168,7 @@ Unless noted these work efficiently with CUDA.
 
 <a id='x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29'></a>
 
-## 15 I/O
+## 16 I/O
 
 <a id='x-28MGL-MAT-3A-2AMAT-HEADERS-2A-20-28VARIABLE-29-29'></a>
 
@@ -1187,7 +1197,7 @@ Unless noted these work efficiently with CUDA.
 
 <a id='x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29'></a>
 
-## 16 Debugging
+## 17 Debugging
 
 The largest class of bugs has to do with synchronization of facets
 being broken. This is almost always caused by an operation that
@@ -1246,13 +1256,13 @@ used.
 
 <a id='x-28MGL-MAT-3A-40MAT-FACET-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 17 Facet API
+## 18 Facet API
 
 
 
 <a id='x-28MGL-MAT-3A-40MAT-FACETS-20MGL-PAX-3ASECTION-29'></a>
 
-### 17.1 Facets
+### 18.1 Facets
 
 A [`MAT`][773f] is a [`CUBE`][9fcc] (see [Cube Manual][7de8]) whose facets are different
 representations of numeric arrays. These facets can be accessed with
@@ -1364,7 +1374,7 @@ and initialized. See [`WITH-CUDA*`][2e14] for detail.
 
 <a id='x-28MGL-MAT-3A-40MAT-FOREIGN-20MGL-PAX-3ASECTION-29'></a>
 
-### 17.2 Foreign arrays
+### 18.2 Foreign arrays
 
 One facet of [`MAT`][773f] objects is [`FOREIGN-ARRAY`][4e9b] which is
 backed by a memory area that can be a pinned lisp array or is
@@ -1445,7 +1455,7 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a id='x-28MGL-MAT-3A-40MAT-CUDA-20MGL-PAX-3ASECTION-29'></a>
 
-### 17.3 CUDA
+### 18.3 CUDA
 
 <a id='x-28MGL-MAT-3ACUDA-AVAILABLE-P-20FUNCTION-29'></a>
 
@@ -1546,7 +1556,7 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 <a id='x-28MGL-MAT-3A-40MAT-CUDA-MEMORY-MANAGEMENT-20MGL-PAX-3ASECTION-29'></a>
 
-#### 17.3.1 CUDA Memory Management
+#### 18.3.1 CUDA Memory Management
 
 The GPU (called *device* in CUDA terminology) has its own memory
 and it can only perform computation on data in this *device memory*
@@ -1641,14 +1651,14 @@ matrices.
 
 <a id='x-28MGL-MAT-3A-40MAT-EXTENSIONS-20MGL-PAX-3ASECTION-29'></a>
 
-## 18 Writing Extensions
+## 19 Writing Extensions
 
 New operations are usually implemented in lisp, CUDA, or by calling
 a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 <a id='x-28MGL-MAT-3A-40MAT-LISP-EXTENSIONS-20MGL-PAX-3ASECTION-29'></a>
 
-### 18.1 Lisp Extensions
+### 19.1 Lisp Extensions
 
 <a id='x-28MGL-MAT-3ADEFINE-LISP-KERNEL-20-28MGL-PAX-3AMACRO-29-29'></a>
 
@@ -1693,7 +1703,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 <a id='x-28MGL-MAT-3A-40MAT-CUDA-EXTENSIONS-20MGL-PAX-3ASECTION-29'></a>
 
-### 18.2 CUDA Extensions
+### 19.2 CUDA Extensions
 
 <a id='x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29'></a>
 
@@ -1842,7 +1852,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 <a id='x-28MGL-MAT-3A-40MAT-CUBLAS-20MGL-PAX-3ASECTION-29'></a>
 
-#### 18.2.1 CUBLAS
+#### 19.2.1 CUBLAS
 
 In a [`WITH-CUDA*`][2e14] [BLAS Operations][0386] will automatically use CUBLAS. No need to
 use these at all.
@@ -1881,7 +1891,7 @@ use these at all.
 
 <a id='x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29'></a>
 
-#### 18.2.2 CURAND
+#### 19.2.2 CURAND
 
 This the low level CURAND API. You probably want [Random numbers][ef83]
 instead.
@@ -1911,19 +1921,29 @@ instead.
 
 ## Table of Contents
 
-- [1 Introduction][0752]
-- [2 Basics][1164]
-- [3 Synchronization][688d]
-- [4 Facets][34a4]
-- [5 Facet Extension API][2e01]
-- [6 The Default Implementation of CALL-WITH-FACET*][754d]
-- [7 Lifetime][767f]
-    - [7.1 Facet Barriers][5eab]
+- [1 Links][6cbb]
+- [2 Introduction][0752]
+- [3 Basics][1164]
+- [4 Synchronization][688d]
+- [5 Facets][34a4]
+- [6 Facet Extension API][2e01]
+- [7 The Default Implementation of CALL-WITH-FACET*][754d]
+- [8 Lifetime][767f]
+    - [8.1 Facet Barriers][5eab]
 
 ###### \[in package MGL-CUBE\]
+<a id='x-28MGL-CUBE-3A-40CUBE-LINKS-20MGL-PAX-3ASECTION-29'></a>
+
+## 1 Links
+
+Here is the [official
+repository](https://github.com/melisgl/mgl-mat) and the [HTML
+documentation](http://melisgl.github.io/mgl-mat/cube-manual.html)
+for the latest version.
+
 <a id='x-28MGL-CUBE-3A-40CUBE-INTRODUCTION-20MGL-PAX-3ASECTION-29'></a>
 
-## 1 Introduction
+## 2 Introduction
 
 This is the library on which MGL-MAT (see [MAT Manual][2629]) is
 built. The idea of automatically translating between various
@@ -1943,7 +1963,7 @@ If you want to implement a new cube datatype, then see [Facets][34a4],
 
 <a id='x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29'></a>
 
-## 2 Basics
+## 3 Basics
 
 Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
 [`WITH-FACET`][8543].
@@ -2034,7 +2054,7 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
 
 <a id='x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29'></a>
 
-## 3 Synchronization
+## 4 Synchronization
 
 Cubes keep track of which facets are used, which are up-to-date to
 be able to perform automatic translation between facets. [`WITH-FACET`][8543]
@@ -2084,7 +2104,7 @@ signal safe.
 
 <a id='x-28MGL-CUBE-3A-40CUBE-FACETS-20MGL-PAX-3ASECTION-29'></a>
 
-## 4 Facets
+## 5 Facets
 
 The basic currency for implementing new cube types is the [`FACET`][d34e].
 Simply using a cube only involves facet names and values, never
@@ -2164,7 +2184,7 @@ facets themselves.
 
 <a id='x-28MGL-CUBE-3A-40CUBE-FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29'></a>
 
-## 5 Facet Extension API
+## 6 Facet Extension API
 
 Many of the generic functions in this section take [`FACET`][d34e] arguments.
 [`FACET`][d34e] is a structure and is not intended to be subclassed. To be
@@ -2275,7 +2295,7 @@ Also see [The Default Implementation of CALL-WITH-FACET\*][754d].
 
 <a id='x-28MGL-CUBE-3A-40CUBE-DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29'></a>
 
-## 6 The Default Implementation of CALL-WITH-FACET\*
+## 7 The Default Implementation of CALL-WITH-FACET\*
 
 <a id='x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20-28METHOD-20NIL-20-28MGL-CUBE-3ACUBE-20T-20T-20T-29-29-29'></a>
 
@@ -2348,7 +2368,7 @@ Also see [The Default Implementation of CALL-WITH-FACET\*][754d].
 
 <a id='x-28MGL-CUBE-3A-40CUBE-LIFETIME-20MGL-PAX-3ASECTION-29'></a>
 
-## 7 Lifetime
+## 8 Lifetime
 
 Lifetime management of facets is manual (but facets of garbage
 cubes are freed automatically by a finalizer, see [`MAKE-FACET*`][2a64]). One
@@ -2406,7 +2426,7 @@ to prevent resource leaks caused by stray references.
 
 <a id='x-28MGL-CUBE-3A-40CUBE-FACET-BARRIER-20MGL-PAX-3ASECTION-29'></a>
 
-### 7.1 Facet Barriers
+### 8.1 Facet Barriers
 
 A facility to control lifetime of facets tied to a dynamic extent.
 Also see [Lifetime][767f].
@@ -2487,6 +2507,7 @@ Also see [Lifetime][767f].
   [51e4]: #x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29 "(MGL-MAT:USE-CUDA-P FUNCTION)"
   [52cb]: #x-28MGL-MAT-3AADJUST-21-20FUNCTION-29 "(MGL-MAT:ADJUST! FUNCTION)"
   [552a]: #x-28MGL-MAT-3ASTACK-21-20FUNCTION-29 "(MGL-MAT:STACK! FUNCTION)"
+  [586c]: #x-28MGL-MAT-3A-40MAT-LINKS-20MGL-PAX-3ASECTION-29 "Links"
   [5acc]: #x-28MGL-CUBE-3ADEFINE-FACET-NAME-20-28MGL-PAX-3AMACRO-29-29 "(MGL-CUBE:DEFINE-FACET-NAME (MGL-PAX:MACRO))"
   [5eab]: #x-28MGL-CUBE-3A-40CUBE-FACET-BARRIER-20MGL-PAX-3ASECTION-29 "Facet Barriers"
   [5ed3]: #x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:CUDA-ENABLED (MGL-PAX:ACCESSOR MGL-MAT:MAT))"
@@ -2494,6 +2515,7 @@ Also see [Lifetime][767f].
   [6056]: #x-28MGL-CUBE-3ASELECT-COPY-SOURCE-FOR-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:SELECT-COPY-SOURCE-FOR-FACET* GENERIC-FUNCTION)"
   [6156]: #x-28MGL-MAT-3AFILL-21-20FUNCTION-29 "(MGL-MAT:FILL! FUNCTION)"
   [688d]: #x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29 "Synchronization"
+  [6cbb]: #x-28MGL-CUBE-3A-40CUBE-LINKS-20MGL-PAX-3ASECTION-29 "Links"
   [6ccf]: #x-28MGL-MAT-3A-40MAT-PRINTING-20MGL-PAX-3ASECTION-29 "Printing"
   [7043]: #x-28MGL-MAT-3AFOREIGN-ARRAY-20CLASS-29 "(MGL-MAT:FOREIGN-ARRAY CLASS)"
   [7191]: #x-28MGL-MAT-3A-40MAT-CUDA-MEMORY-MANAGEMENT-20MGL-PAX-3ASECTION-29 "CUDA Memory Management"

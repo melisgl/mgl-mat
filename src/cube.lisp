@@ -1,6 +1,7 @@
 (in-package :mgl-cube)
 
 (defsection @cube-manual (:title "Cube Manual")
+  (@cube-links section)
   (@cube-introduction section)
   (@cube-basics section)
   (@cube-synchronization section)
@@ -8,6 +9,12 @@
   (@cube-facet-extension-api section)
   (@cube-default-call-with-facet* section)
   (@cube-lifetime section))
+
+(defsection @cube-links (:title "Links")
+  "Here is the [official
+  repository](https://github.com/melisgl/mgl-mat) and the [HTML
+  documentation](http://melisgl.github.io/mgl-mat/cube-manual.html)
+  for the latest version.")
 
 (defsection @cube-introduction (:title "Introduction")
   "This is the library on which \\MGL-MAT (see MGL-MAT:@MAT-MANUAL) is

@@ -57,7 +57,8 @@
                              (:file "vec")
                              (:file "mat")
                              (:file "convolve")
-                             (:file "max-pool")))))
+                             (:file "max-pool")
+                             (:file "doc")))))
 
 (defmethod asdf:perform ((o asdf:test-op)
                          (c (eql (asdf:find-system '#:mgl-mat))))

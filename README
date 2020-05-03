@@ -12,6 +12,13 @@
 - Mailto: [mega@retes.hu](mailto:mega@retes.hu)
 - Homepage: [http://quotenil.com](http://quotenil.com)
 
+## Links
+
+Here is the [official
+repository](https://github.com/melisgl/mgl-mat) and the [HTML
+documentation](http://melisgl.github.io/mgl-mat/mat-manual.html)
+for the latest version.
+
 ## Introduction
 
 ### What's MGL-MAT?
@@ -415,7 +422,7 @@ it may create a new MAT.
     possible by the row-major layout, hence no column counterpart.
     Return MAT.
 
-- [macro] WITH-SHAPE-AND-DISPLACEMENT (MAT &OPTIONAL (DIMENSIONS NIL DIMENSIONSP) (DISPLACEMENT NIL DISPLACEMENTP)) &BODY BODY
+- [macro] WITH-SHAPE-AND-DISPLACEMENT (MAT &OPTIONAL (DIMENSIONS NIL) (DISPLACEMENT NIL)) &BODY BODY
 
     Reshape and displace MAT if DIMENSIONS and/or DISPLACEMENT is given
     and restore the original shape and displacement after BODY is
@@ -1521,6 +1528,13 @@ instead.
 # Cube Manual
 
 ###### \[in package MGL-CUBE\]
+## Links
+
+Here is the [official
+repository](https://github.com/melisgl/mgl-mat) and the [HTML
+documentation](http://melisgl.github.io/mgl-mat/cube-manual.html)
+for the latest version.
+
 ## Introduction
 
 This is the library on which MGL-MAT (see MGL-MAT:@MAT-MANUAL) is

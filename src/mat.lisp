@@ -13,6 +13,7 @@
 
 (defsection @mat-manual (:title "MAT Manual")
   (mgl-mat asdf:system)
+  (@mat-links section)
   (@mat-introduction section)
   (@mat-tutorial section)
   (@mat-basics section)
@@ -30,6 +31,12 @@
   (@mat-debugging section)
   (@mat-facet-api section)
   (@mat-extensions section))
+
+(defsection @mat-links (:title "Links")
+  "Here is the [official
+  repository](https://github.com/melisgl/mgl-mat) and the [HTML
+  documentation](http://melisgl.github.io/mgl-mat/mat-manual.html)
+  for the latest version.")
 
 (defsection @mat-introduction (:title "Introduction")
   (@mat-what-is-it section)
