@@ -48,9 +48,11 @@
   arrays which supports efficient interfacing to foreign and CUDA
   code. BLAS and CUBLAS bindings are available.
 - Licence: MIT, see COPYING.
-- Author: Gábor Melis
+- Author: Gábor Melis <mega@retes.hu>
 - Mailto: [mega@retes.hu](mailto:mega@retes.hu)
-- Homepage: [http://quotenil.com](http://quotenil.com)
+- Homepage: [http://melisgl.github.io/mgl-mat](http://melisgl.github.io/mgl-mat)
+- Bug tracker: [https://github.com/melisgl/mgl-mat/issues](https://github.com/melisgl/mgl-mat/issues)
+- Source control: [GIT](https://github.com/melisgl/mgl-mat.git)
 
 <a id='x-28MGL-MAT-3A-40MAT-LINKS-20MGL-PAX-3ASECTION-29'></a>
 
@@ -1927,7 +1929,7 @@ instead.
 - [4 Synchronization][688d]
 - [5 Facets][34a4]
 - [6 Facet Extension API][2e01]
-- [7 The Default Implementation of CALL-WITH-FACET*][754d]
+- [7 The Default Implementation of CALL-WITH-FACET\*][754d]
 - [8 Lifetime][767f]
     - [8.1 Facet Barriers][5eab]
 
@@ -2520,7 +2522,7 @@ Also see [Lifetime][767f].
   [7043]: #x-28MGL-MAT-3AFOREIGN-ARRAY-20CLASS-29 "(MGL-MAT:FOREIGN-ARRAY CLASS)"
   [7191]: #x-28MGL-MAT-3A-40MAT-CUDA-MEMORY-MANAGEMENT-20MGL-PAX-3ASECTION-29 "CUDA Memory Management"
   [7388]: #x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29 "Mappings"
-  [754d]: #x-28MGL-CUBE-3A-40CUBE-DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29 "The Default Implementation of CALL-WITH-FACET\\*"
+  [754d]: #x-28MGL-CUBE-3A-40CUBE-DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29 "The Default Implementation of CALL-WITH-FACET*"
   [767f]: #x-28MGL-CUBE-3A-40CUBE-LIFETIME-20MGL-PAX-3ASECTION-29 "Lifetime"
   [773f]: #x-28MGL-MAT-3AMAT-20CLASS-29 "(MGL-MAT:MAT CLASS)"
   [78d7]: #x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29 "I/O"

@@ -17,13 +17,14 @@
 (asdf:defsystem #:mgl-mat
   :licence "MIT, see COPYING."
   :version "0.1.0"
-  :author "Gábor Melis"
+  :author "Gábor Melis <mega@retes.hu>"
   :mailto "mega@retes.hu"
-  :homepage "http://quotenil.com"
+  :homepage "http://melisgl.github.io/mgl-mat"
+  :bug-tracker "https://github.com/melisgl/mgl-mat/issues"
+  :source-control (:git "https://github.com/melisgl/mgl-mat.git")
   :description "MAT is library for working with multi-dimensional
   arrays which supports efficient interfacing to foreign and CUDA
   code. BLAS and CUBLAS bindings are available."
-  :in-order-to ((asdf:test-op (asdf:test-op "mgl-mat-test")))
   :depends-on (#:alexandria #:bordeaux-threads #:cffi #:cffi-grovel #:cl-cuda
                             #:flexi-streams #:ieee-floats #:lla #:mgl-pax
                             #:static-vectors #:trivial-garbage)
@@ -58,9 +59,17 @@
                              (:file "mat")
                              (:file "convolve")
                              (:file "max-pool")
-                             (:file "doc")))))
+                             (:file "doc"))))
+  :in-order-to ((asdf:test-op (asdf:test-op "mgl-mat/test"))))
 
-(defmethod asdf:perform ((o asdf:test-op)
-                         (c (eql (asdf:find-system '#:mgl-mat))))
-  (asdf:oos 'asdf:load-op '#:mgl-mat-test)
-  (funcall (intern (symbol-name '#:test) (find-package '#:mgl-mat))))
+(asdf:defsystem mgl-mat/test
+  :licence "MIT, see COPYING."
+  :author "Gábor Melis <mega@retes.hu>"
+  :mailto "mega@retes.hu"
+  :description "Test system for MGL-MAT."
+  :depends-on (#:mgl-mat #:cl-fad)
+  :components ((:module "test"
+                :serial t
+                :components ((:file "test-mat"))))
+  :perform (asdf:test-op (o s)
+             (uiop:symbol-call '#:mgl-mat '#:test)))

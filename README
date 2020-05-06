@@ -8,9 +8,11 @@
   arrays which supports efficient interfacing to foreign and CUDA
   code. BLAS and CUBLAS bindings are available.
 - Licence: MIT, see COPYING.
-- Author: Gábor Melis
+- Author: Gábor Melis <mega@retes.hu>
 - Mailto: [mega@retes.hu](mailto:mega@retes.hu)
-- Homepage: [http://quotenil.com](http://quotenil.com)
+- Homepage: [http://melisgl.github.io/mgl-mat](http://melisgl.github.io/mgl-mat)
+- Bug tracker: [https://github.com/melisgl/mgl-mat/issues](https://github.com/melisgl/mgl-mat/issues)
+- Source control: [GIT](https://github.com/melisgl/mgl-mat.git)
 
 ## Links
 
