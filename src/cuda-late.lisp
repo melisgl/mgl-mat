@@ -81,7 +81,6 @@
                        (device-id *cuda-default-device-id*)
                        (random-seed *cuda-default-random-seed*)
                        (n-random-states *cuda-default-n-random-states*)
-                       (override-arch-p t)
                        n-pool-bytes)
   "Like WITH-CUDA*, but takes a no argument function instead of the
   macro's BODY."
@@ -94,27 +93,19 @@
                (*n-memcpy-host-to-device* 0)
                (*n-memcpy-device-to-host* 0))
            (with-cuda (device-id)
-             (multiple-value-bind (major minor)
-                 (cl-cuda:device-compute-capability device-id)
-               (let ((cl-cuda:*nvcc-options*
-                       (if override-arch-p
-                           (cons (format nil "-arch=sm_~D~D" major minor)
-                                 (remove-arch-nvcc-option
-                                  cl-cuda:*nvcc-options*))
-                           cl-cuda:*nvcc-options*)))
-                 (with-cuda-pool (:n-bytes n-pool-bytes)
-                   (with-cuda-stream (*cuda-stream*)
-                     (with-cuda-stream (*cuda-copy-stream*)
-                       (with-facet-barrier ('vec '(lisp-vector) '(cuda-vector))
-                         (with-facet-barrier ('mat '(array) '(cuda-array
-                                                              cuda-host-array))
-                           (with-cublas-handle ()
-                             (with-curand-state
-                                 ((if random-seed
-                                      (make-xorwow-state/simple
-                                       random-seed n-random-states)
-                                      *curand-state*))
-                               (funcall fn)))))))))))))
+             (with-cuda-pool (:n-bytes n-pool-bytes)
+               (with-cuda-stream (*cuda-stream*)
+                 (with-cuda-stream (*cuda-copy-stream*)
+                   (with-facet-barrier ('vec '(lisp-vector) '(cuda-vector))
+                     (with-facet-barrier ('mat '(array) '(cuda-array
+                                                          cuda-host-array))
+                       (with-cublas-handle ()
+                         (with-curand-state
+                             ((if random-seed
+                                  (make-xorwow-state/simple
+                                   random-seed n-random-states)
+                                  *curand-state*))
+                           (funcall fn)))))))))))
         (t
          (funcall fn))))
 
@@ -131,7 +122,6 @@
                        (device-id '*cuda-default-device-id*)
                        (random-seed '*cuda-default-random-seed*)
                        (n-random-states '*cuda-default-n-random-states*)
-                       (override-arch-p t)
                        n-pool-bytes)
                       &body body)
   "Initializes CUDA with with all bells and whistles before BODY and
@@ -145,16 +135,14 @@
 
   Else, if CUDA is available and ENABLED, then in addition to the
   facet barrier, a CUDA context is set up, *N-MEMCPY-HOST-TO-DEVICE*,
-  *N-MEMCPY-DEVICE-TO-HOST* are bound to zero, the highest possible
-  -arch option for the device is added to *CL-CUDA:NVCC-OPTIONS* (if
-  OVERRIDE-ARCH-P), a cublas handle created, and *CURAND-STATE* is
-  bound to a CURAND-XORWOW-STATE with N-RANDOM-STATES, seeded with
-  RANDOM-SEED, and allocation of device memory is limited to
-  N-POOL-BYTES (NIL means no limit, see @MAT-CUDA-MEMORY-MANAGEMENT).
+  *N-MEMCPY-DEVICE-TO-HOST* are bound to zero, a cublas handle created,
+  and *CURAND-STATE* is bound to a CURAND-XORWOW-STATE with
+  N-RANDOM-STATES, seeded with RANDOM-SEED, and allocation of device
+  memory is limited to N-POOL-BYTES (NIL means no limit, see
+  @MAT-CUDA-MEMORY-MANAGEMENT).
 
   Else - that is, if CUDA is not available, BODY is simply executed."
   `(call-with-cuda (lambda () ,@body) :enabled ,enabled
                    :device-id ,device-id :random-seed ,random-seed
                    :n-random-states ,n-random-states
-                   :override-arch-p ,override-arch-p
                    :n-pool-bytes ,n-pool-bytes))
