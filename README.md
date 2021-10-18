@@ -4,7 +4,7 @@
 
 ## Table of Contents
 
-- [1 mgl-mat ASDF System Details][85d5]
+- [1 MGL-MAT ASDF System Details][85d5]
 - [2 Links][586c]
 - [3 Introduction][b0b5]
     - [3.1 What's MGL-MAT?][01b0]
@@ -41,7 +41,7 @@
 ###### \[in package MGL-MAT\]
 <a id='x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29'></a>
 
-## 1 mgl-mat ASDF System Details
+## 1 MGL-MAT ASDF System Details
 
 - Version: 0.1.0
 - Description: [`MAT`][773f] is library for working with multi-dimensional
@@ -129,7 +129,7 @@ Creating matrices is just like creating lisp arrays:
 ```
 
 The most prominent difference from lisp arrays is that [`MAT`][773f]s are
-always numeric and their element type (called [`CTYPE`][a561] here) defaults
+always numeric and their element type (called [`CTYPE`][867d] here) defaults
 to `:DOUBLE`.
 
 Individual elements can be accessed or set with [`MREF`][28eb]:
@@ -159,16 +159,16 @@ by copying data around lazily, but doing its best to share storage
 for facets that allow it.
 
 Notice the `ABF` in the printed results. It illustrates that behind
-the scenes [`FILL!`][6156] worked on the [`BACKING-ARRAY`][8a91]
+the scenes [`FILL!`][6156] worked on the [`BACKING-ARRAY`][e3f0]
 facet (hence the `B`) that's basically a 1d lisp array. [`SCAL!`][4c84] on the
 other hand made a foreign call to the BLAS `dscal` function for
-which it needed the [`FOREIGN-ARRAY`][4e9b] facet (`F`).
-Finally, the `A` stands for the [`ARRAY`][4417] facet that was
+which it needed the [`FOREIGN-ARRAY`][12c9] facet (`F`).
+Finally, the `A` stands for the [`ARRAY`][ba88] facet that was
 created when the array was printed. All facets are up-to-date (else
 some of the characters would be lowercase). This is possible because
 these three facets actually share storage which is never the case
-for the [`CUDA-ARRAY`][b706] facet. Now if we have a
-CUDA-capable GPU, CUDA can be enabled with [`WITH-CUDA*`][2e14]:
+for the [`CUDA-ARRAY`][84c3] facet. Now if we have a
+CUDA-capable GPU, CUDA can be enabled with [`WITH-CUDA*`][c00b]:
 
 ```commonlisp
 (with-cuda* ()
@@ -177,10 +177,10 @@ CUDA-capable GPU, CUDA can be enabled with [`WITH-CUDA*`][2e14]:
 ==> #<MAT 4 A #(6.0d0 6.0d0 6.0d0 6.0d0)>
 ```
 
-Note the lonely `C` showing that only the [`CUDA-ARRAY`][b706]
-facet was used for both [`FILL!`][6156] and [`SCAL!`][4c84]. When [`WITH-CUDA*`][2e14] exits and
+Note the lonely `C` showing that only the [`CUDA-ARRAY`][84c3]
+facet was used for both [`FILL!`][6156] and [`SCAL!`][4c84]. When [`WITH-CUDA*`][c00b] exits and
 destroys the CUDA context, it destroys all CUDA facets, moving their
-data to the [`ARRAY`][4417] facet, so the returned [`MAT`][773f] only has
+data to the [`ARRAY`][ba88] facet, so the returned [`MAT`][773f] only has
 that facet.
 
 When there is no high-level operation that does what we want, we may
@@ -198,7 +198,7 @@ accessing one of the facets directly, as in the following example:
 
 ```
 
-Notice that [`LOGDET`][ed9a] doesn't know about CUDA at all. [`WITH-FACETS`][bb1d]
+Notice that [`LOGDET`][ed9a] doesn't know about CUDA at all. [`WITH-FACETS`][b61b]
 gives it the content of the matrix as a normal multidimensional lisp
 array, copying the data from the GPU or elsewhere if necessary. This
 allows new representations ([`FACET`][d34e]s) to be added easily and it also
@@ -232,7 +232,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 - [reader] **MAT-CTYPE** *MAT* *(:CTYPE = *DEFAULT-MAT-CTYPE*)*
 
-    One of [`*SUPPORTED-CTYPES*`][165a]. The matrix can hold
+    One of [`*SUPPORTED-CTYPES*`][4586]. The matrix can hold
     only values of this type.
 
 <a id='x-28MGL-MAT-3AMAT-DISPLACEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29'></a>
@@ -289,7 +289,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     matrix contents are initialized with [`REPLACE!`][c07a]. See class [`MAT`][773f] for the
     description of the rest of the parameters. This is exactly
     what (`MAKE-INSTANCE` '[`MAT`][773f] ...) does except `DIMENSIONS` is not a
-    keyword argument so that [`MAKE-MAT`][4cc3] looks more like `MAKE-ARRAY`. The
+    keyword argument so that `MAKE-MAT` looks more like `MAKE-ARRAY`. The
     semantics of `SYNCHRONIZATION` are desribed in the
     [Synchronization][688d] section.
     
@@ -307,7 +307,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     created array will be 0 and the size will be equal to
     `ARRAY-TOTAL-SIZE`. If `CTYPE` is non-nil, then it will be the ctype of
     the new matrix. Else `ARRAY`'s type is converted to a ctype. If there
-    is no corresponding ctype, then [`*DEFAULT-MAT-CTYPE*`][c062] is used.
+    is no corresponding ctype, then [`*DEFAULT-MAT-CTYPE*`][02a7] is used.
     Elements of `ARRAY` are coerced to `CTYPE`.
     
     Also see [Synchronization][688d].
@@ -340,9 +340,9 @@ algorithms. MGL-MAT does its best to keep them separate.
 
     Like `AREF` for arrays. Don't use this if you care about performance
     at all. SETFable. When set, the value is coerced to the ctype of `MAT`
-    with [`COERCE-TO-CTYPE`][ad5b]. Note that currently [`MREF`][28eb] always operates on
-    the [`BACKING-ARRAY`][8a91] facet so it can trigger copying of facets. When
-    it's `SETF`'ed, however, it will update the [`CUDA-ARRAY`][b706] if cuda is
+    with [`COERCE-TO-CTYPE`][ad5b]. Note that currently `MREF` always operates on
+    the [`BACKING-ARRAY`][e3f0] facet so it can trigger copying of facets. When
+    it's `SETF`'ed, however, it will update the [`CUDA-ARRAY`][84c3] if cuda is
     enabled and it is up-to-date or there are no facets at all.
 
 <a id='x-28MGL-MAT-3AROW-MAJOR-MREF-20FUNCTION-29'></a>
@@ -352,9 +352,9 @@ algorithms. MGL-MAT does its best to keep them separate.
     Like `ROW-MAJOR-AREF` for arrays. Don't use this if you care about
     performance at all. SETFable. When set, the value is coerced to the
     ctype of `MAT` with [`COERCE-TO-CTYPE`][ad5b]. Note that currently
-    [`ROW-MAJOR-MREF`][0ee2] always operates on the [`BACKING-ARRAY`][8a91] facet so it can
+    `ROW-MAJOR-MREF` always operates on the [`BACKING-ARRAY`][e3f0] facet so it can
     trigger copying of facets. When it's `SETF`'ed, however, it will
-    update the [`CUDA-ARRAY`][b706] if cuda is enabled and it is up-to-date or
+    update the [`CUDA-ARRAY`][84c3] if cuda is enabled and it is up-to-date or
     there are no facets at all.
 
 <a id='x-28MGL-MAT-3AMAT-ROW-MAJOR-INDEX-20FUNCTION-29'></a>
@@ -367,17 +367,17 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 ## 6 Element types
 
-<a id='x-28MGL-MAT-3A-2ASUPPORTED-CTYPES-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2ASUPPORTED-CTYPES-2A-20VARIABLE-29'></a>
 
 - [variable] **\*SUPPORTED-CTYPES\*** *(:FLOAT :DOUBLE)*
 
-<a id='x-28MGL-MAT-3ACTYPE-20-28TYPE-29-29'></a>
+<a id='x-28MGL-MAT-3ACTYPE-20TYPE-29'></a>
 
 - [type] **CTYPE**
 
     This is basically `(MEMBER :FLOAT :DOUBLE)`.
 
-<a id='x-28MGL-MAT-3A-2ADEFAULT-MAT-CTYPE-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2ADEFAULT-MAT-CTYPE-2A-20VARIABLE-29'></a>
 
 - [variable] **\*DEFAULT-MAT-CTYPE\*** *:DOUBLE*
 
@@ -394,22 +394,22 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 ## 7 Printing
 
-<a id='x-28MGL-MAT-3A-2APRINT-MAT-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2APRINT-MAT-2A-20VARIABLE-29'></a>
 
 - [variable] **\*PRINT-MAT\*** *T*
 
     Controls whether the contents of a [`MAT`][773f] object are printed as an
     array (subject to the standard printer control variables).
 
-<a id='x-28MGL-MAT-3A-2APRINT-MAT-FACETS-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2APRINT-MAT-FACETS-2A-20VARIABLE-29'></a>
 
 - [variable] **\*PRINT-MAT-FACETS\*** *T*
 
     Controls whether a summary of existing and up-to-date facets is
     printed when a [`MAT`][773f] object is printed. The summary that looks like
-    `ABcfh` indicates that all five facets ([`ARRAY`][4417],
-    [`BACKING-ARRAY`][8a91], [`CUDA-ARRAY`][b706],
-    [`FOREIGN-ARRAY`][4e9b], [`CUDA-HOST-ARRAY`][1458]) are
+    `ABcfh` indicates that all five facets ([`ARRAY`][ba88],
+    [`BACKING-ARRAY`][e3f0], [`CUDA-ARRAY`][84c3],
+    [`FOREIGN-ARRAY`][12c9], [`CUDA-HOST-ARRAY`][1944]) are
     present and the first two are up-to-date. A summary of a single #-
     indicates that there are no facets.
 
@@ -524,7 +524,7 @@ it may create a new [`MAT`][773f].
     there. Return `MAT`.
     
     `DISPLACEMENT` + the new size must not exceed [`MAT-MAX-SIZE`][3cf7].
-    Furthermore, there must be no facets being viewed (with [`WITH-FACETS`][bb1d])
+    Furthermore, there must be no facets being viewed (with [`WITH-FACETS`][b61b])
     when calling this function as the identity of the facets is not
     stable.
 
@@ -548,7 +548,7 @@ it may create a new [`MAT`][773f].
     possible by the row-major layout, hence no column counterpart.
     Return `MAT`.
 
-<a id='x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **WITH-SHAPE-AND-DISPLACEMENT** *(MAT &OPTIONAL (DIMENSIONS NIL) (DISPLACEMENT NIL)) &BODY BODY*
 
@@ -617,7 +617,7 @@ To prevent this, the cached object is removed from the cache while
 it is used so other invocations will create a fresh one which isn't
 particularly efficient but at least it's safe.
 
-<a id='x-28MGL-MAT-3AWITH-THREAD-CACHED-MAT-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-MAT-3AWITH-THREAD-CACHED-MAT-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **WITH-THREAD-CACHED-MAT** *(VAR DIMENSIONS &REST ARGS &KEY (PLACE :SCRATCH) (CTYPE '\*DEFAULT-MAT-CTYPE\*) (DISPLACEMENT 0) MAX-SIZE (INITIAL-ELEMENT 0) INITIAL-CONTENTS) &BODY BODY*
 
@@ -628,15 +628,15 @@ particularly efficient but at least it's safe.
     
     There is a separate cache for each thread and each `PLACE` (under
     EQ). Since every cache holds exactly one [`MAT`][773f] per `CTYPE`, nested
-    [`WITH-THREAD-CACHED-MAT`][41fd] often want to use different `PLACE`s. By
+    `WITH-THREAD-CACHED-MAT` often want to use different `PLACE`s. By
     convention, these places are called `:SCRATCH-1`, `:SCRATCH-2`,
     etc.
 
-<a id='x-28MGL-MAT-3AWITH-THREAD-CACHED-MATS-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-MAT-3AWITH-THREAD-CACHED-MATS-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **WITH-THREAD-CACHED-MATS** *SPECS &BODY BODY*
 
-    A shorthand for writing nested [`WITH-THREAD-CACHED-MAT`][41fd] calls.
+    A shorthand for writing nested [`WITH-THREAD-CACHED-MAT`][eeb9] calls.
     
     ```
     (with-thread-cached-mat (a ...)
@@ -653,7 +653,7 @@ particularly efficient but at least it's safe.
     ```
 
 
-<a id='x-28MGL-MAT-3AWITH-ONES-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-MAT-3AWITH-ONES-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **WITH-ONES** *(VAR DIMENSIONS &KEY (CTYPE '\*DEFAULT-MAT-CTYPE\*) (PLACE :ONES)) &BODY BODY*
 
@@ -1172,7 +1172,7 @@ Unless noted these work efficiently with CUDA.
 
 ## 16 I/O
 
-<a id='x-28MGL-MAT-3A-2AMAT-HEADERS-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2AMAT-HEADERS-2A-20VARIABLE-29'></a>
 
 - [variable] **\*MAT-HEADERS\*** *T*
 
@@ -1186,7 +1186,7 @@ Unless noted these work efficiently with CUDA.
 
     Write `MAT` to binary `STREAM` in portable binary
     format. Return `MAT`. Displacement and size are taken into account,
-    only visible elements are written. Also see [`*MAT-HEADERS*`][c01b].
+    only visible elements are written. Also see [`*MAT-HEADERS*`][d624].
 
 <a id='x-28MGL-MAT-3AREAD-MAT-20GENERIC-FUNCTION-29'></a>
 
@@ -1195,7 +1195,7 @@ Unless noted these work efficiently with CUDA.
     Destructively modify the visible portion (with
     regards to displacement and shape) of `MAT` by reading [`MAT-SIZE`][1caf] number
     of elements from binary `STREAM`. Return `MAT`. Also see
-    [`*MAT-HEADERS*`][c01b].
+    [`*MAT-HEADERS*`][d624].
 
 <a id='x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29'></a>
 
@@ -1203,19 +1203,19 @@ Unless noted these work efficiently with CUDA.
 
 The largest class of bugs has to do with synchronization of facets
 being broken. This is almost always caused by an operation that
-mispecifies the [`DIRECTION`][ef66] argument of [`WITH-FACET`][8543]. For example, the
+mispecifies the [`DIRECTION`][298b] argument of [`WITH-FACET`][f66e]. For example, the
 matrix argument of [`SCAL!`][4c84] should be accessed with direciton `:IO`. But
-if it's `:INPUT` instead, then subsequent access to the [`ARRAY`][4417] facet
+if it's `:INPUT` instead, then subsequent access to the [`ARRAY`][ba88] facet
 will not see the changes made by [`AXPY!`][9221], and if it's `:OUTPUT`, then
-any changes made to the [`ARRAY`][4417] facet since the last update of the
-[`CUDA-ARRAY`][b706] facet will not be copied and from the wrong input [`SCAL!`][4c84]
+any changes made to the [`ARRAY`][ba88] facet since the last update of the
+[`CUDA-ARRAY`][84c3] facet will not be copied and from the wrong input [`SCAL!`][4c84]
 will compute the wrong result.
 
 Using the SLIME inspector or trying to access the
-[`CUDA-ARRAY`][b706] facet from threads other than the one in
+[`CUDA-ARRAY`][84c3] facet from threads other than the one in
 which the corresponding CUDA context was initialized will fail. For
 now, the easy way out is to debug the code with CUDA disabled (see
-[`*CUDA-ENABLED*`][d91f]).
+[`*CUDA-ENABLED*`][5feb]).
 
 Another thing that tends to come up is figuring out where memory is
 used.
@@ -1226,7 +1226,7 @@ used.
 
     Calls [`FOREIGN-ROOM`][12bc] and [`CUDA-ROOM`][1dbc].
 
-<a id='x-28MGL-MAT-3AWITH-MAT-COUNTERS-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-MAT-3AWITH-MAT-COUNTERS-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **WITH-MAT-COUNTERS** *(&KEY COUNT N-BYTES) &BODY BODY*
 
@@ -1234,7 +1234,7 @@ used.
     require. *May require* here really means an upper bound,
     because `(MAKE-MAT (EXPT 2 60))` doesn't actually uses memory until
     one of its facets is accessed (don't simply evaluate it though,
-    printing the result will access the [`ARRAY`][4417] facet if [`*PRINT-MAT*`][a944]).
+    printing the result will access the [`ARRAY`][ba88] facet if [`*PRINT-MAT*`][81d0]).
     Also, while facets today all require the same number of bytes, this
     may change in the future. This is a debugging tool, don't use it in
     production.
@@ -1268,10 +1268,10 @@ used.
 
 A [`MAT`][773f] is a [`CUBE`][9fcc] (see [Cube Manual][7de8]) whose facets are different
 representations of numeric arrays. These facets can be accessed with
-[`WITH-FACETS`][bb1d] with one of the following [`FACET-NAME`][fcc8]
+[`WITH-FACETS`][b61b] with one of the following [`FACET-NAME`][21a4]
 locatives:
 
-<a id='x-28MGL-MAT-3ABACKING-ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29'></a>
+<a id='x-28MGL-MAT-3ABACKING-ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
 
 - [facet-name] **BACKING-ARRAY**
 
@@ -1279,15 +1279,15 @@ locatives:
     a static vector that also looks exactly like a lisp array but is
     allocated in foreign memory. See [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
-<a id='x-28ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29'></a>
+<a id='x-28ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
 
 - [facet-name] **ARRAY**
 
-    Same as [`BACKING-ARRAY`][8a91] if the matrix is one-dimensional, all
+    Same as [`BACKING-ARRAY`][e3f0] if the matrix is one-dimensional, all
     elements are visible (see [Shaping][8866]), else it's a lisp array
     displaced to the backing array.
 
-<a id='x-28MGL-MAT-3AFOREIGN-ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29'></a>
+<a id='x-28MGL-MAT-3AFOREIGN-ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
 
 - [facet-name] **FOREIGN-ARRAY**
 
@@ -1295,34 +1295,35 @@ locatives:
     `OFFSET-POINTER` wrapping a `CFFI` pointer. See
     [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
-<a id='x-28MGL-MAT-3ACUDA-HOST-ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29'></a>
+<a id='x-28MGL-MAT-3ACUDA-HOST-ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
 
 - [facet-name] **CUDA-HOST-ARRAY**
 
     This facet's value is a basically the same as that of
-    [`FOREIGN-ARRAY`][4e9b]. In fact, they share storage. The
-    difference is that accessing [`CUDA-HOST-ARRAY`][1458] ensures
+    [`FOREIGN-ARRAY`][12c9]. In fact, they share storage. The
+    difference is that accessing [`CUDA-HOST-ARRAY`][1944] ensures
     that the foreign memory region is page-locked and registered with
     the CUDA Driver API function cuMemHostRegister(). Copying between
-    GPU memory ([`CUDA-ARRAY`][b706]) and registered memory is
+    GPU memory ([`CUDA-ARRAY`][84c3]) and registered memory is
     significantly faster than with non-registered memory and also allows
     overlapping copying with computation. See
-    [`WITH-SYNCING-CUDA-FACETS`][edb0].
+    [`WITH-SYNCING-CUDA-FACETS`][742e].
 
-<a id='x-28MGL-MAT-3ACUDA-ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29'></a>
+<a id='x-28MGL-MAT-3ACUDA-ARRAY-20MGL-CUBE-3AFACET-NAME-29'></a>
 
 - [facet-name] **CUDA-ARRAY**
 
-    The facet's value is a [`CUDA-ARRAY`][b706] which is an `OFFSET-POINTER`
-    wrapping a `CL-CUDA.DRIVER-API:CU-DEVICE-PTR`, allocated with
-    `CL-CUDA.DRIVER-API:CU-MEM-ALLOC` and freed automatically.
+    The facet's value is a [CUDA-ARRAY][class] which is an
+    `OFFSET-POINTER` wrapping a `CL-CUDA.DRIVER-API:CU-DEVICE-PTR`,
+    allocated with `CL-CUDA.DRIVER-API:CU-MEM-ALLOC` and freed
+    automatically.
 
-Facets bound by with [`WITH-FACETS`][bb1d] are to be treated as dynamic
+Facets bound by with [`WITH-FACETS`][b61b] are to be treated as dynamic
 extent: it is not allowed to keep a reference to them beyond the
-dynamic scope of [`WITH-FACETS`][bb1d].
+dynamic scope of [`WITH-FACETS`][b61b].
 
 For example, to implement the [`FILL!`][6156] operation using only the
-[`BACKING-ARRAY`][8a91], one could do this:
+[`BACKING-ARRAY`][e3f0], one could do this:
 
 ```commonlisp
 (let ((displacement (mat-displacement x))
@@ -1331,11 +1332,11 @@ For example, to implement the [`FILL!`][6156] operation using only the
    (fill x* 1 :start displacement :end (+ displacement size))))
 ```
 
-[`DIRECTION`][ef66] is `:OUTPUT` because we clobber all values in `X`. Armed
-with this knowledge about the direction, [`WITH-FACETS`][bb1d] will not copy
+[`DIRECTION`][298b] is `:OUTPUT` because we clobber all values in `X`. Armed
+with this knowledge about the direction, [`WITH-FACETS`][b61b] will not copy
 data from another facet if the backing array is not up-to-date.
 
-To transpose a 2d matrix with the [`ARRAY`][4417] facet:
+To transpose a 2d matrix with the [`ARRAY`][ba88] facet:
 
 ```commonlisp
 (destructuring-bind (n-rows n-columns) (mat-dimensions x)
@@ -1345,11 +1346,11 @@ To transpose a 2d matrix with the [`ARRAY`][4417] facet:
         (setf (aref x* row column) (aref x* column row))))))
 ```
 
-Note that [`DIRECTION`][ef66] is `:IO`, because we need the data in this facet
+Note that [`DIRECTION`][298b] is `:IO`, because we need the data in this facet
 to be up-to-date (that's the input part) and we are invalidating all
 other facets by changing values (that's the output part).
 
-To sum the values of a matrix using the [`FOREIGN-ARRAY`][4e9b]
+To sum the values of a matrix using the [`FOREIGN-ARRAY`][12c9]
 facet:
 
 ```commonlisp
@@ -1361,7 +1362,7 @@ facet:
   sum)
 ```
 
-See [`DIRECTION`][ef66] for a complete description of `:INPUT`, `:OUTPUT` and `:IO`.
+See [`DIRECTION`][298b] for a complete description of `:INPUT`, `:OUTPUT` and `:IO`.
 For [`MAT`][773f] objects, that needs to be refined. If a [`MAT`][773f] is reshaped
 and/or displaced in a way that not all elements are visible then
 those elements are always kept intact and copied around. This is
@@ -1372,13 +1373,13 @@ said though that one can do anything without ever accessing a facet
 directly or even being aware of them as most operations on [`MAT`][773f]s
 take care of choosing the most appropriate facet behind the scenes.
 In particular, most operations automatically use CUDA, if available
-and initialized. See [`WITH-CUDA*`][2e14] for detail.
+and initialized. See [`WITH-CUDA*`][c00b] for detail.
 
 <a id='x-28MGL-MAT-3A-40MAT-FOREIGN-20MGL-PAX-3ASECTION-29'></a>
 
 ### 18.2 Foreign arrays
 
-One facet of [`MAT`][773f] objects is [`FOREIGN-ARRAY`][4e9b] which is
+One facet of [`MAT`][773f] objects is [`FOREIGN-ARRAY`][12c9] which is
 backed by a memory area that can be a pinned lisp array or is
 allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
@@ -1397,29 +1398,29 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 - [variable] **\*FOREIGN-ARRAY-STRATEGY\*** *"-see below-"*
 
     One of `:PINNED`, `:STATIC` and `:CUDA-HOST` (see type
-    [`FOREIGN-ARRAY-STRATEGY`][dc94]). This variable controls how foreign arrays
+    [`FOREIGN-ARRAY-STRATEGY`][c65e]). This variable controls how foreign arrays
     are handled and it can be changed at any time.
     
     If it's `:PINNED` (only supported if ([`PINNING-SUPPORTED-P`][1227]), then no
     separate storage is allocated for the foreign array. Instead, it
-    aliases the lisp array (via the [`BACKING-ARRAY`][8a91] facet).
+    aliases the lisp array (via the [`BACKING-ARRAY`][e3f0] facet).
     
     If it's `:STATIC`, then the lisp backing arrays are allocated
     statically via the static-vectors library. On some implementations,
     explicit freeing of static vectors is necessary, this is taken care
-    of by finalizers or can be controlled with [`WITH-FACET-BARRIER`][f6a0].
+    of by finalizers or can be controlled with [`WITH-FACET-BARRIER`][99b9].
     [`DESTROY-CUBE`][2cb4] and [`DESTROY-FACET`][bdd6] may also be of help.
     
     `:CUDA-HOST` is the same as `:STATIC`, but any copies to/from the
-    GPU (i.e. the [`CUDA-ARRAY`][b706] facet) will be done via the
-    [`CUDA-HOST-ARRAY`][1458] facet whose memory pages will also be
+    GPU (i.e. the [`CUDA-ARRAY`][84c3] facet) will be done via the
+    [`CUDA-HOST-ARRAY`][1944] facet whose memory pages will also be
     locked and registered with `cuMemHostRegister` which allows quicker
     and asynchronous copying to and from CUDA land.
     
     The default is `:PINNED` if available, because it's the most
     efficient. If pinning is not available, then it's `:STATIC`.
 
-<a id='x-28MGL-MAT-3AFOREIGN-ARRAY-STRATEGY-20-28TYPE-29-29'></a>
+<a id='x-28MGL-MAT-3AFOREIGN-ARRAY-STRATEGY-20TYPE-29'></a>
 
 - [type] **FOREIGN-ARRAY-STRATEGY**
 
@@ -1466,23 +1467,23 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
     Check that a cuda context is already in initialized in the current
     thread or a device with `DEVICE-ID` is available.
 
-<a id='x-28MGL-MAT-3AWITH-CUDA-2A-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **WITH-CUDA\*** *(&KEY (ENABLED '\*CUDA-ENABLED\*) (DEVICE-ID '\*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED '\*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES '\*CUDA-DEFAULT-N-RANDOM-STATES\*) N-POOL-BYTES) &BODY BODY*
 
     Initializes CUDA with with all bells and whistles before `BODY` and
-    deinitializes it after. Simply wrapping [`WITH-CUDA*`][2e14] around a piece
+    deinitializes it after. Simply wrapping `WITH-CUDA*` around a piece
     code is enough to make use of the first available CUDA device or
     fall back on blas and lisp kernels if there is none.
     
     If CUDA is already initialized, then it sets up a facet barrier
-    which destroys [`CUDA-ARRAY`][b706] and [`CUDA-HOST-ARRAY`][1458] facets after ensuring
-    that the [`ARRAY`][4417] facet is up-to-date.
+    which destroys [`CUDA-ARRAY`][84c3] and [`CUDA-HOST-ARRAY`][1944] facets after ensuring
+    that the [`ARRAY`][ba88] facet is up-to-date.
     
     Else, if CUDA is available and `ENABLED`, then in addition to the
-    facet barrier, a CUDA context is set up, [`*N-MEMCPY-HOST-TO-DEVICE*`][03a5],
-    [`*N-MEMCPY-DEVICE-TO-HOST*`][fef2] are bound to zero, a cublas handle
-    created, and [`*CURAND-STATE*`][c597] is bound to a [`CURAND-XORWOW-STATE`][fa6c] with
+    facet barrier, a CUDA context is set up, [`*N-MEMCPY-HOST-TO-DEVICE*`][ee37],
+    [`*N-MEMCPY-DEVICE-TO-HOST*`][5d9b] are bound to zero, a cublas handle
+    created, and [`*CURAND-STATE*`][e868] is bound to a [`CURAND-XORWOW-STATE`][fa6c] with
     `N-RANDOM-STATES`, seeded with `RANDOM-SEED`, and allocation of device
     memory is limited to `N-POOL-BYTES` (`NIL` means no limit, see
     [CUDA Memory Management][7191]).
@@ -1493,67 +1494,67 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][373b].
 
 - [function] **CALL-WITH-CUDA** *FN &KEY ((:ENABLED \*CUDA-ENABLED\*) \*CUDA-ENABLED\*) (DEVICE-ID \*CUDA-DEFAULT-DEVICE-ID\*) (RANDOM-SEED \*CUDA-DEFAULT-RANDOM-SEED\*) (N-RANDOM-STATES \*CUDA-DEFAULT-N-RANDOM-STATES\*) N-POOL-BYTES*
 
-    Like [`WITH-CUDA*`][2e14], but takes a no argument function instead of the
+    Like [`WITH-CUDA*`][c00b], but takes a no argument function instead of the
     macro's `BODY`.
 
-<a id='x-28MGL-MAT-3A-2ACUDA-ENABLED-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2ACUDA-ENABLED-2A-20VARIABLE-29'></a>
 
 - [variable] **\*CUDA-ENABLED\*** *T*
 
     Set or bind this to false to disable all use of cuda. If this is
     done from within `WITH-CUDA`*, then cuda becomes temporarily disabled.
     If this is done from outside `WITH-CUDA`*, then it changes the default
-    values of the `ENABLED` argument of any future [`WITH-CUDA*`][2e14]s which
+    values of the `ENABLED` argument of any future [`WITH-CUDA*`][c00b]s which
     turns off cuda initialization entirely.
 
 <a id='x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29'></a>
 
 - [accessor] **CUDA-ENABLED** *MAT* *(:CUDA-ENABLED = *DEFAULT-MAT-CUDA-ENABLED*)*
 
-    The control provided by [`*CUDA-ENABLED*`][d91f] can be too
+    The control provided by [`*CUDA-ENABLED*`][5feb] can be too
     coarse. This flag provides a per-object mechanism to turn cuda
     off. If it is set to `NIL`, then any operation that pays attention
-    to this flag will not create or access the [`CUDA-ARRAY`][b706] facet.
+    to this flag will not create or access the [`CUDA-ARRAY`][84c3] facet.
     Implementationally speaking, this is easily accomplished by using
     [`USE-CUDA-P`][51e4].
 
-<a id='x-28MGL-MAT-3A-2ADEFAULT-MAT-CUDA-ENABLED-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2ADEFAULT-MAT-CUDA-ENABLED-2A-20VARIABLE-29'></a>
 
 - [variable] **\*DEFAULT-MAT-CUDA-ENABLED\*** *T*
 
     The default for [`CUDA-ENABLED`][5ed3].
 
-<a id='x-28MGL-MAT-3A-2AN-MEMCPY-HOST-TO-DEVICE-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2AN-MEMCPY-HOST-TO-DEVICE-2A-20VARIABLE-29'></a>
 
 - [variable] **\*N-MEMCPY-HOST-TO-DEVICE\*** *0*
 
     Incremented each time a host to device copy is performed. Bound to
-    0 by [`WITH-CUDA*`][2e14]. Useful for tracking down performance problems.
+    0 by [`WITH-CUDA*`][c00b]. Useful for tracking down performance problems.
 
-<a id='x-28MGL-MAT-3A-2AN-MEMCPY-DEVICE-TO-HOST-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2AN-MEMCPY-DEVICE-TO-HOST-2A-20VARIABLE-29'></a>
 
 - [variable] **\*N-MEMCPY-DEVICE-TO-HOST\*** *0*
 
     Incremented each time a device to host copy is performed. Bound to
-    0 by [`WITH-CUDA*`][2e14]. Useful for tracking down performance problems.
+    0 by [`WITH-CUDA*`][c00b]. Useful for tracking down performance problems.
 
-<a id='x-28MGL-MAT-3A-2ACUDA-DEFAULT-DEVICE-ID-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2ACUDA-DEFAULT-DEVICE-ID-2A-20VARIABLE-29'></a>
 
 - [variable] **\*CUDA-DEFAULT-DEVICE-ID\*** *0*
 
-    The default value of [`WITH-CUDA*`][2e14]'s `:DEVICE-ID` argument.
+    The default value of [`WITH-CUDA*`][c00b]'s `:DEVICE-ID` argument.
 
-<a id='x-28MGL-MAT-3A-2ACUDA-DEFAULT-RANDOM-SEED-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2ACUDA-DEFAULT-RANDOM-SEED-2A-20VARIABLE-29'></a>
 
 - [variable] **\*CUDA-DEFAULT-RANDOM-SEED\*** *1234*
 
-    The default value of [`WITH-CUDA*`][2e14]'s `:RANDOM-SEED` argument.
+    The default value of [`WITH-CUDA*`][c00b]'s `:RANDOM-SEED` argument.
 
-<a id='x-28MGL-MAT-3A-2ACUDA-DEFAULT-N-RANDOM-STATES-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2ACUDA-DEFAULT-N-RANDOM-STATES-2A-20VARIABLE-29'></a>
 
 - [variable] **\*CUDA-DEFAULT-N-RANDOM-STATES\*** *4096*
 
-    The default value of [`WITH-CUDA*`][2e14]'s `:N-RANDOM-STATES` argument.
+    The default value of [`WITH-CUDA*`][c00b]'s `:N-RANDOM-STATES` argument.
 
 <a id='x-28MGL-MAT-3A-40MAT-CUDA-MEMORY-MANAGEMENT-20MGL-PAX-3ASECTION-29'></a>
 
@@ -1571,7 +1572,7 @@ maintaining a cache of currently unused allocations from which it
 first tries to satisfy allocation requests. The total size of all
 the allocated device memory regions (be they in use or currently
 unused but cached) is never more than `N-POOL-BYTES` as specified in
-[`WITH-CUDA*`][2e14]. `N-POOL-BYTES` being `NIL` means no limit.
+[`WITH-CUDA*`][c00b]. `N-POOL-BYTES` being `NIL` means no limit.
 
 <a id='x-28MGL-MAT-3ACUDA-OUT-OF-MEMORY-20CONDITION-29'></a>
 
@@ -1611,43 +1612,43 @@ very hard to do if the data doesn't fit in device memory which is
 often a very limited resource. In this case the next best thing is
 to do the copying concurrently with computation.
 
-<a id='x-28MGL-MAT-3AWITH-SYNCING-CUDA-FACETS-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-MAT-3AWITH-SYNCING-CUDA-FACETS-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **WITH-SYNCING-CUDA-FACETS** *(MATS-TO-CUDA MATS-TO-CUDA-HOST &KEY (SAFEP '\*SYNCING-CUDA-FACETS-SAFE-P\*)) &BODY BODY*
 
     Update CUDA facets in a possibly asynchronous way while `BODY`
     executes. Behind the scenes, a separate CUDA stream is used to copy
     between registered host memory and device memory. When
-    [`WITH-SYNCING-CUDA-FACETS`][edb0] finishes either by returning normally or by
+    `WITH-SYNCING-CUDA-FACETS` finishes either by returning normally or by
     a performing a non-local-exit the following are true:
     
     - All [`MAT`][773f]s in `MATS-TO-CUDA` have an up-to-date
-      [`CUDA-ARRAY`][b706] facet.
+      [`CUDA-ARRAY`][84c3] facet.
     
     - All [`MAT`][773f]s in `MATS-TO-CUDA-HOST` have an up-to-date
-      [`CUDA-HOST-ARRAY`][1458] facet and no
-      [`CUDA-ARRAY`][b706].
+      [`CUDA-HOST-ARRAY`][1944] facet and no
+      [`CUDA-ARRAY`][84c3].
     
     It is an error if the same matrix appears in both `MATS-TO-CUDA` and
     `MATS-TO-CUDA-HOST`, but the same matrix may appear any number of
     times in one of them.
     
     If `SAFEP` is true, then the all matrices in either of the two lists
-    are effectively locked for output until [`WITH-SYNCING-CUDA-FACETS`][edb0]
+    are effectively locked for output until `WITH-SYNCING-CUDA-FACETS`
     finishes. With SAFE `NIL`, unsafe accesses to facets of these matrices
     are not detected, but the whole operation has a bit less overhead.
 
-<a id='x-28MGL-MAT-3A-2ASYNCING-CUDA-FACETS-SAFE-P-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2ASYNCING-CUDA-FACETS-SAFE-P-2A-20VARIABLE-29'></a>
 
 - [variable] **\*SYNCING-CUDA-FACETS-SAFE-P\*** *T*
 
     The default value of the `SAFEP` argument of
-    [`WITH-SYNCING-CUDA-FACETS`][edb0].
+    [`WITH-SYNCING-CUDA-FACETS`][742e].
 
 Also note that often the easiest thing to do is to prevent the use
-of CUDA (and consequently the creation of [`CUDA-ARRAY`][b706]
+of CUDA (and consequently the creation of [`CUDA-ARRAY`][84c3]
 facets, and allocations). This can be done either by binding
-[`*CUDA-ENABLED*`][d91f] to `NIL` or by setting [`CUDA-ENABLED`][5ed3] to `NIL` on specific
+[`*CUDA-ENABLED*`][5feb] to `NIL` or by setting [`CUDA-ENABLED`][5ed3] to `NIL` on specific
 matrices.
 
 <a id='x-28MGL-MAT-3A-40MAT-EXTENSIONS-20MGL-PAX-3ASECTION-29'></a>
@@ -1661,11 +1662,11 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 ### 19.1 Lisp Extensions
 
-<a id='x-28MGL-MAT-3ADEFINE-LISP-KERNEL-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-MAT-3ADEFINE-LISP-KERNEL-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **DEFINE-LISP-KERNEL** *(NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (&REST PARAMS) &BODY BODY*
 
-    This is very much like [`DEFINE-CUDA-KERNEL`][bf18] but for normal lisp code.
+    This is very much like [`DEFINE-CUDA-KERNEL`][c8b5] but for normal lisp code.
     It knows how to deal with [`MAT`][773f] objects and can define the same
     function for multiple `CTYPES`. Example:
     
@@ -1680,7 +1681,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     Parameters are either of the form `(<NAME> <LISP-TYPE)`
     or `(<NAME> :MAT <DIRECTION>)`. In the latter case, the appropriate
     `CFFI` pointer is passed to the kernel. `<DIRECTION>` is passed on to
-    the [`WITH-FACET`][8543] that's used to acquire the foreign array. Note that
+    the [`WITH-FACET`][f66e] that's used to acquire the foreign array. Note that
     the return type is not declared.
     
     Both the signature and the body are written as if for single floats,
@@ -1688,7 +1689,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     types, constants and code by substituting them with their ctype
     equivalents. Currently this only means that one needs to write only
     one kernel for `SINGLE-FLOAT` and `DOUBLE-FLOAT`. All such functions get
-    the declaration from [`*DEFAULT-LISP-KERNEL-DECLARATIONS*`][38a0].
+    the declaration from [`*DEFAULT-LISP-KERNEL-DECLARATIONS*`][fd9c].
     
     Finally, a dispatcher function with `NAME` is defined which determines
     the ctype of the [`MAT`][773f] objects passed for `:MAT` typed parameters. It's
@@ -1696,7 +1697,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     `SINGLE-FLOAT` are coerced to that type and the appropriate kernel is
     called.
 
-<a id='x-28MGL-MAT-3A-2ADEFAULT-LISP-KERNEL-DECLARATIONS-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2ADEFAULT-LISP-KERNEL-DECLARATIONS-2A-20VARIABLE-29'></a>
 
 - [variable] **\*DEFAULT-LISP-KERNEL-DECLARATIONS\*** *((OPTIMIZE SPEED (SB-C::INSERT-ARRAY-BOUNDS-CHECKS 0)))*
 
@@ -1710,7 +1711,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 - [function] **USE-CUDA-P** *&REST MATS*
 
-    Return true if cuda is enabled ([`*CUDA-ENABLED*`][d91f]), it's initialized
+    Return true if cuda is enabled ([`*CUDA-ENABLED*`][5feb]), it's initialized
     and all `MATS` have [`CUDA-ENABLED`][5ed3]. Operations of
     matrices use this to decide whether to go for the CUDA
     implementation or BLAS/Lisp. It's provided for implementing new
@@ -1816,7 +1817,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     ```
 
 
-<a id='x-28MGL-MAT-3ADEFINE-CUDA-KERNEL-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-MAT-3ADEFINE-CUDA-KERNEL-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **DEFINE-CUDA-KERNEL** *(NAME &KEY (CTYPES '(:FLOAT :DOUBLE))) (RETURN-TYPE PARAMS) &BODY BODY*
 
@@ -1837,7 +1838,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     The signature looks pretty much like in `CL-CUDA:DEFKERNEL`, but
     parameters can take the form of `(<NAME> :MAT <DIRECTION>)` too, in
     which case the appropriate `CL-CUDA.DRIVER-API:CU-DEVICE-PTR` is
-    passed to the kernel. `<DIRECTION>` is passed on to the [`WITH-FACET`][8543]
+    passed to the kernel. `<DIRECTION>` is passed on to the [`WITH-FACET`][f66e]
     that's used to acquire the cuda array.
     
     Both the signature and the body are written as if for single floats,
@@ -1855,7 +1856,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 #### 19.2.1 CUBLAS
 
-In a [`WITH-CUDA*`][2e14] [BLAS Operations][0386] will automatically use CUBLAS. No need to
+In a [`WITH-CUDA*`][c00b] [BLAS Operations][0386] will automatically use CUBLAS. No need to
 use these at all.
 
 <a id='x-28MGL-MAT-3ACUBLAS-ERROR-20CONDITION-29'></a>
@@ -1870,7 +1871,7 @@ use these at all.
 
 - [reader] **CUBLAS-ERROR-STATUS** *CUBLAS-ERROR* *(:STATUS)*
 
-<a id='x-28MGL-MAT-3A-2ACUBLAS-HANDLE-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2ACUBLAS-HANDLE-2A-20VARIABLE-29'></a>
 
 - [variable] **\*CUBLAS-HANDLE\*** *"-unbound-"*
 
@@ -1882,7 +1883,7 @@ use these at all.
 
 - [function] **CUBLAS-DESTROY** *&KEY (HANDLE \*CUBLAS-HANDLE\*)*
 
-<a id='x-28MGL-MAT-3AWITH-CUBLAS-HANDLE-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-MAT-3AWITH-CUBLAS-HANDLE-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **WITH-CUBLAS-HANDLE** *NIL &BODY BODY*
 
@@ -1897,11 +1898,11 @@ use these at all.
 This the low level CURAND API. You probably want [Random numbers][ef83]
 instead.
 
-<a id='x-28MGL-MAT-3AWITH-CURAND-STATE-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-MAT-3AWITH-CURAND-STATE-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **WITH-CURAND-STATE** *(STATE) &BODY BODY*
 
-<a id='x-28MGL-MAT-3A-2ACURAND-STATE-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-MAT-3A-2ACURAND-STATE-2A-20VARIABLE-29'></a>
 
 - [variable] **\*CURAND-STATE\*** *"-unbound-"*
 
@@ -1967,7 +1968,7 @@ If you want to implement a new cube datatype, then see [Facets][34a4],
 ## 3 Basics
 
 Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
-[`WITH-FACET`][8543].
+[`WITH-FACET`][f66e].
 
 <a id='x-28MGL-CUBE-3ACUBE-20CLASS-29'></a>
 
@@ -1975,9 +1976,9 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
 
     A datacube that has various representations of the
     same stuff. These representations go by the name \`facet'. Clients
-    must use [`WITH-FACET`][8543] to acquire a dynamic extent reference to a
-    facet. With the information provided in the [`DIRECTION`][ef66] argument of
-    [`WITH-FACET`][8543], the cube keeps track of which facets are up-to-date and
+    must use [`WITH-FACET`][f66e] to acquire a dynamic extent reference to a
+    facet. With the information provided in the [`DIRECTION`][298b] argument of
+    [`WITH-FACET`][f66e], the cube keeps track of which facets are up-to-date and
     copies data between them as necessary.
     
     The cube is an abstract class, it does not provide useful behavior
@@ -1986,7 +1987,7 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
     
     Also see [Lifetime][767f] and [Facet Barriers][5eab].
 
-<a id='x-28MGL-CUBE-3AWITH-FACET-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **WITH-FACET** *(VAR (CUBE FACET-NAME &KEY (DIRECTION :IO) TYPE)) &BODY BODY*
 
@@ -1999,11 +2000,11 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
     
     If `TYPE` is specified, then `VAR` is declared to be of that type.
 
-<a id='x-28MGL-CUBE-3ADIRECTION-20-28TYPE-29-29'></a>
+<a id='x-28MGL-CUBE-3ADIRECTION-20TYPE-29'></a>
 
 - [type] **DIRECTION**
 
-    Used by [`WITH-FACET`][8543], `DIRECTION` can be `:INPUT`, `:OUTPUT` or `:IO`.
+    Used by [`WITH-FACET`][f66e], `DIRECTION` can be `:INPUT`, `:OUTPUT` or `:IO`.
     
     - `:INPUT` promises that the facet will only be read and never
       written. Other up-to-date facets of the same cube remain
@@ -2022,21 +2023,21 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
       is copied to it from one of the up-to-date facets (see
       [`SELECT-COPY-SOURCE-FOR-FACET*`][6056]).
     
-    Any number of [`WITH-FACET`][8543]s with direction `:INPUT` may be active at
+    Any number of [`WITH-FACET`][f66e]s with direction `:INPUT` may be active at
     the same time, but `:IO` and `:OUTPUT` cannot coexists with another
-    [`WITH-FACET`][8543] regardless of the direction. The exception for this rule
-    is that an inner [`WITH-FACET`][8543] does not conflict with an enclosing
-    [`WITH-FACET`][8543] if they are for the same facet (but inner [`WITH-FACET`][8543]s
+    [`WITH-FACET`][f66e] regardless of the direction. The exception for this rule
+    is that an inner [`WITH-FACET`][f66e] does not conflict with an enclosing
+    [`WITH-FACET`][f66e] if they are for the same facet (but inner [`WITH-FACET`][f66e]s
     for another facet or for the same facet from another thread do).
     
     See [`CHECK-NO-WRITERS`][edce] and [`CHECK-NO-WATCHERS`][b9c1] called by
     [The Default Implementation of CALL-WITH-FACET\*][754d].
 
-<a id='x-28MGL-CUBE-3AWITH-FACETS-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-CUBE-3AWITH-FACETS-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **WITH-FACETS** *(&REST FACET-BINDING-SPECS) &BODY BODY*
 
-    A shorthand for writing nested [`WITH-FACET`][8543] calls.
+    A shorthand for writing nested [`WITH-FACET`][f66e] calls.
     
     ```
     (with-facet (f1 (c1 'name1 :direction :input))
@@ -2058,7 +2059,7 @@ Here we learn what a [`CUBE`][9fcc] is and how to access the data in it with
 ## 4 Synchronization
 
 Cubes keep track of which facets are used, which are up-to-date to
-be able to perform automatic translation between facets. [`WITH-FACET`][8543]
+be able to perform automatic translation between facets. [`WITH-FACET`][f66e]
 and other operations access and make changes to this metadata so
 thread safety is a concern. In this section, we detail how to relax
 the default thread safety guarantees.
@@ -2074,29 +2075,29 @@ signal safe.
 - [accessor] **SYNCHRONIZATION** *CUBE* *(:SYNCHRONIZATION = *DEFAULT-SYNCHRONIZATION*)*
 
     By default, setup and teardown of facets by
-    [`WITH-FACET`][8543] is performed in a thread safe way. Corrupting internal
+    [`WITH-FACET`][f66e] is performed in a thread safe way. Corrupting internal
     data structures of cubes is not fun, but in the name of
     performance, synchronization can be turned off either dynamically
     or on a per instance basis.
     
     If `T`, then access to cube metadata is always synchronized. If `NIL`,
     then never. If `:MAYBE`, then whether access is synchronized is
-    determined by [`*MAYBE-SYNCHRONIZE-CUBE*`][c7ae] that's true by default.
+    determined by [`*MAYBE-SYNCHRONIZE-CUBE*`][478c] that's true by default.
     
-    The default is the value of [`*DEFAULT-SYNCHRONIZATION*`][b373]
+    The default is the value of [`*DEFAULT-SYNCHRONIZATION*`][19b9]
     that's `:MAYBE` by default.
     
-    Note that the body of a [`WITH-FACET`][8543] is never synchronized with
+    Note that the body of a [`WITH-FACET`][f66e] is never synchronized with
     anyone, apart from the implicit reader/writer conflict (see
-    [`DIRECTION`][ef66]).
+    [`DIRECTION`][298b]).
 
-<a id='x-28MGL-CUBE-3A-2ADEFAULT-SYNCHRONIZATION-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-CUBE-3A-2ADEFAULT-SYNCHRONIZATION-2A-20VARIABLE-29'></a>
 
 - [variable] **\*DEFAULT-SYNCHRONIZATION\*** *:MAYBE*
 
     The default value for [`SYNCHRONIZATION`][923f] of new cubes.
 
-<a id='x-28MGL-CUBE-3A-2AMAYBE-SYNCHRONIZE-CUBE-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-CUBE-3A-2AMAYBE-SYNCHRONIZE-CUBE-2A-20VARIABLE-29'></a>
 
 - [variable] **\*MAYBE-SYNCHRONIZE-CUBE\*** *T*
 
@@ -2131,24 +2132,24 @@ facets themselves.
     A cube has facets, as we discussed in [Basics][1164]. Facets holds
     the data in a particular representation, this is called the *value*
     of the facet. A facet holds one such value and some metadata
-    pertaining to it: its `FACET-NAME`([`0`][fcc8] [`1`][32c2]), whether it's
-    up-to-date ([`FACET-UP-TO-DATE-P`][d17b]), etc. `FACET` objects are never seen
+    pertaining to it: its `FACET-NAME`([`0`][21a4] [`1`][593c]), whether it's
+    up-to-date ([`FACET-UP-TO-DATE-P`][e9ba]), etc. `FACET` objects are never seen
     when simply using a cube, they are for implementing the
     [Facet Extension API][2e01].
 
-<a id='x-28MGL-CUBE-3AFACET-NAME-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29'></a>
+<a id='x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
 
 - [structure-accessor] **FACET-NAME**
 
     A symbol that uniquely identifies the facet within a cube.
 
-<a id='x-28MGL-CUBE-3AFACET-VALUE-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29'></a>
+<a id='x-28MGL-CUBE-3AFACET-VALUE-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
 
 - [structure-accessor] **FACET-VALUE**
 
-    This is what's normally exposed by [`WITH-FACET`][8543].
+    This is what's normally exposed by [`WITH-FACET`][f66e].
 
-<a id='x-28MGL-CUBE-3AFACET-DESCRIPTION-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29'></a>
+<a id='x-28MGL-CUBE-3AFACET-DESCRIPTION-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
 
 - [structure-accessor] **FACET-DESCRIPTION**
 
@@ -2156,32 +2157,32 @@ facets themselves.
     arbitrary object in which additional information can be
     stored.
 
-<a id='x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29'></a>
+<a id='x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
 
 - [structure-accessor] **FACET-UP-TO-DATE-P**
 
     Whether the cube has changed since this facet has been last
     updated. See [`FACET-UP-TO-DATE-P*`][88b7].
 
-<a id='x-28MGL-CUBE-3AFACET-N-WATCHERS-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29'></a>
+<a id='x-28MGL-CUBE-3AFACET-N-WATCHERS-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
 
 - [structure-accessor] **FACET-N-WATCHERS**
 
-    The number of active [`WITH-FACET`][8543]s. Updated by [`WATCH-FACET`][a238] and
+    The number of active [`WITH-FACET`][f66e]s. Updated by [`WATCH-FACET`][a238] and
     [`UNWATCH-FACET`][ee90].
 
-<a id='x-28MGL-CUBE-3AFACET-WATCHER-THREADS-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29'></a>
+<a id='x-28MGL-CUBE-3AFACET-WATCHER-THREADS-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
 
 - [structure-accessor] **FACET-WATCHER-THREADS**
 
     The threads (one for each watcher) that have active
-    [`WITH-FACET`][8543]s.
+    [`WITH-FACET`][f66e]s.
 
-<a id='x-28MGL-CUBE-3AFACET-DIRECTION-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29'></a>
+<a id='x-28MGL-CUBE-3AFACET-DIRECTION-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29'></a>
 
 - [structure-accessor] **FACET-DIRECTION**
 
-    The direction of the last [`WITH-FACET`][8543] on this facet.
+    The direction of the last [`WITH-FACET`][f66e] on this facet.
 
 <a id='x-28MGL-CUBE-3A-40CUBE-FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29'></a>
 
@@ -2190,21 +2191,21 @@ facets themselves.
 Many of the generic functions in this section take [`FACET`][d34e] arguments.
 [`FACET`][d34e] is a structure and is not intended to be subclassed. To be
 able to add specialized methods, the name of the
-facet ([`FACET-NAME`][32c2]) is also passed as the
+facet ([`FACET-NAME`][593c]) is also passed as the
 argument right in front of the corresponding facet argument.
 
 In summary, define `EQL` specializers on facet name arguments, and use
-[`FACET-DESCRIPTION`][d620] to associate arbitrary information with facets.
+[`FACET-DESCRIPTION`][3981] to associate arbitrary information with facets.
 
 <a id='x-28MGL-CUBE-3AMAKE-FACET-2A-20GENERIC-FUNCTION-29'></a>
 
 - [generic-function] **MAKE-FACET\*** *CUBE FACET-NAME*
 
-    Called by [`WITH-FACET`][8543] (or more directly [`WATCH-FACET`][a238])
+    Called by [`WITH-FACET`][f66e] (or more directly [`WATCH-FACET`][a238])
     when there is no facet with `FACET-NAME`. As the first value, return a
     new object capable of storing `CUBE`'s data in the facet with
     `FACET-NAME`. As the second value, return a facet description which
-    will be available as [`FACET-DESCRIPTION`][d620]. As the third value, return a
+    will be available as [`FACET-DESCRIPTION`][3981]. As the third value, return a
     generalized boolean indicating whether this facet must be explicitly
     destroyed (in which case a finalizer will be added to `CUBE`).
 
@@ -2224,21 +2225,21 @@ In summary, define `EQL` specializers on facet name arguments, and use
 
     Copy the `CUBE`'s data from `FROM-FACET` with
     `FROM-FACET-NAME` to `TO-FACET` with `TO-FACET-NAME`. Called by
-    [`WITH-FACET`][8543] (or more directly [`WATCH-FACET`][a238]) when necessary. `FROM-FACET`
+    [`WITH-FACET`][f66e] (or more directly [`WATCH-FACET`][a238]) when necessary. `FROM-FACET`
     is what [`SELECT-COPY-SOURCE-FOR-FACET*`][6056] returned.
 
 <a id='x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20GENERIC-FUNCTION-29'></a>
 
 - [generic-function] **CALL-WITH-FACET\*** *CUBE FACET-NAME DIRECTION FN*
 
-    Call `FN` with an up-to-date [`FACET-VALUE`][423c] that belongs
-    to `FACET-NAME` of `CUBE`. [`WITH-FACET`][8543] is directly implemented in terms
+    Call `FN` with an up-to-date [`FACET-VALUE`][2469] that belongs
+    to `FACET-NAME` of `CUBE`. [`WITH-FACET`][f66e] is directly implemented in terms
     of this function. See [The Default Implementation of CALL-WITH-FACET\*][754d] for the gory
     details.
     
     Specializations will most likely want to call the default
     implementation (with `CALL-NEXT-METHOD`) but with a lambda that
-    transforms [`FACET-VALUE`][423c] before passing it on to `FN`.
+    transforms [`FACET-VALUE`][2469] before passing it on to `FN`.
 
 <a id='x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-2A-20GENERIC-FUNCTION-29'></a>
 
@@ -2246,8 +2247,8 @@ In summary, define `EQL` specializers on facet name arguments, and use
 
     Check if `FACET` with `FACET-NAME` has been updated
     since the latest change to `CUBE` (that is, since the access to other
-    facets with [`DIRECTION`][ef66] of `:IO` or `:OUTPUT`). The default method simply
-    calls [`FACET-UP-TO-DATE-P`][d17b] on `FACET`.
+    facets with [`DIRECTION`][298b] of `:IO` or `:OUTPUT`). The default method simply
+    calls [`FACET-UP-TO-DATE-P`][e9ba] on `FACET`.
     
     One reason to specialize this is when some facets actually share
     common storage, so updating one make the other up-to-date as well.
@@ -2259,7 +2260,7 @@ In summary, define `EQL` specializers on facet name arguments, and use
     Called when `TO-FACET` with `TO-NAME` is about to be
     updated by copying data from an up-to-date facet. Return the
     facet (or its name) from which data shall be copied. Note that if
-    the returned facet is not [`FACET-UP-TO-DATE-P`][d17b]*, then it will be
+    the returned facet is not [`FACET-UP-TO-DATE-P`][e9ba]*, then it will be
     updated first and another SELECT-COPY-SOURCE-FOR-FACET* will take
     place, so be careful not to get into endless recursion. The default
     method simply returns the first up-to-date facet.
@@ -2267,21 +2268,21 @@ In summary, define `EQL` specializers on facet name arguments, and use
 `PAX` integration follows, don't worry about it if you don't use `PAX`,
 but you really should (see `MGL-PAX:@MGL-PAX-MANUAL`).
 
-<a id='x-28MGL-CUBE-3AFACET-NAME-20-28MGL-PAX-3ALOCATIVE-29-29'></a>
+<a id='x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29'></a>
 
 - [locative] **FACET-NAME**
 
-    The `FACET-NAME` [locative][locative] is the to refer to stuff
-    defined with [`DEFINE-FACET-NAME`][5acc].
+    The [`FACET-NAME`][21a4] [locative][locative] is the to refer to stuff
+    defined with [`DEFINE-FACET-NAME`][5192].
 
-<a id='x-28MGL-CUBE-3ADEFINE-FACET-NAME-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-CUBE-3ADEFINE-FACET-NAME-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **DEFINE-FACET-NAME** *SYMBOL LAMBDA-LIST &BODY DOCSTRING*
 
     Just a macro to document that `SYMBOL` refers to a facet name (as in
-    the [`FACET-NAME`][fcc8]). This is totally confusing, so here is
+    the [`FACET-NAME`][21a4]). This is totally confusing, so here is
     an example of how MGL-MAT (see [MAT Manual][2629]) documents the
-    [`MGL-MAT:BACKING-ARRAY`][8a91] facet:
+    [`MGL-MAT:BACKING-ARRAY`][e3f0] facet:
     
     ```commonlisp
     (define-facet-name backing-array ()
@@ -2289,7 +2290,7 @@ but you really should (see `MGL-PAX:@MGL-PAX-MANUAL`).
     ```
     
     Which makes it possible to refer to this definition (refer as in
-    link and `M-.` to) [`MGL-MAT:BACKING-ARRAY`][8a91] facet-name. See
+    link and `M-.` to) [`MGL-MAT:BACKING-ARRAY`][e3f0] facet-name. See
     `MGL-PAX:@MGL-PAX-MANUAL` for more.
 
 Also see [The Default Implementation of CALL-WITH-FACET\*][754d].
@@ -2311,12 +2312,12 @@ Also see [The Default Implementation of CALL-WITH-FACET\*][754d].
 - [generic-function] **WATCH-FACET** *CUBE FACET-NAME DIRECTION*
 
     This is what the default [`CALL-WITH-FACET*`][46c5] method,
-    in terms of which [`WITH-FACET`][8543] is implemented, calls first. The
+    in terms of which [`WITH-FACET`][f66e] is implemented, calls first. The
     default method takes care of creating facets, copying and tracking
     up-to-dateness.
     
-    Calls [`CHECK-NO-WRITERS`][edce] (unless [`*LET-INPUT-THROUGH-P*`][5fe5]) and
-    [`CHECK-NO-WATCHERS`][b9c1] (unless [`*LET-OUTPUT-THROUGH-P*`][8f6a]) depending on
+    Calls [`CHECK-NO-WRITERS`][edce] (unless [`*LET-INPUT-THROUGH-P*`][03fc]) and
+    [`CHECK-NO-WATCHERS`][b9c1] (unless [`*LET-OUTPUT-THROUGH-P*`][8719]) depending on
     `DIRECTION` to detect situations with a writer being concurrent to
     readers/writers because that would screw up the tracking of
     up-to-dateness.
@@ -2331,24 +2332,24 @@ Also see [The Default Implementation of CALL-WITH-FACET\*][754d].
 - [generic-function] **UNWATCH-FACET** *CUBE FACET-NAME*
 
     This is what the default [`CALL-WITH-FACET*`][46c5] method,
-    in terms of which [`WITH-FACET`][8543] is implemented, calls last. The default
+    in terms of which [`WITH-FACET`][f66e] is implemented, calls last. The default
     method takes care of taking down facets. External resource managers
     may want to hook into this to handle unused facets.
 
-<a id='x-28MGL-CUBE-3A-2ALET-INPUT-THROUGH-P-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-CUBE-3A-2ALET-INPUT-THROUGH-P-2A-20VARIABLE-29'></a>
 
 - [variable] **\*LET-INPUT-THROUGH-P\*** *NIL*
 
-    If true, [`WITH-FACETS`][bb1d] (more precisely, the default implementation of
+    If true, [`WITH-FACETS`][b61b] (more precisely, the default implementation of
     [`CALL-WITH-FACET*`][46c5]) with `:DIRECTION` `:INPUT` does not call
     [`CHECK-NO-WRITERS`][edce]. This knob is intended to be bound locally for
     debugging purposes.
 
-<a id='x-28MGL-CUBE-3A-2ALET-OUTPUT-THROUGH-P-2A-20-28VARIABLE-29-29'></a>
+<a id='x-28MGL-CUBE-3A-2ALET-OUTPUT-THROUGH-P-2A-20VARIABLE-29'></a>
 
 - [variable] **\*LET-OUTPUT-THROUGH-P\*** *NIL*
 
-    If true, [`WITH-FACETS`][bb1d] (more precisely, the default implementation of
+    If true, [`WITH-FACETS`][b61b] (more precisely, the default implementation of
     [`CALL-WITH-FACET*`][46c5]) with `:DIRECTION` `:IO` or `:OUTPUT` does not call
     [`CHECK-NO-WATCHERS`][b9c1]. This knob is intended to be bound locally for
     debugging purposes.
@@ -2432,7 +2433,7 @@ to prevent resource leaks caused by stray references.
 A facility to control lifetime of facets tied to a dynamic extent.
 Also see [Lifetime][767f].
 
-<a id='x-28MGL-CUBE-3AWITH-FACET-BARRIER-20-28MGL-PAX-3AMACRO-29-29'></a>
+<a id='x-28MGL-CUBE-3AWITH-FACET-BARRIER-20MGL-PAX-3AMACRO-29'></a>
 
 - [macro] **WITH-FACET-BARRIER** *(CUBE-TYPE ENSURES DESTROYS) &BODY BODY*
 
@@ -2445,7 +2446,7 @@ Also see [Lifetime][767f].
     - were created in the dynamic extent of `BODY`
     
     Before destroying the facets, it is ensured that facets with names
-    among `ENSURES` are up-to-date. [`WITH-FACET-BARRIER`][f6a0]s can be nested, in
+    among `ENSURES` are up-to-date. `WITH-FACET-BARRIER`s can be nested, in
     case of multiple barriers matching the cube's type and the created
     facet's name, the innermost one takes precedence.
     
@@ -2464,55 +2465,57 @@ Also see [Lifetime][767f].
 
   [00a6]: #x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29 "Element types"
   [01b0]: #x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29 "What's MGL-MAT?"
+  [02a7]: #x-28MGL-MAT-3A-2ADEFAULT-MAT-CTYPE-2A-20VARIABLE-29 "(MGL-MAT:*DEFAULT-MAT-CTYPE* VARIABLE)"
   [0386]: #x-28MGL-MAT-3A-40MAT-BLAS-20MGL-PAX-3ASECTION-29 "BLAS Operations"
-  [03a5]: #x-28MGL-MAT-3A-2AN-MEMCPY-HOST-TO-DEVICE-2A-20-28VARIABLE-29-29 "(MGL-MAT:*N-MEMCPY-HOST-TO-DEVICE* (VARIABLE))"
+  [03fc]: #x-28MGL-CUBE-3A-2ALET-INPUT-THROUGH-P-2A-20VARIABLE-29 "(MGL-CUBE:*LET-INPUT-THROUGH-P* VARIABLE)"
   [0521]: #x-28MGL-MAT-3AMAT-DISPLACEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-DISPLACEMENT (MGL-PAX:READER MGL-MAT:MAT))"
   [0752]: #x-28MGL-CUBE-3A-40CUBE-INTRODUCTION-20MGL-PAX-3ASECTION-29 "Introduction"
   [0d9d]: #x-28MGL-MAT-3A-40MAT-CUDA-EXTENSIONS-20MGL-PAX-3ASECTION-29 "CUDA Extensions"
-  [0ee2]: #x-28MGL-MAT-3AROW-MAJOR-MREF-20FUNCTION-29 "(MGL-MAT:ROW-MAJOR-MREF FUNCTION)"
   [0f32]: #x-28MGL-MAT-3ARESHAPE-AND-DISPLACE-21-20FUNCTION-29 "(MGL-MAT:RESHAPE-AND-DISPLACE! FUNCTION)"
   [1044]: #x-28MGL-MAT-3A-40MAT-EXTENSIONS-20MGL-PAX-3ASECTION-29 "Writing Extensions"
   [107c]: #x-28MGL-MAT-3A-40MAT-LISP-EXTENSIONS-20MGL-PAX-3ASECTION-29 "Lisp Extensions"
   [1164]: #x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29 "Basics"
   [1227]: #x-28MGL-MAT-3APINNING-SUPPORTED-P-20FUNCTION-29 "(MGL-MAT:PINNING-SUPPORTED-P FUNCTION)"
   [12bc]: #x-28MGL-MAT-3AFOREIGN-ROOM-20FUNCTION-29 "(MGL-MAT:FOREIGN-ROOM FUNCTION)"
-  [1458]: #x-28MGL-MAT-3ACUDA-HOST-ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29 "(MGL-MAT:CUDA-HOST-ARRAY (MGL-CUBE:FACET-NAME))"
-  [165a]: #x-28MGL-MAT-3A-2ASUPPORTED-CTYPES-2A-20-28VARIABLE-29-29 "(MGL-MAT:*SUPPORTED-CTYPES* (VARIABLE))"
+  [12c9]: #x-28MGL-MAT-3AFOREIGN-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:FOREIGN-ARRAY MGL-CUBE:FACET-NAME)"
+  [1944]: #x-28MGL-MAT-3ACUDA-HOST-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:CUDA-HOST-ARRAY MGL-CUBE:FACET-NAME)"
+  [19b9]: #x-28MGL-CUBE-3A-2ADEFAULT-SYNCHRONIZATION-2A-20VARIABLE-29 "(MGL-CUBE:*DEFAULT-SYNCHRONIZATION* VARIABLE)"
   [1a3b]: #x-28MGL-MAT-3A-40MAT-SHAPING-COMPARISON-TO-LISP-20MGL-PAX-3ASECTION-29 "Comparison to Lisp Arrays"
   [1caf]: #x-28MGL-MAT-3AMAT-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-SIZE (MGL-PAX:READER MGL-MAT:MAT))"
   [1dbc]: #x-28MGL-MAT-3ACUDA-ROOM-20FUNCTION-29 "(MGL-MAT:CUDA-ROOM FUNCTION)"
+  [21a4]: #x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29 "(MGL-CUBE:FACET-NAME MGL-PAX:LOCATIVE)"
+  [2469]: #x-28MGL-CUBE-3AFACET-VALUE-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:FACET-VALUE MGL-PAX:STRUCTURE-ACCESSOR)"
   [2629]: #x-28MGL-MAT-3A-40MAT-MANUAL-20MGL-PAX-3ASECTION-29 "MAT Manual"
   [28eb]: #x-28MGL-MAT-3AMREF-20FUNCTION-29 "(MGL-MAT:MREF FUNCTION)"
   [296c]: #x-28MGL-MAT-3A-40MAT-SHAPING-FUNCTIONAL-20MGL-PAX-3ASECTION-29 "Functional Shaping"
+  [298b]: #x-28MGL-CUBE-3ADIRECTION-20TYPE-29 "(MGL-CUBE:DIRECTION TYPE)"
   [2a64]: #x-28MGL-CUBE-3AMAKE-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:MAKE-FACET* GENERIC-FUNCTION)"
   [2cb4]: #x-28MGL-CUBE-3ADESTROY-CUBE-20FUNCTION-29 "(MGL-CUBE:DESTROY-CUBE FUNCTION)"
   [2e01]: #x-28MGL-CUBE-3A-40CUBE-FACET-EXTENSION-API-20MGL-PAX-3ASECTION-29 "Facet Extension API"
-  [2e14]: #x-28MGL-MAT-3AWITH-CUDA-2A-20-28MGL-PAX-3AMACRO-29-29 "(MGL-MAT:WITH-CUDA* (MGL-PAX:MACRO))"
   [2e67]: #x-28MGL-MAT-3AWRITE-MAT-20GENERIC-FUNCTION-29 "(MGL-MAT:WRITE-MAT GENERIC-FUNCTION)"
-  [32c2]: #x-28MGL-CUBE-3AFACET-NAME-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29 "(MGL-CUBE:FACET-NAME (MGL-PAX:STRUCTURE-ACCESSOR))"
   [3424]: #x-28MGL-CUBE-3AREMOVE-FACET-REFERENCE-BY-NAME-20FUNCTION-29 "(MGL-CUBE:REMOVE-FACET-REFERENCE-BY-NAME FUNCTION)"
   [34a4]: #x-28MGL-CUBE-3A-40CUBE-FACETS-20MGL-PAX-3ASECTION-29 "Facets"
   [36b8]: #x-28MGL-MAT-3AMAX-POOL-21-20FUNCTION-29 "(MGL-MAT:MAX-POOL! FUNCTION)"
   [373b]: #x-28MGL-MAT-3A-2AFOREIGN-ARRAY-STRATEGY-2A-20-28VARIABLE-20-22-see-20below--22-29-29 "(MGL-MAT:*FOREIGN-ARRAY-STRATEGY* (VARIABLE \"-see below-\"))"
-  [38a0]: #x-28MGL-MAT-3A-2ADEFAULT-LISP-KERNEL-DECLARATIONS-2A-20-28VARIABLE-29-29 "(MGL-MAT:*DEFAULT-LISP-KERNEL-DECLARATIONS* (VARIABLE))"
+  [3981]: #x-28MGL-CUBE-3AFACET-DESCRIPTION-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:FACET-DESCRIPTION MGL-PAX:STRUCTURE-ACCESSOR)"
   [3cf7]: #x-28MGL-MAT-3AMAT-MAX-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-MAX-SIZE (MGL-PAX:READER MGL-MAT:MAT))"
-  [41fd]: #x-28MGL-MAT-3AWITH-THREAD-CACHED-MAT-20-28MGL-PAX-3AMACRO-29-29 "(MGL-MAT:WITH-THREAD-CACHED-MAT (MGL-PAX:MACRO))"
-  [423c]: #x-28MGL-CUBE-3AFACET-VALUE-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29 "(MGL-CUBE:FACET-VALUE (MGL-PAX:STRUCTURE-ACCESSOR))"
-  [4417]: #x-28ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29 "(ARRAY (MGL-CUBE:FACET-NAME))"
+  [4586]: #x-28MGL-MAT-3A-2ASUPPORTED-CTYPES-2A-20VARIABLE-29 "(MGL-MAT:*SUPPORTED-CTYPES* VARIABLE)"
   [46c5]: #x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:CALL-WITH-FACET* GENERIC-FUNCTION)"
+  [478c]: #x-28MGL-CUBE-3A-2AMAYBE-SYNCHRONIZE-CUBE-2A-20VARIABLE-29 "(MGL-CUBE:*MAYBE-SYNCHRONIZE-CUBE* VARIABLE)"
   [481f]: #x-28MGL-MAT-3A-40MAT-SHAPING-DESTRUCTIVE-20MGL-PAX-3ASECTION-29 "Destructive Shaping"
   [4c84]: #x-28MGL-MAT-3ASCAL-21-20FUNCTION-29 "(MGL-MAT:SCAL! FUNCTION)"
   [4cc3]: #x-28MGL-MAT-3AMAKE-MAT-20FUNCTION-29 "(MGL-MAT:MAKE-MAT FUNCTION)"
   [4d1e]: #x-28MGL-MAT-3A-40MAT-FOREIGN-20MGL-PAX-3ASECTION-29 "Foreign arrays"
-  [4e9b]: #x-28MGL-MAT-3AFOREIGN-ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29 "(MGL-MAT:FOREIGN-ARRAY (MGL-CUBE:FACET-NAME))"
+  [5192]: #x-28MGL-CUBE-3ADEFINE-FACET-NAME-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:DEFINE-FACET-NAME MGL-PAX:MACRO)"
   [51e4]: #x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29 "(MGL-MAT:USE-CUDA-P FUNCTION)"
   [52cb]: #x-28MGL-MAT-3AADJUST-21-20FUNCTION-29 "(MGL-MAT:ADJUST! FUNCTION)"
   [552a]: #x-28MGL-MAT-3ASTACK-21-20FUNCTION-29 "(MGL-MAT:STACK! FUNCTION)"
   [586c]: #x-28MGL-MAT-3A-40MAT-LINKS-20MGL-PAX-3ASECTION-29 "Links"
-  [5acc]: #x-28MGL-CUBE-3ADEFINE-FACET-NAME-20-28MGL-PAX-3AMACRO-29-29 "(MGL-CUBE:DEFINE-FACET-NAME (MGL-PAX:MACRO))"
+  [593c]: #x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:FACET-NAME MGL-PAX:STRUCTURE-ACCESSOR)"
+  [5d9b]: #x-28MGL-MAT-3A-2AN-MEMCPY-DEVICE-TO-HOST-2A-20VARIABLE-29 "(MGL-MAT:*N-MEMCPY-DEVICE-TO-HOST* VARIABLE)"
   [5eab]: #x-28MGL-CUBE-3A-40CUBE-FACET-BARRIER-20MGL-PAX-3ASECTION-29 "Facet Barriers"
   [5ed3]: #x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:CUDA-ENABLED (MGL-PAX:ACCESSOR MGL-MAT:MAT))"
-  [5fe5]: #x-28MGL-CUBE-3A-2ALET-INPUT-THROUGH-P-2A-20-28VARIABLE-29-29 "(MGL-CUBE:*LET-INPUT-THROUGH-P* (VARIABLE))"
+  [5feb]: #x-28MGL-MAT-3A-2ACUDA-ENABLED-2A-20VARIABLE-29 "(MGL-MAT:*CUDA-ENABLED* VARIABLE)"
   [6056]: #x-28MGL-CUBE-3ASELECT-COPY-SOURCE-FOR-FACET-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:SELECT-COPY-SOURCE-FOR-FACET* GENERIC-FUNCTION)"
   [6156]: #x-28MGL-MAT-3AFILL-21-20FUNCTION-29 "(MGL-MAT:FILL! FUNCTION)"
   [688d]: #x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29 "Synchronization"
@@ -2521,71 +2524,68 @@ Also see [Lifetime][767f].
   [7043]: #x-28MGL-MAT-3AFOREIGN-ARRAY-20CLASS-29 "(MGL-MAT:FOREIGN-ARRAY CLASS)"
   [7191]: #x-28MGL-MAT-3A-40MAT-CUDA-MEMORY-MANAGEMENT-20MGL-PAX-3ASECTION-29 "CUDA Memory Management"
   [7388]: #x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29 "Mappings"
+  [742e]: #x-28MGL-MAT-3AWITH-SYNCING-CUDA-FACETS-20MGL-PAX-3AMACRO-29 "(MGL-MAT:WITH-SYNCING-CUDA-FACETS MGL-PAX:MACRO)"
   [754d]: #x-28MGL-CUBE-3A-40CUBE-DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29 "The Default Implementation of CALL-WITH-FACET*"
   [767f]: #x-28MGL-CUBE-3A-40CUBE-LIFETIME-20MGL-PAX-3ASECTION-29 "Lifetime"
   [773f]: #x-28MGL-MAT-3AMAT-20CLASS-29 "(MGL-MAT:MAT CLASS)"
   [78d7]: #x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29 "I/O"
   [7de8]: #x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29 "Cube Manual"
+  [81d0]: #x-28MGL-MAT-3A-2APRINT-MAT-2A-20VARIABLE-29 "(MGL-MAT:*PRINT-MAT* VARIABLE)"
   [82af]: #x-28MGL-MAT-3A-40MAT-FACET-API-20MGL-PAX-3ASECTION-29 "Facet API"
-  [8543]: #x-28MGL-CUBE-3AWITH-FACET-20-28MGL-PAX-3AMACRO-29-29 "(MGL-CUBE:WITH-FACET (MGL-PAX:MACRO))"
+  [84c3]: #x-28MGL-MAT-3ACUDA-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:CUDA-ARRAY MGL-CUBE:FACET-NAME)"
   [85d5]: #x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29 "(\"mgl-mat\" ASDF/SYSTEM:SYSTEM)"
+  [867d]: #x-28MGL-MAT-3ACTYPE-20TYPE-29 "(MGL-MAT:CTYPE TYPE)"
+  [8719]: #x-28MGL-CUBE-3A-2ALET-OUTPUT-THROUGH-P-2A-20VARIABLE-29 "(MGL-CUBE:*LET-OUTPUT-THROUGH-P* VARIABLE)"
   [8816]: #x-28MGL-MAT-3A-40MAT-ASSEMBLING-20MGL-PAX-3ASECTION-29 "Assembling"
   [8866]: #x-28MGL-MAT-3A-40MAT-SHAPING-20MGL-PAX-3ASECTION-29 "Shaping"
   [88b7]: #x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-2A-20GENERIC-FUNCTION-29 "(MGL-CUBE:FACET-UP-TO-DATE-P* GENERIC-FUNCTION)"
-  [8a91]: #x-28MGL-MAT-3ABACKING-ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29 "(MGL-MAT:BACKING-ARRAY (MGL-CUBE:FACET-NAME))"
-  [8f6a]: #x-28MGL-CUBE-3A-2ALET-OUTPUT-THROUGH-P-2A-20-28VARIABLE-29-29 "(MGL-CUBE:*LET-OUTPUT-THROUGH-P* (VARIABLE))"
   [9221]: #x-28MGL-MAT-3AAXPY-21-20FUNCTION-29 "(MGL-MAT:AXPY! FUNCTION)"
   [923f]: #x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29 "(MGL-CUBE:SYNCHRONIZATION (MGL-PAX:ACCESSOR MGL-CUBE:CUBE))"
   [9984]: #x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29 "Non-destructive API"
+  [99b9]: #x-28MGL-CUBE-3AWITH-FACET-BARRIER-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:WITH-FACET-BARRIER MGL-PAX:MACRO)"
   [9ddc]: #x-28MGL-MAT-3A-40MAT-FACETS-20MGL-PAX-3ASECTION-29 "Facets"
   [9fcc]: #x-28MGL-CUBE-3ACUBE-20CLASS-29 "(MGL-CUBE:CUBE CLASS)"
   [a238]: #x-28MGL-CUBE-3AWATCH-FACET-20GENERIC-FUNCTION-29 "(MGL-CUBE:WATCH-FACET GENERIC-FUNCTION)"
-  [a561]: #x-28MGL-MAT-3ACTYPE-20-28TYPE-29-29 "(MGL-MAT:CTYPE (TYPE))"
-  [a944]: #x-28MGL-MAT-3A-2APRINT-MAT-2A-20-28VARIABLE-29-29 "(MGL-MAT:*PRINT-MAT* (VARIABLE))"
   [acfb]: #x-28MGL-MAT-3AGEMM-21-20FUNCTION-29 "(MGL-MAT:GEMM! FUNCTION)"
   [ad5b]: #x-28MGL-MAT-3ACOERCE-TO-CTYPE-20FUNCTION-29 "(MGL-MAT:COERCE-TO-CTYPE FUNCTION)"
   [afa0]: #x-28MGL-MAT-3A-40MAT-CUBLAS-20MGL-PAX-3ASECTION-29 "CUBLAS"
   [b0b5]: #x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29 "Introduction"
-  [b373]: #x-28MGL-CUBE-3A-2ADEFAULT-SYNCHRONIZATION-2A-20-28VARIABLE-29-29 "(MGL-CUBE:*DEFAULT-SYNCHRONIZATION* (VARIABLE))"
-  [b706]: #x-28MGL-MAT-3ACUDA-ARRAY-20-28MGL-CUBE-3AFACET-NAME-29-29 "(MGL-MAT:CUDA-ARRAY (MGL-CUBE:FACET-NAME))"
+  [b61b]: #x-28MGL-CUBE-3AWITH-FACETS-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:WITH-FACETS MGL-PAX:MACRO)"
   [b9c1]: #x-28MGL-CUBE-3ACHECK-NO-WATCHERS-20FUNCTION-29 "(MGL-CUBE:CHECK-NO-WATCHERS FUNCTION)"
-  [bb1d]: #x-28MGL-CUBE-3AWITH-FACETS-20-28MGL-PAX-3AMACRO-29-29 "(MGL-CUBE:WITH-FACETS (MGL-PAX:MACRO))"
+  [ba88]: #x-28ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(ARRAY MGL-CUBE:FACET-NAME)"
   [bd5b]: #x-28MGL-CUBE-3AFACETS-20FUNCTION-29 "(MGL-CUBE:FACETS FUNCTION)"
   [bdd6]: #x-28MGL-CUBE-3ADESTROY-FACET-20FUNCTION-29 "(MGL-CUBE:DESTROY-FACET FUNCTION)"
-  [bf18]: #x-28MGL-MAT-3ADEFINE-CUDA-KERNEL-20-28MGL-PAX-3AMACRO-29-29 "(MGL-MAT:DEFINE-CUDA-KERNEL (MGL-PAX:MACRO))"
-  [c01b]: #x-28MGL-MAT-3A-2AMAT-HEADERS-2A-20-28VARIABLE-29-29 "(MGL-MAT:*MAT-HEADERS* (VARIABLE))"
-  [c062]: #x-28MGL-MAT-3A-2ADEFAULT-MAT-CTYPE-2A-20-28VARIABLE-29-29 "(MGL-MAT:*DEFAULT-MAT-CTYPE* (VARIABLE))"
+  [c00b]: #x-28MGL-MAT-3AWITH-CUDA-2A-20MGL-PAX-3AMACRO-29 "(MGL-MAT:WITH-CUDA* MGL-PAX:MACRO)"
   [c07a]: #x-28MGL-MAT-3AREPLACE-21-20FUNCTION-29 "(MGL-MAT:REPLACE! FUNCTION)"
-  [c597]: #x-28MGL-MAT-3A-2ACURAND-STATE-2A-20-28VARIABLE-29-29 "(MGL-MAT:*CURAND-STATE* (VARIABLE))"
-  [c7ae]: #x-28MGL-CUBE-3A-2AMAYBE-SYNCHRONIZE-CUBE-2A-20-28VARIABLE-29-29 "(MGL-CUBE:*MAYBE-SYNCHRONIZE-CUBE* (VARIABLE))"
+  [c65e]: #x-28MGL-MAT-3AFOREIGN-ARRAY-STRATEGY-20TYPE-29 "(MGL-MAT:FOREIGN-ARRAY-STRATEGY TYPE)"
+  [c8b5]: #x-28MGL-MAT-3ADEFINE-CUDA-KERNEL-20MGL-PAX-3AMACRO-29 "(MGL-MAT:DEFINE-CUDA-KERNEL MGL-PAX:MACRO)"
   [caa5]: #x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29 "CURAND"
-  [d17b]: #x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29 "(MGL-CUBE:FACET-UP-TO-DATE-P (MGL-PAX:STRUCTURE-ACCESSOR))"
   [d2c9]: #x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-CTYPE (MGL-PAX:READER MGL-MAT:MAT))"
   [d34e]: #x-28MGL-CUBE-3AFACET-20CLASS-29 "(MGL-CUBE:FACET CLASS)"
   [d56c]: #x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29 "Where to Get it?"
-  [d620]: #x-28MGL-CUBE-3AFACET-DESCRIPTION-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-29-29 "(MGL-CUBE:FACET-DESCRIPTION (MGL-PAX:STRUCTURE-ACCESSOR))"
-  [d91f]: #x-28MGL-MAT-3A-2ACUDA-ENABLED-2A-20-28VARIABLE-29-29 "(MGL-MAT:*CUDA-ENABLED* (VARIABLE))"
+  [d624]: #x-28MGL-MAT-3A-2AMAT-HEADERS-2A-20VARIABLE-29 "(MGL-MAT:*MAT-HEADERS* VARIABLE)"
   [d951]: #x-28MGL-MAT-3A-40MAT-TUTORIAL-20MGL-PAX-3ASECTION-29 "Tutorial"
   [db3f]: #x-28MGL-CUBE-3AADD-FACET-REFERENCE-BY-NAME-20FUNCTION-29 "(MGL-CUBE:ADD-FACET-REFERENCE-BY-NAME FUNCTION)"
   [dc10]: #x-28MGL-MAT-3AREAD-MAT-20GENERIC-FUNCTION-29 "(MGL-MAT:READ-MAT GENERIC-FUNCTION)"
-  [dc94]: #x-28MGL-MAT-3AFOREIGN-ARRAY-STRATEGY-20-28TYPE-29-29 "(MGL-MAT:FOREIGN-ARRAY-STRATEGY (TYPE))"
   [dd58]: #x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29 "What kind of matrices are supported?"
+  [e3f0]: #x-28MGL-MAT-3ABACKING-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "(MGL-MAT:BACKING-ARRAY MGL-CUBE:FACET-NAME)"
   [e71c]: #x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29 "Destructive API"
+  [e868]: #x-28MGL-MAT-3A-2ACURAND-STATE-2A-20VARIABLE-29 "(MGL-MAT:*CURAND-STATE* VARIABLE)"
   [e8e7]: #x-28MGL-MAT-3A-40MAT-CACHING-20MGL-PAX-3ASECTION-29 "Caching"
+  [e9ba]: #x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-20MGL-PAX-3ASTRUCTURE-ACCESSOR-29 "(MGL-CUBE:FACET-UP-TO-DATE-P MGL-PAX:STRUCTURE-ACCESSOR)"
   [ed9a]: #x-28MGL-MAT-3ALOGDET-20FUNCTION-29 "(MGL-MAT:LOGDET FUNCTION)"
-  [edb0]: #x-28MGL-MAT-3AWITH-SYNCING-CUDA-FACETS-20-28MGL-PAX-3AMACRO-29-29 "(MGL-MAT:WITH-SYNCING-CUDA-FACETS (MGL-PAX:MACRO))"
   [edce]: #x-28MGL-CUBE-3ACHECK-NO-WRITERS-20FUNCTION-29 "(MGL-CUBE:CHECK-NO-WRITERS FUNCTION)"
+  [ee37]: #x-28MGL-MAT-3A-2AN-MEMCPY-HOST-TO-DEVICE-2A-20VARIABLE-29 "(MGL-MAT:*N-MEMCPY-HOST-TO-DEVICE* VARIABLE)"
   [ee90]: #x-28MGL-CUBE-3AUNWATCH-FACET-20GENERIC-FUNCTION-29 "(MGL-CUBE:UNWATCH-FACET GENERIC-FUNCTION)"
-  [ef66]: #x-28MGL-CUBE-3ADIRECTION-20-28TYPE-29-29 "(MGL-CUBE:DIRECTION (TYPE))"
+  [eeb9]: #x-28MGL-MAT-3AWITH-THREAD-CACHED-MAT-20MGL-PAX-3AMACRO-29 "(MGL-MAT:WITH-THREAD-CACHED-MAT MGL-PAX:MACRO)"
   [ef83]: #x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29 "Random numbers"
   [f291]: #x-28MGL-MAT-3A-40MAT-CUDA-20MGL-PAX-3ASECTION-29 "CUDA"
   [f5c1]: #x-28MGL-MAT-3AMAT-DIMENSIONS-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-DIMENSIONS (MGL-PAX:READER MGL-MAT:MAT))"
-  [f6a0]: #x-28MGL-CUBE-3AWITH-FACET-BARRIER-20-28MGL-PAX-3AMACRO-29-29 "(MGL-CUBE:WITH-FACET-BARRIER (MGL-PAX:MACRO))"
+  [f66e]: #x-28MGL-CUBE-3AWITH-FACET-20MGL-PAX-3AMACRO-29 "(MGL-CUBE:WITH-FACET MGL-PAX:MACRO)"
   [f966]: #x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29 "Basics"
   [fa6c]: #x-28MGL-MAT-3ACURAND-XORWOW-STATE-20CLASS-29 "(MGL-MAT:CURAND-XORWOW-STATE CLASS)"
-  [fcc8]: #x-28MGL-CUBE-3AFACET-NAME-20-28MGL-PAX-3ALOCATIVE-29-29 "(MGL-CUBE:FACET-NAME (MGL-PAX:LOCATIVE))"
+  [fd9c]: #x-28MGL-MAT-3A-2ADEFAULT-LISP-KERNEL-DECLARATIONS-2A-20VARIABLE-29 "(MGL-MAT:*DEFAULT-LISP-KERNEL-DECLARATIONS* VARIABLE)"
   [fe72]: #x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29 "Debugging"
-  [fef2]: #x-28MGL-MAT-3A-2AN-MEMCPY-DEVICE-TO-HOST-2A-20-28VARIABLE-29-29 "(MGL-MAT:*N-MEMCPY-DEVICE-TO-HOST* (VARIABLE))"
 
 * * *
 ###### \[generated by [MGL-PAX](https://github.com/melisgl/mgl-pax)\]

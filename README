@@ -1,7 +1,7 @@
 # MAT Manual
 
 ###### \[in package MGL-MAT\]
-## mgl-mat ASDF System Details
+## MGL-MAT ASDF System Details
 
 - Version: 0.1.0
 - Description: MAT is library for working with multi-dimensional
@@ -1019,9 +1019,10 @@ locatives:
 
 - [facet-name] CUDA-ARRAY
 
-    The facet's value is a CUDA-ARRAY which is an OFFSET-POINTER
-    wrapping a CL-CUDA.DRIVER-API:CU-DEVICE-PTR, allocated with
-    CL-CUDA.DRIVER-API:CU-MEM-ALLOC and freed automatically.
+    The facet's value is a [CUDA-ARRAY][class] which is an
+    OFFSET-POINTER wrapping a CL-CUDA.DRIVER-API:CU-DEVICE-PTR,
+    allocated with CL-CUDA.DRIVER-API:CU-MEM-ALLOC and freed
+    automatically.
 
 Facets bound by with WITH-FACETS are to be treated as dynamic
 extent: it is not allowed to keep a reference to them beyond the
