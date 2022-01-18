@@ -126,7 +126,7 @@
 
   If CUDA is already initialized, then it sets up a facet barrier
   which destroys CUDA-ARRAY and CUDA-HOST-ARRAY facets after ensuring
-  that the ARRAY facet is up-to-date.
+  that the [ARRAY][facet-name] facet is up-to-date.
 
   Else, if CUDA is available and ENABLED, then in addition to the
   facet barrier, a CUDA context is set up, *N-MEMCPY-HOST-TO-DEVICE*,

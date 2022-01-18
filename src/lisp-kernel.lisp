@@ -87,9 +87,9 @@
   Both the signature and the body are written as if for single floats,
   but one function is defined for each ctype in CTYPES by transforming
   types, constants and code by substituting them with their ctype
-  equivalents. Currently this only means that one needs to write only
-  one kernel for SINGLE-FLOAT and DOUBLE-FLOAT. All such functions get
-  the declaration from *DEFAULT-LISP-KERNEL-DECLARATIONS*.
+  equivalents. Currently this means that one needs to write only one
+  kernel for SINGLE-FLOAT and DOUBLE-FLOAT. All such functions get the
+  declaration from *DEFAULT-LISP-KERNEL-DECLARATIONS*.
 
   Finally, a dispatcher function with NAME is defined which determines
   the ctype of the MAT objects passed for :MAT typed parameters. It's

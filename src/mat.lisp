@@ -2060,10 +2060,10 @@
   require. _May require_ here really means an upper bound,
   because `(MAKE-MAT (EXPT 2 60))` doesn't actually uses memory until
   one of its facets is accessed (don't simply evaluate it though,
-  printing the result will access the ARRAY facet if *PRINT-MAT*).
-  Also, while facets today all require the same number of bytes, this
-  may change in the future. This is a debugging tool, don't use it in
-  production.
+  printing the result will access the [ARRAY][facet-name] facet if
+  *PRINT-MAT*). Also, while facets today all require the same number
+  of bytes, this may change in the future. This is a debugging tool,
+  don't use it in production.
 
   ```cl-transcript
   (with-mat-counters (:count count :n-bytes n-bytes)
@@ -2128,7 +2128,7 @@
   with this knowledge about the direction, WITH-FACETS will not copy
   data from another facet if the backing array is not up-to-date.
 
-  To transpose a 2d matrix with the ARRAY facet:
+  To transpose a 2d matrix with the [ARRAY][facet-name] facet:
 
   ```commonlisp
   (destructuring-bind (n-rows n-columns) (mat-dimensions x)

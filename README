@@ -170,7 +170,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     different representations of the same data. See @MAT-TUTORIAL for
     an introduction.
 
-- [reader] MAT-CTYPE MAT (:CTYPE = *DEFAULT-MAT-CTYPE*)
+- [reader] MAT-CTYPE MAT (:CTYPE = \*DEFAULT-MAT-CTYPE\*)
 
     One of *SUPPORTED-CTYPES*. The matrix can hold
     only values of this type.
@@ -954,10 +954,10 @@ used.
     require. *May require* here really means an upper bound,
     because `(MAKE-MAT (EXPT 2 60))` doesn't actually uses memory until
     one of its facets is accessed (don't simply evaluate it though,
-    printing the result will access the ARRAY facet if *PRINT-MAT*).
-    Also, while facets today all require the same number of bytes, this
-    may change in the future. This is a debugging tool, don't use it in
-    production.
+    printing the result will access the [ARRAY][facet-name] facet if
+    *PRINT-MAT*). Also, while facets today all require the same number
+    of bytes, this may change in the future. This is a debugging tool,
+    don't use it in production.
     
     ```cl-transcript
     (with-mat-counters (:count count :n-bytes n-bytes)
@@ -1042,7 +1042,7 @@ DIRECTION is :OUTPUT because we clobber all values in `X`. Armed
 with this knowledge about the direction, WITH-FACETS will not copy
 data from another facet if the backing array is not up-to-date.
 
-To transpose a 2d matrix with the ARRAY facet:
+To transpose a 2d matrix with the [ARRAY][facet-name] facet:
 
 ```commonlisp
 (destructuring-bind (n-rows n-columns) (mat-dimensions x)
@@ -1087,7 +1087,7 @@ One facet of MAT objects is [FOREIGN-ARRAY][facet-name] which is
 backed by a memory area that can be a pinned lisp array or is
 allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
 
-- [class] FOREIGN-ARRAY OFFSET-POINTER
+- [class] FOREIGN-ARRAY
 
     [FOREIGN-ARRAY][class] wraps a foreign pointer (in
     the sense of CFFI:POINTERP). That is, both OFFSET-POINTER and
@@ -1166,7 +1166,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     
     If CUDA is already initialized, then it sets up a facet barrier
     which destroys CUDA-ARRAY and CUDA-HOST-ARRAY facets after ensuring
-    that the ARRAY facet is up-to-date.
+    that the [ARRAY][facet-name] facet is up-to-date.
     
     Else, if CUDA is available and ENABLED, then in addition to the
     facet barrier, a CUDA context is set up, *N-MEMCPY-HOST-TO-DEVICE*,
@@ -1191,7 +1191,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     values of the ENABLED argument of any future [WITH-CUDA\*][]s which
     turns off cuda initialization entirely.
 
-- [accessor] CUDA-ENABLED MAT (:CUDA-ENABLED = *DEFAULT-MAT-CUDA-ENABLED*)
+- [accessor] CUDA-ENABLED MAT (:CUDA-ENABLED = \*DEFAULT-MAT-CUDA-ENABLED\*)
 
     The control provided by *CUDA-ENABLED* can be too
     coarse. This flag provides a per-object mechanism to turn cuda
@@ -1341,9 +1341,9 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     Both the signature and the body are written as if for single floats,
     but one function is defined for each ctype in CTYPES by transforming
     types, constants and code by substituting them with their ctype
-    equivalents. Currently this only means that one needs to write only
-    one kernel for SINGLE-FLOAT and DOUBLE-FLOAT. All such functions get
-    the declaration from *DEFAULT-LISP-KERNEL-DECLARATIONS*.
+    equivalents. Currently this means that one needs to write only one
+    kernel for SINGLE-FLOAT and DOUBLE-FLOAT. All such functions get the
+    declaration from *DEFAULT-LISP-KERNEL-DECLARATIONS*.
     
     Finally, a dispatcher function with NAME is defined which determines
     the ctype of the MAT objects passed for :MAT typed parameters. It's
@@ -1484,13 +1484,14 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     Both the signature and the body are written as if for single floats,
     but one function is defined for each ctype in CTYPES by transforming
     types, constants and code by substituting them with their ctype
-    equivalents. Currently this only means that one needs to write only
-    one kernel for FLOAT and DOUBLE.
+    equivalents. Currently this means that one needs to write only one
+    kernel for `FLOAT` and `DOUBLE`.
     
     Finally, a dispatcher function with NAME is defined which determines
     the ctype of the MAT objects passed for :MAT typed parameters. It's
-    an error if they are not of the same type. Scalars declared FLOAT
-    are coerced to that type and the appropriate kernel is called.
+    an error if they are not of the same type. Scalars declared
+    `FLOAT` are coerced to that type and the appropriate
+    kernel is called.
 
 #### CUBLAS
 
@@ -1522,7 +1523,7 @@ instead.
 
 - [variable] *CURAND-STATE* "-unbound-"
 
-- [class] CURAND-XORWOW-STATE CURAND-STATE
+- [class] CURAND-XORWOW-STATE
 
 - [reader] N-STATES CURAND-XORWOW-STATE (:N-STATES)
 
@@ -1650,7 +1651,7 @@ WITH-TIMEOUT macro is used. In a nutshell, changes to cube metadata
 are always made with interrupts disabled so things should be async
 signal safe.
 
-- [accessor] SYNCHRONIZATION CUBE (:SYNCHRONIZATION = *DEFAULT-SYNCHRONIZATION*)
+- [accessor] SYNCHRONIZATION CUBE (:SYNCHRONIZATION = \*DEFAULT-SYNCHRONIZATION\*)
 
     By default, setup and teardown of facets by
     WITH-FACET is performed in a thread safe way. Corrupting internal

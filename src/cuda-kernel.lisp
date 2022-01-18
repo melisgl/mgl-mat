@@ -84,13 +84,14 @@
   Both the signature and the body are written as if for single floats,
   but one function is defined for each ctype in CTYPES by transforming
   types, constants and code by substituting them with their ctype
-  equivalents. Currently this only means that one needs to write only
-  one kernel for FLOAT and DOUBLE.
+  equivalents. Currently this means that one needs to write only one
+  kernel for [FLOAT][dislocated] and [DOUBLE][dislocated].
 
   Finally, a dispatcher function with NAME is defined which determines
   the ctype of the MAT objects passed for :MAT typed parameters. It's
-  an error if they are not of the same type. Scalars declared FLOAT
-  are coerced to that type and the appropriate kernel is called."
+  an error if they are not of the same type. Scalars declared
+  [FLOAT][dislocated] are coerced to that type and the appropriate
+  kernel is called."
   (let* ((*mat-param-type* 'float*)
          (kernel-parameters (mapcar #'param-to-cuda params))
          (lisp-parameters (mapcar #'param-name params)))
