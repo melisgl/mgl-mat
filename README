@@ -959,7 +959,7 @@ used.
     of bytes, this may change in the future. This is a debugging tool,
     don't use it in production.
     
-    ```cl-transcript
+    ```common-lisp
     (with-mat-counters (:count count :n-bytes n-bytes)
       (assert (= count 0))
       (assert (= n-bytes 0))
@@ -972,7 +972,6 @@ used.
         (assert (= n-bytes-1 (* 7 4))))
       (assert (= n-bytes (+ (* 2 3 8) (* 7 4))))
       (assert (= count 2)))
-    
     ```
 
 
@@ -1504,7 +1503,7 @@ use these at all.
 
 - [reader] CUBLAS-ERROR-STATUS CUBLAS-ERROR (:STATUS)
 
-- [variable] *CUBLAS-HANDLE* "-unbound-"
+- [variable] *CUBLAS-HANDLE* 
 
 - [function] CUBLAS-CREATE HANDLE
 
@@ -1521,7 +1520,7 @@ instead.
 
 - [macro] WITH-CURAND-STATE (STATE) &BODY BODY
 
-- [variable] *CURAND-STATE* "-unbound-"
+- [variable] *CURAND-STATE* 
 
 - [class] CURAND-XORWOW-STATE
 

@@ -1083,7 +1083,7 @@ Finally, some neural network operations.
     the next element the displacement is increased so that there is no
     overlap.
     
-    `MATS` is keyed by `KEY` just like the CL sequence functions. Normally,
+    `MATS` is keyed by `KEY` just like the `CL` sequence functions. Normally,
     `FN` is called with the matrix returned by `KEY`. However, if
     `PASS-RAW-P`, then the matrix returned by `KEY` is only used to
     calculate dimensions and the element of `MATS` that was passed to `KEY`
@@ -1239,7 +1239,7 @@ used.
     of bytes, this may change in the future. This is a debugging tool,
     don't use it in production.
     
-    ```cl-transcript
+    ```common-lisp
     (with-mat-counters (:count count :n-bytes n-bytes)
       (assert (= count 0))
       (assert (= n-bytes 0))
@@ -1252,7 +1252,6 @@ used.
         (assert (= n-bytes-1 (* 7 4))))
       (assert (= n-bytes (+ (* 2 3 8) (* 7 4))))
       (assert (= count 2)))
-    
     ```
 
 
@@ -1874,7 +1873,7 @@ use these at all.
 
 <a id='x-28MGL-MAT-3A-2ACUBLAS-HANDLE-2A-20VARIABLE-29'></a>
 
-- [variable] **\*CUBLAS-HANDLE\*** *"-unbound-"*
+- [variable] **\*CUBLAS-HANDLE\*** 
 
 <a id='x-28MGL-MAT-3ACUBLAS-CREATE-20FUNCTION-29'></a>
 
@@ -1905,7 +1904,7 @@ instead.
 
 <a id='x-28MGL-MAT-3A-2ACURAND-STATE-2A-20VARIABLE-29'></a>
 
-- [variable] **\*CURAND-STATE\*** *"-unbound-"*
+- [variable] **\*CURAND-STATE\*** 
 
 <a id='x-28MGL-MAT-3ACURAND-XORWOW-STATE-20CLASS-29'></a>
 
@@ -2239,7 +2238,7 @@ In summary, define `EQL`([`0`][f283] [`1`][e4da]) specializers on facet name arg
     details.
     
     Specializations will most likely want to call the default
-    implementation (with `CALL-NEXT-METHOD`) but with a lambda that
+    implementation (with [`CALL-NEXT-METHOD`][d1a7]) but with a lambda that
     transforms `FACET-VALUE` before passing it on to `FN`.
 
 <a id='x-28MGL-CUBE-3AFACET-UP-TO-DATE-P-2A-20GENERIC-FUNCTION-29'></a>
@@ -2585,6 +2584,7 @@ Also see [Lifetime][767f].
   [cab2]: http://www.lispworks.com/documentation/HyperSpec/Body/f_ar_tot.htm "(ARRAY-TOTAL-SIZE FUNCTION)"
   [cb19]: http://www.lispworks.com/documentation/HyperSpec/Body/t_t.htm "(T TYPE)"
   [cf9f]: http://www.lispworks.com/documentation/HyperSpec/Body/t_short_.htm "(SINGLE-FLOAT TYPE)"
+  [d1a7]: http://www.lispworks.com/documentation/HyperSpec/Body/f_call_n.htm "(CALL-NEXT-METHOD FUNCTION)"
   [d2c9]: #x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "(MGL-MAT:MAT-CTYPE (MGL-PAX:READER MGL-MAT:MAT))"
   [d2da]: http://www.lispworks.com/documentation/HyperSpec/Body/f_mk_ins.htm "(MAKE-INSTANCE FUNCTION)"
   [d34e]: #x-28MGL-CUBE-3AFACET-20CLASS-29 "(MGL-CUBE:FACET CLASS)"
