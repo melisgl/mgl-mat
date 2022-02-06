@@ -327,7 +327,7 @@
   (facet-up-to-date-p* generic-function)
   (select-copy-source-for-facet* generic-function)
   "PAX integration follows, don't worry about it if you don't use PAX,
-  but you really should (see MGL-PAX:@MGL-PAX-MANUAL)."
+  but you really should (see MGL-PAX::@MGL-PAX-MANUAL)."
   (facet-name locative)
   (define-facet-name macro)
   "Also see @CUBE-DEFAULT-CALL-WITH-FACET*.")

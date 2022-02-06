@@ -1484,12 +1484,12 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     but one function is defined for each ctype in CTYPES by transforming
     types, constants and code by substituting them with their ctype
     equivalents. Currently this means that one needs to write only one
-    kernel for `FLOAT` and `DOUBLE`.
+    kernel for FLOAT and [DOUBLE][dislocated].
     
     Finally, a dispatcher function with NAME is defined which determines
     the ctype of the MAT objects passed for :MAT typed parameters. It's
     an error if they are not of the same type. Scalars declared
-    `FLOAT` are coerced to that type and the appropriate
+    FLOAT are coerced to that type and the appropriate
     kernel is called.
 
 #### CUBLAS
@@ -1804,7 +1804,7 @@ FACET-DESCRIPTION to associate arbitrary information with facets.
     method simply returns the first up-to-date facet.
 
 PAX integration follows, don't worry about it if you don't use PAX,
-but you really should (see MGL-PAX:@MGL-PAX-MANUAL).
+but you really should (see MGL-PAX::@MGL-PAX-MANUAL).
 
 - [locative] FACET-NAME
 
