@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [1 MGL-MAT ASDF System Details][caca]
+- [1 `MGL-MAT` ASDF System][caca]
 - [2 Links][54ea]
 - [3 Introduction][7e60]
     - [3.1 What's MGL-MAT?][ff55]
@@ -39,7 +39,7 @@
 
 ###### \[in package MGL-MAT\]
 <a id="x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29"></a>
-## 1 MGL-MAT ASDF System Details
+## 1 `MGL-MAT` ASDF System
 
 - Version: 0.1.0
 - Description: [`MAT`][6d14] is library for working with multi-dimensional
@@ -218,20 +218,20 @@ algorithms. MGL-MAT does its best to keep them separate.
     an introduction.
 
 <a id="x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29"></a>
-- [reader] **MAT-CTYPE** *MAT* *(:CTYPE = \*DEFAULT-MAT-CTYPE\*)*
+- [reader] **MAT-CTYPE** *MAT (:CTYPE = \*DEFAULT-MAT-CTYPE\*)*
 
     One of [`*SUPPORTED-CTYPES*`][fc7d]. The matrix can hold
     only values of this type.
 
 <a id="x-28MGL-MAT-3AMAT-DISPLACEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29"></a>
-- [reader] **MAT-DISPLACEMENT** *MAT* *(:DISPLACEMENT = 0)*
+- [reader] **MAT-DISPLACEMENT** *MAT (:DISPLACEMENT = 0)*
 
     A value in the `[0,MAX-SIZE]` interval. This is
     like the DISPLACED-INDEX-OFFSET of a lisp array, but displacement
     is relative to the start of the underlying storage vector.
 
 <a id="x-28MGL-MAT-3AMAT-DIMENSIONS-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29"></a>
-- [reader] **MAT-DIMENSIONS** *MAT* *(:DIMENSIONS)*
+- [reader] **MAT-DIMENSIONS** *MAT (:DIMENSIONS)*
 
     Like `ARRAY-DIMENSIONS`([`0`][b956] [`1`][046b]). It holds a list of
     dimensions, but it is allowed to pass in scalars too.
@@ -243,7 +243,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     [`ARRAY-DIMENSION`][046b].
 
 <a id="x-28MGL-MAT-3AMAT-INITIAL-ELEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29"></a>
-- [reader] **MAT-INITIAL-ELEMENT** *MAT* *(:INITIAL-ELEMENT = 0)*
+- [reader] **MAT-INITIAL-ELEMENT** *MAT (:INITIAL-ELEMENT = 0)*
 
     If non-nil, then when a facet is created, it is
     filled with `INITIAL-ELEMENT` coerced to the appropriate numeric
@@ -257,7 +257,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     `MAT-DIMENSIONS`([`0`][73f6] [`1`][4815]) and is similar to [`ARRAY-TOTAL-SIZE`][e69b].
 
 <a id="x-28MGL-MAT-3AMAT-MAX-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29"></a>
-- [reader] **MAT-MAX-SIZE** *MAT* *(:MAX-SIZE)*
+- [reader] **MAT-MAX-SIZE** *MAT (:MAX-SIZE)*
 
     The number of elements for which storage may be
     allocated. This is `DISPLACEMENT` + [`MAT-SIZE`][3573] + `SLACK` where `SLACK`
@@ -1031,7 +1031,7 @@ Unless noted these work efficiently with CUDA.
 <a id="x-28MGL-MAT-3AUNIFORM-RANDOM-21-20FUNCTION-29"></a>
 - [function] **UNIFORM-RANDOM!** *MAT &KEY (LIMIT 1)*
 
-    Fill `MAT` with random numbers sampled uniformly from the [0,LIMIT)
+    Fill `MAT` with random numbers sampled uniformly from the \[0,LIMIT)
     interval of `MAT`'s type.
 
 <a id="x-28MGL-MAT-3AGAUSSIAN-RANDOM-21-20FUNCTION-29"></a>
@@ -1183,10 +1183,9 @@ locatives:
 <a id="x-28MGL-MAT-3ACUDA-ARRAY-20MGL-CUBE-3AFACET-NAME-29"></a>
 - [facet-name] **CUDA-ARRAY**
 
-    The facet's value is a [`CUDA-ARRAY`][class] which is an
-    `OFFSET-POINTER` wrapping a `CL-CUDA.DRIVER-API:CU-DEVICE-PTR`,
-    allocated with `CL-CUDA.DRIVER-API:CU-MEM-ALLOC` and freed
-    automatically.
+    The facet's value is a `CUDA-ARRAY`, which is an `OFFSET-POINTER`
+    wrapping a `CL-CUDA.DRIVER-API:CU-DEVICE-PTR`, allocated with
+    `CL-CUDA.DRIVER-API:CU-MEM-ALLOC` and freed automatically.
 
 Facets bound by with `WITH-FACETS`([`0`][ddd4] [`1`][0706]) are to be treated as dynamic
 extent: it is not allowed to keep a reference to them beyond the
@@ -1294,7 +1293,7 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][193b].
     [`*FOREIGN-ARRAY-STRATEGY*`][193b] for their semantics.
 
 <a id="x-28MGL-MAT-3APINNING-SUPPORTED-P-20FUNCTION-29"></a>
-- [function] **PINNING-SUPPORTED-P** 
+- [function] **PINNING-SUPPORTED-P**
 
     Return true iff the lisp implementation efficiently supports
     pinning lisp arrays. Pinning ensures that the garbage collector
@@ -1367,7 +1366,7 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][193b].
     turns off cuda initialization entirely.
 
 <a id="x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29"></a>
-- [accessor] **CUDA-ENABLED** *MAT* *(:CUDA-ENABLED = \*DEFAULT-MAT-CUDA-ENABLED\*)*
+- [accessor] **CUDA-ENABLED** *MAT (:CUDA-ENABLED = \*DEFAULT-MAT-CUDA-ENABLED\*)*
 
     The control provided by [`*CUDA-ENABLED*`][aba0] can be too
     coarse. This flag provides a per-object mechanism to turn cuda
@@ -1682,7 +1681,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     but one function is defined for each ctype in `CTYPES` by transforming
     types, constants and code by substituting them with their ctype
     equivalents. Currently this means that one needs to write only one
-    kernel for `FLOAT` and [`DOUBLE`][dislocated].
+    kernel for `FLOAT` and `DOUBLE`.
     
     Finally, a dispatcher function with `NAME` is defined which determines
     the ctype of the `MAT` objects passed for `:MAT` typed parameters. It's
@@ -1700,13 +1699,13 @@ use these at all.
 - [condition] **CUBLAS-ERROR** *ERROR*
 
 <a id="x-28MGL-MAT-3ACUBLAS-ERROR-FUNCTION-NAME-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACUBLAS-ERROR-29-29"></a>
-- [reader] **CUBLAS-ERROR-FUNCTION-NAME** *CUBLAS-ERROR* *(:FUNCTION-NAME)*
+- [reader] **CUBLAS-ERROR-FUNCTION-NAME** *CUBLAS-ERROR (:FUNCTION-NAME)*
 
 <a id="x-28MGL-MAT-3ACUBLAS-ERROR-STATUS-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACUBLAS-ERROR-29-29"></a>
-- [reader] **CUBLAS-ERROR-STATUS** *CUBLAS-ERROR* *(:STATUS)*
+- [reader] **CUBLAS-ERROR-STATUS** *CUBLAS-ERROR (:STATUS)*
 
 <a id="x-28MGL-MAT-3A-2ACUBLAS-HANDLE-2A-20VARIABLE-29"></a>
-- [variable] **\*CUBLAS-HANDLE\*** 
+- [variable] **\*CUBLAS-HANDLE\***
 
 <a id="x-28MGL-MAT-3ACUBLAS-CREATE-20FUNCTION-29"></a>
 - [function] **CUBLAS-CREATE** *HANDLE*
@@ -1730,16 +1729,16 @@ instead.
 - [macro] **WITH-CURAND-STATE** *(STATE) &BODY BODY*
 
 <a id="x-28MGL-MAT-3A-2ACURAND-STATE-2A-20VARIABLE-29"></a>
-- [variable] **\*CURAND-STATE\*** 
+- [variable] **\*CURAND-STATE\***
 
 <a id="x-28MGL-MAT-3ACURAND-XORWOW-STATE-20CLASS-29"></a>
 - [class] **CURAND-XORWOW-STATE**
 
 <a id="x-28MGL-MAT-3AN-STATES-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACURAND-XORWOW-STATE-29-29"></a>
-- [reader] **N-STATES** *CURAND-XORWOW-STATE* *(:N-STATES)*
+- [reader] **N-STATES** *CURAND-XORWOW-STATE (:N-STATES)*
 
 <a id="x-28MGL-MAT-3ASTATES-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACURAND-XORWOW-STATE-29-29"></a>
-- [reader] **STATES** *CURAND-XORWOW-STATE* *(:STATES)*
+- [reader] **STATES** *CURAND-XORWOW-STATE (:STATES)*
 <a id="x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29"></a>
 # Cube Manual
 
@@ -1751,7 +1750,7 @@ instead.
 - [4 Synchronization][a5a6]
 - [5 Facets][0ef1]
 - [6 Facet Extension API][1eda]
-- [7 The Default Implementation of CALL-WITH-FACET\*][d720]
+- [7 The Default Implementation of `CALL-WITH-FACET*`][d720]
 - [8 Lifetime][a810]
     - [8.1 Facet Barriers][0fc8]
 
@@ -1781,7 +1780,7 @@ If you are only interested in how to use cubes in general, read
 [Basics][f36f], [Lifetime][a810] and [Facet Barriers][0fc8].
 
 If you want to implement a new cube datatype, then see [Facets][0ef1],
-[Facet Extension API][1eda], and [The Default Implementation of CALL-WITH-FACET\*][d720].
+[Facet Extension API][1eda], and [The Default Implementation of `CALL-WITH-FACET*`][d720].
 
 <a id="x-28MGL-CUBE-3A-40CUBE-BASICS-20MGL-PAX-3ASECTION-29"></a>
 ## 3 Basics
@@ -1847,7 +1846,7 @@ Here we learn what a [`CUBE`][1659] is and how to access the data in it with
     for another facet or for the same facet from another thread do).
     
     See [`CHECK-NO-WRITERS`][ea8f] and [`CHECK-NO-WATCHERS`][face] called by
-    [The Default Implementation of CALL-WITH-FACET\*][d720].
+    [The Default Implementation of `CALL-WITH-FACET*`][d720].
 
 <a id="x-28MGL-CUBE-3AWITH-FACETS-20MGL-PAX-3AMACRO-29"></a>
 - [macro] **WITH-FACETS** *(&REST FACET-BINDING-SPECS) &BODY BODY*
@@ -1885,7 +1884,7 @@ are always made with interrupts disabled so things should be async
 signal safe.
 
 <a id="x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29"></a>
-- [accessor] **SYNCHRONIZATION** *CUBE* *(:SYNCHRONIZATION = \*DEFAULT-SYNCHRONIZATION\*)*
+- [accessor] **SYNCHRONIZATION** *CUBE (:SYNCHRONIZATION = \*DEFAULT-SYNCHRONIZATION\*)*
 
     By default, setup and teardown of facets by
     [`WITH-FACET`][0706] is performed in a thread safe way. Corrupting internal
@@ -2029,7 +2028,7 @@ In summary, define `EQL`([`0`][8517] [`1`][01e5]) specializers on facet name arg
 
     Call `FN` with an up-to-date [`FACET-VALUE`][e2ff] that belongs
     to `FACET-NAME` of `CUBE`. [`WITH-FACET`][0706] is directly implemented in terms
-    of this function. See [The Default Implementation of CALL-WITH-FACET\*][d720] for the gory
+    of this function. See [The Default Implementation of `CALL-WITH-FACET*`][d720] for the gory
     details.
     
     Specializations will most likely want to call the default
@@ -2064,8 +2063,8 @@ but you really should (see MGL-PAX::@MGL-PAX-MANUAL).
 <a id="x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29"></a>
 - [locative] **FACET-NAME**
 
-    The [`FACET-NAME`][799d] [locative][locative] is the to refer to stuff
-    defined with [`DEFINE-FACET-NAME`][0e24].
+    The [`FACET-NAME`][799d] locative is to refer to stuff defined with
+    [`DEFINE-FACET-NAME`][0e24].
 
 <a id="x-28MGL-CUBE-3ADEFINE-FACET-NAME-20MGL-PAX-3AMACRO-29"></a>
 - [macro] **DEFINE-FACET-NAME** *SYMBOL LAMBDA-LIST &BODY DOCSTRING*
@@ -2084,10 +2083,10 @@ but you really should (see MGL-PAX::@MGL-PAX-MANUAL).
     link and `M-.` to) [`MGL-MAT:BACKING-ARRAY`][1fda] facet-name. See
     MGL-PAX:@MGL-PAX-MANUAL for more.
 
-Also see [The Default Implementation of CALL-WITH-FACET\*][d720].
+Also see [The Default Implementation of `CALL-WITH-FACET*`][d720].
 
 <a id="x-28MGL-CUBE-3A-40CUBE-DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29"></a>
-## 7 The Default Implementation of CALL-WITH-FACET\*
+## 7 The Default Implementation of `CALL-WITH-FACET*`
 
 <a id="x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20-28METHOD-20NIL-20-28MGL-CUBE-3ACUBE-20T-20T-20T-29-29-29"></a>
 - [method] **CALL-WITH-FACET\*** *(CUBE CUBE) FACET-NAME DIRECTION FN*

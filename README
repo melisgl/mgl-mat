@@ -1,7 +1,7 @@
 # MAT Manual
 
 ###### \[in package MGL-MAT\]
-## MGL-MAT ASDF System Details
+## MGL-MAT ASDF System
 
 - Version: 0.1.0
 - Description: MAT is library for working with multi-dimensional
@@ -883,7 +883,7 @@ Unless noted these work efficiently with CUDA.
 
 - [function] UNIFORM-RANDOM! MAT &KEY (LIMIT 1)
 
-    Fill MAT with random numbers sampled uniformly from the [0,LIMIT)
+    Fill MAT with random numbers sampled uniformly from the \[0,LIMIT)
     interval of MAT's type.
 
 - [function] GAUSSIAN-RANDOM! MAT &KEY (MEAN 0) (STDDEV 1)
@@ -1018,10 +1018,9 @@ locatives:
 
 - [facet-name] CUDA-ARRAY
 
-    The facet's value is a [CUDA-ARRAY][class] which is an
-    OFFSET-POINTER wrapping a CL-CUDA.DRIVER-API:CU-DEVICE-PTR,
-    allocated with CL-CUDA.DRIVER-API:CU-MEM-ALLOC and freed
-    automatically.
+    The facet's value is a CUDA-ARRAY, which is an OFFSET-POINTER
+    wrapping a CL-CUDA.DRIVER-API:CU-DEVICE-PTR, allocated with
+    CL-CUDA.DRIVER-API:CU-MEM-ALLOC and freed automatically.
 
 Facets bound by with WITH-FACETS are to be treated as dynamic
 extent: it is not allowed to keep a reference to them beyond the
@@ -1124,7 +1123,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     One of :PINNED, :STATIC and :CUDA-HOST. See
     *FOREIGN-ARRAY-STRATEGY* for their semantics.
 
-- [function] PINNING-SUPPORTED-P 
+- [function] PINNING-SUPPORTED-P
 
     Return true iff the lisp implementation efficiently supports
     pinning lisp arrays. Pinning ensures that the garbage collector
@@ -1484,7 +1483,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     but one function is defined for each ctype in CTYPES by transforming
     types, constants and code by substituting them with their ctype
     equivalents. Currently this means that one needs to write only one
-    kernel for FLOAT and [DOUBLE][dislocated].
+    kernel for FLOAT and DOUBLE.
     
     Finally, a dispatcher function with NAME is defined which determines
     the ctype of the MAT objects passed for :MAT typed parameters. It's
@@ -1503,7 +1502,7 @@ use these at all.
 
 - [reader] CUBLAS-ERROR-STATUS CUBLAS-ERROR (:STATUS)
 
-- [variable] *CUBLAS-HANDLE* 
+- [variable] *CUBLAS-HANDLE*
 
 - [function] CUBLAS-CREATE HANDLE
 
@@ -1520,7 +1519,7 @@ instead.
 
 - [macro] WITH-CURAND-STATE (STATE) &BODY BODY
 
-- [variable] *CURAND-STATE* 
+- [variable] *CURAND-STATE*
 
 - [class] CURAND-XORWOW-STATE
 
@@ -1808,8 +1807,8 @@ but you really should (see MGL-PAX::@MGL-PAX-MANUAL).
 
 - [locative] FACET-NAME
 
-    The FACET-NAME [locative][locative] is the to refer to stuff
-    defined with DEFINE-FACET-NAME.
+    The FACET-NAME locative is to refer to stuff defined with
+    DEFINE-FACET-NAME.
 
 - [macro] DEFINE-FACET-NAME SYMBOL LAMBDA-LIST &BODY DOCSTRING
 

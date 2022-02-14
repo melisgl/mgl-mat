@@ -390,8 +390,8 @@
   transforms FACET-VALUE before passing it on to FN."))
 
 (define-symbol-locative-type facet-name ()
-  "The FACET-NAME [locative][locative] is the to refer to stuff
-  defined with DEFINE-FACET-NAME.")
+  "The FACET-NAME locative is to refer to stuff defined with
+  DEFINE-FACET-NAME.")
 
 (define-definer-for-symbol-locative-type define-facet-name facet-name
   "Just a macro to document that SYMBOL refers to a facet name (as in

@@ -85,7 +85,7 @@
   but one function is defined for each ctype in CTYPES by transforming
   types, constants and code by substituting them with their ctype
   equivalents. Currently this means that one needs to write only one
-  kernel for [FLOAT][dislocated] and [DOUBLE][dislocated].
+  kernel for [FLOAT][dislocated] and DOUBLE.
 
   Finally, a dispatcher function with NAME is defined which determines
   the ctype of the MAT objects passed for :MAT typed parameters. It's

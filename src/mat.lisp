@@ -11,7 +11,7 @@
 
 (in-package :mgl-mat)
 
-(defsection @mat-manual (:title "MAT Manual")
+(defsection @mat-manual (:title "\\MAT Manual")
   (mgl-mat asdf:system)
   (@mat-links section)
   (@mat-introduction section)
@@ -2198,10 +2198,9 @@
   WITH-SYNCING-CUDA-FACETS.")
 
 (define-facet-name cuda-array ()
-  "The facet's value is a [CUDA-ARRAY][class] which is an
-  OFFSET-POINTER wrapping a CL-CUDA.DRIVER-API:CU-DEVICE-PTR,
-  allocated with CL-CUDA.DRIVER-API:CU-MEM-ALLOC and freed
-  automatically.")
+  "The facet's value is a CUDA-ARRAY, which is an OFFSET-POINTER
+  wrapping a CL-CUDA.DRIVER-API:CU-DEVICE-PTR, allocated with
+  CL-CUDA.DRIVER-API:CU-MEM-ALLOC and freed automatically.")
 
 (defmethod watch-facet ((mat mat) facet-name direction)
   (call-next-method mat facet-name
