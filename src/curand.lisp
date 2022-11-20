@@ -117,7 +117,7 @@
          (states (alloc-cuda-vector
                   (* n-states
                      (cffi:foreign-type-size
-                      '(:struct curand-state-xorwow))))))
+                      '(:struct cl-cuda.lang.data::curand-state-xorwow))))))
     (copy-xorwow-states (offset-pointer (states state)) n-states
                         (offset-pointer states)
                         :grid-dim (list (ceiling n-states 256) 1 1)
