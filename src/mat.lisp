@@ -1666,7 +1666,7 @@
 (defun transpose (a)
   "Return the transpose of A."
   (with-facets ((array (a 'array :direction :input)))
-    (array-to-mat (clnu:transpose array))))
+    (array-to-mat (nu:transpose array))))
 
 (defun m* (a b &key transpose-a? transpose-b?)
   "Compute op(A) * op(B). Where op is either the identity or the
@@ -1929,7 +1929,7 @@
                (with-facets ((covariances (covariances 'array
                                                        :direction :input))
                              (z (z 'array :direction :input)))
-                 (lla:mm (lla:cholesky (clnu:hermitian-matrix covariances))
+                 (lla:mm (lla:cholesky (nu:hermitian-matrix covariances))
                          z))))))
 
 (defun orthogonal-random! (m &key (scale 1))

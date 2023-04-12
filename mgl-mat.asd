@@ -26,7 +26,7 @@
   arrays which supports efficient interfacing to foreign and CUDA
   code. BLAS and CUBLAS bindings are available."
   :depends-on (#:alexandria #:bordeaux-threads #:cffi #:cffi-grovel #:cl-cuda
-                            #:cl-num-utils #:flexi-streams #:ieee-floats #:lla
+                            #:num-utils #:flexi-streams #:ieee-floats #:lla
                             #:mgl-pax #:static-vectors #:trivial-garbage)
   :components ((:module "src"
                 :serial t

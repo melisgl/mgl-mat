@@ -263,11 +263,11 @@
             (sloppy-random-array 'double-float m n))
            (alpha (random 10d0))
            (beta (random 10d0))
-           (result (clnu:e+ (clnu:e* alpha
-                                     (lla:mm
-                                      (if transpose-a? (clnu:transpose a) a)
-                                      (if transpose-b? (clnu:transpose b) b)))
-                            (clnu:e* beta c)))
+           (result (nu:e+ (nu:e* alpha
+                                 (lla:mm
+                                  (if transpose-a? (nu:transpose a) a)
+                                  (if transpose-b? (nu:transpose b) b)))
+                            (nu:e* beta c)))
            (mat-a (array-to-mat a*))
            (mat-b (array-to-mat b*))
            (mat-c (array-to-mat c*)))
@@ -276,8 +276,8 @@
                :transpose-a? transpose-a?
                :transpose-b? transpose-b?
                :m m :n n :k k)
-        (assert (clnu:num= (apply #'submatrix (mat-to-array mat-c)
-                                  (array-dimensions c))
+        (assert (nu:num= (apply #'submatrix (mat-to-array mat-c)
+                                (array-dimensions c))
                            result))))))
 
 (defun test-geerv! ()
