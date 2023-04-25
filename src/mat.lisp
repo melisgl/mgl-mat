@@ -311,7 +311,7 @@
   what (MAKE-INSTANCE 'MAT ...) does except DIMENSIONS is not a
   keyword argument so that MAKE-MAT looks more like MAKE-ARRAY. The
   semantics of SYNCHRONIZATION are desribed in the
-  @CUBE-SYNCHRONIZATION section.
+  MGL-CUBE::@CUBE-SYNCHRONIZATION section.
 
   If specified, DISPLACED-TO must be a MAT object large enough (in the
   sense of its MAT-SIZE), to hold DISPLACEMENT plus `(REDUCE #'*
@@ -335,7 +335,7 @@
   is no corresponding ctype, then *DEFAULT-MAT-CTYPE* is used.
   Elements of ARRAY are coerced to CTYPE.
 
-  Also see @CUBE-SYNCHRONIZATION."
+  Also see MGL-CUBE::@CUBE-SYNCHRONIZATION."
   (let* ((ctype (or ctype
                     (lisp->ctype (array-element-type array))
                     *default-mat-ctype*))
@@ -2101,10 +2101,10 @@
   (@mat-cuda section))
 
 (defsection @mat-facets (:title "Facets")
-  "A MAT is a CUBE (see @CUBE-MANUAL) whose facets are different
-  representations of numeric arrays. These facets can be accessed with
-  WITH-FACETS with one of the following [FACET-NAME][locative]
-  locatives:"
+  "A MAT is a CUBE (see MGL-CUBE::@CUBE-MANUAL) whose facets are
+  different representations of numeric arrays. These facets can be
+  accessed with WITH-FACETS with one of the following
+  [FACET-NAME][locative] locatives:"
   (backing-array facet-name)
   (array facet-name)
   (foreign-array facet-name)

@@ -836,7 +836,7 @@ Finally, some neural network operations.
     `Y` = `Y` + conv(`X`, `W`) and return `Y`. If `BATCHED`, then the first
     dimension of `X` and `Y` is the number of elements in the batch (B),
     else B is assumed to be 1. The rest of the dimensions encode the
-    input (`X`) and output (Y} N dimensional feature maps. `START`, `STRIDE`
+    input (`X`) and output (Y\} N dimensional feature maps. `START`, `STRIDE`
     and `ANCHOR` are lists of length N. `START` is the multi-dimensional
     index of the first element of the input feature map (for each
     element in the batch) for which the convolution must be computed.
@@ -879,8 +879,6 @@ Finally, some neural network operations.
 
 <a id="x-28MGL-MAT-3AMAX-POOL-21-20FUNCTION-29"></a>
 - [function] **MAX-POOL!** *X Y &KEY START STRIDE ANCHOR BATCHED POOL-DIMENSIONS*
-
-
 
 <a id="x-28MGL-MAT-3ADERIVE-MAX-POOL-21-20FUNCTION-29"></a>
 - [function] **DERIVE-MAX-POOL!** *X XD Y YD &KEY START STRIDE ANCHOR BATCHED POOL-DIMENSIONS*
@@ -976,7 +974,7 @@ Finally, some neural network operations.
     the next element the displacement is increased so that there is no
     overlap.
     
-    `MATS` is keyed by `KEY` just like the `CL` sequence functions. Normally,
+    `MATS` is keyed by `KEY` just like the CL sequence functions. Normally,
     `FN` is called with the matrix returned by `KEY`. However, if
     `PASS-RAW-P`, then the matrix returned by `KEY` is only used to
     calculate dimensions and the element of `MATS` that was passed to `KEY`
@@ -1141,10 +1139,10 @@ used.
 <a id="x-28MGL-MAT-3A-40MAT-FACETS-20MGL-PAX-3ASECTION-29"></a>
 ### 18.1 Facets
 
-A [`MAT`][6d14] is a [`CUBE`][1659] (see [Cube Manual][713f]) whose facets are different
-representations of numeric arrays. These facets can be accessed with
-`WITH-FACETS`([`0`][ddd4] [`1`][0706]) with one of the following [`FACET-NAME`][799d]
-locatives:
+A [`MAT`][6d14] is a [`CUBE`][1659] (see [Cube Manual][713f]) whose facets are
+different representations of numeric arrays. These facets can be
+accessed with `WITH-FACETS`([`0`][ddd4] [`1`][0706]) with one of the following
+[`FACET-NAME`][799d] locatives:
 
 <a id="x-28MGL-MAT-3ABACKING-ARRAY-20MGL-CUBE-3AFACET-NAME-29"></a>
 - [facet-name] **BACKING-ARRAY**
@@ -1164,7 +1162,7 @@ locatives:
 - [facet-name] **FOREIGN-ARRAY**
 
     The facet's value is a [`FOREIGN-ARRAY`][cdc3] which is an
-    `OFFSET-POINTER` wrapping a `CFFI` pointer. See
+    `OFFSET-POINTER` wrapping a CFFI pointer. See
     [`*FOREIGN-ARRAY-STRATEGY*`][193b].
 
 <a id="x-28MGL-MAT-3ACUDA-HOST-ARRAY-20MGL-CUBE-3AFACET-NAME-29"></a>
@@ -1523,7 +1521,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     
     Parameters are either of the form `(<NAME> <LISP-TYPE)`
     or `(<NAME> :MAT <DIRECTION>)`. In the latter case, the appropriate
-    `CFFI` pointer is passed to the kernel. `<DIRECTION>` is passed on to
+    CFFI pointer is passed to the kernel. `<DIRECTION>` is passed on to
     the [`WITH-FACET`][0706] that's used to acquire the foreign array. Note that
     the return type is not declared.
     
@@ -1541,7 +1539,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     called.
 
 <a id="x-28MGL-MAT-3A-2ADEFAULT-LISP-KERNEL-DECLARATIONS-2A-20VARIABLE-29"></a>
-- [variable] **\*DEFAULT-LISP-KERNEL-DECLARATIONS\*** *((OPTIMIZE SPEED (SB-C::INSERT-ARRAY-BOUNDS-CHECKS 0)))*
+- [variable] **\*DEFAULT-LISP-KERNEL-DECLARATIONS\*** *((OPTIMIZE SPEED (SB-C:INSERT-ARRAY-BOUNDS-CHECKS 0)))*
 
     These declarations are added automatically to kernel functions.
 
@@ -1766,8 +1764,8 @@ for the latest version.
 <a id="x-28MGL-CUBE-3A-40CUBE-INTRODUCTION-20MGL-PAX-3ASECTION-29"></a>
 ## 2 Introduction
 
-This is the library on which MGL-MAT (see [MAT Manual][f470]) is
-built. The idea of automatically translating between various
+This is the library on which MGL-MAT (see [MAT Manual][f470])
+is built. The idea of automatically translating between various
 representations may be useful for other applications, so this got
 its own package and all ties to MGL-MAT has been severed.
 
@@ -2057,7 +2055,7 @@ In summary, define `EQL`([`0`][8517] [`1`][01e5]) specializers on facet name arg
     place, so be careful not to get into endless recursion. The default
     method simply returns the first up-to-date facet.
 
-`PAX` integration follows, don't worry about it if you don't use `PAX`,
+PAX integration follows, don't worry about it if you don't use PAX,
 but you really should (see MGL-PAX::@MGL-PAX-MANUAL).
 
 <a id="x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29"></a>
@@ -2358,7 +2356,7 @@ Also see [Lifetime][a810].
   [ce52]: http://www.lispworks.com/documentation/HyperSpec/Body/f_map_in.htm "MAP-INTO FUNCTION"
   [d3b8]: #x-28MGL-MAT-3A-40MAT-LISP-EXTENSIONS-20MGL-PAX-3ASECTION-29 "Lisp Extensions"
   [d5f8]: #x-28MGL-MAT-3AFOREIGN-ROOM-20FUNCTION-29 "MGL-MAT:FOREIGN-ROOM FUNCTION"
-  [d720]: #x-28MGL-CUBE-3A-40CUBE-DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29 "The Default Implementation of CALL-WITH-FACET*"
+  [d720]: #x-28MGL-CUBE-3A-40CUBE-DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29 "The Default Implementation of `CALL-WITH-FACET*`"
   [db31]: #x-28MGL-CUBE-3AADD-FACET-REFERENCE-BY-NAME-20FUNCTION-29 "MGL-CUBE:ADD-FACET-REFERENCE-BY-NAME FUNCTION"
   [dbac]: #x-28MGL-CUBE-3ADESTROY-CUBE-20FUNCTION-29 "MGL-CUBE:DESTROY-CUBE FUNCTION"
   [ddd4]: #x-28MGL-CUBE-3AWITH-FACETS-20MGL-PAX-3AMACRO-29 "MGL-CUBE:WITH-FACETS MGL-PAX:MACRO"

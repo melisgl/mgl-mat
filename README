@@ -107,15 +107,15 @@ by copying data around lazily, but doing its best to share storage
 for facets that allow it.
 
 Notice the `ABF` in the printed results. It illustrates that behind
-the scenes FILL! worked on the [BACKING-ARRAY][facet-name]
+the scenes FILL! worked on the BACKING-ARRAY
 facet (hence the `B`) that's basically a 1d lisp array. SCAL! on the
 other hand made a foreign call to the BLAS `dscal` function for
-which it needed the [FOREIGN-ARRAY][facet-name] facet (`F`).
-Finally, the `A` stands for the [ARRAY][facet-name] facet that was
+which it needed the FOREIGN-ARRAY facet (`F`).
+Finally, the `A` stands for the ARRAY facet that was
 created when the array was printed. All facets are up-to-date (else
 some of the characters would be lowercase). This is possible because
 these three facets actually share storage which is never the case
-for the [CUDA-ARRAY][facet-name] facet. Now if we have a
+for the CUDA-ARRAY facet. Now if we have a
 CUDA-capable GPU, CUDA can be enabled with WITH-CUDA\*:
 
 ```commonlisp
@@ -125,10 +125,10 @@ CUDA-capable GPU, CUDA can be enabled with WITH-CUDA\*:
 ==> #<MAT 4 A #(6.0d0 6.0d0 6.0d0 6.0d0)>
 ```
 
-Note the lonely `C` showing that only the [CUDA-ARRAY][facet-name]
+Note the lonely `C` showing that only the CUDA-ARRAY
 facet was used for both FILL! and SCAL!. When WITH-CUDA\* exits and
 destroys the CUDA context, it destroys all CUDA facets, moving their
-data to the [ARRAY][facet-name] facet, so the returned MAT only has
+data to the ARRAY facet, so the returned MAT only has
 that facet.
 
 When there is no high-level operation that does what we want, we may
@@ -217,7 +217,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     what (MAKE-INSTANCE 'MAT ...) does except DIMENSIONS is not a
     keyword argument so that MAKE-MAT looks more like MAKE-ARRAY. The
     semantics of SYNCHRONIZATION are desribed in the
-    @CUBE-SYNCHRONIZATION section.
+    MGL-CUBE::@CUBE-SYNCHRONIZATION section.
     
     If specified, DISPLACED-TO must be a MAT object large enough (in the
     sense of its MAT-SIZE), to hold DISPLACEMENT plus `(REDUCE #'*
@@ -234,7 +234,7 @@ algorithms. MGL-MAT does its best to keep them separate.
     is no corresponding ctype, then *DEFAULT-MAT-CTYPE* is used.
     Elements of ARRAY are coerced to CTYPE.
     
-    Also see @CUBE-SYNCHRONIZATION.
+    Also see MGL-CUBE::@CUBE-SYNCHRONIZATION.
 
 - [function] MAT-TO-ARRAY MAT
 
@@ -305,9 +305,9 @@ algorithms. MGL-MAT does its best to keep them separate.
 
     Controls whether a summary of existing and up-to-date facets is
     printed when a MAT object is printed. The summary that looks like
-    `ABcfh` indicates that all five facets ([ARRAY][facet-name],
-    [BACKING-ARRAY][facet-name], [CUDA-ARRAY][facet-name],
-    [FOREIGN-ARRAY][facet-name], [CUDA-HOST-ARRAY][facet-name]) are
+    `ABcfh` indicates that all five facets (ARRAY,
+    BACKING-ARRAY, CUDA-ARRAY,
+    FOREIGN-ARRAY, CUDA-HOST-ARRAY) are
     present and the first two are up-to-date. A summary of a single #-
     indicates that there are no facets.
 
@@ -441,7 +441,7 @@ it may create a new MAT.
 ## Assembling
 
 The functions here assemble a single MAT from a number of
-[MAT][]s.
+MATs.
 
 - [function] STACK! AXIS MATS MAT
 
@@ -712,7 +712,7 @@ Finally, some neural network operations.
     Y = Y + conv(X, W) and return Y. If BATCHED, then the first
     dimension of X and Y is the number of elements in the batch (B),
     else B is assumed to be 1. The rest of the dimensions encode the
-    input (X) and output (Y} N dimensional feature maps. START, STRIDE
+    input (X) and output (Y\} N dimensional feature maps. START, STRIDE
     and ANCHOR are lists of length N. START is the multi-dimensional
     index of the first element of the input feature map (for each
     element in the batch) for which the convolution must be computed.
@@ -753,8 +753,6 @@ Finally, some neural network operations.
     arguments. 
 
 - [function] MAX-POOL! X Y &KEY START STRIDE ANCHOR BATCHED POOL-DIMENSIONS
-
-
 
 - [function] DERIVE-MAX-POOL! X XD Y YD &KEY START STRIDE ANCHOR BATCHED POOL-DIMENSIONS
 
@@ -936,7 +934,7 @@ CUDA-ARRAY facet will not be copied and from the wrong input SCAL!
 will compute the wrong result.
 
 Using the SLIME inspector or trying to access the
-[CUDA-ARRAY][facet-name] facet from threads other than the one in
+CUDA-ARRAY facet from threads other than the one in
 which the corresponding CUDA context was initialized will fail. For
 now, the easy way out is to debug the code with CUDA disabled (see
 *CUDA-ENABLED*).
@@ -954,7 +952,7 @@ used.
     require. *May require* here really means an upper bound,
     because `(MAKE-MAT (EXPT 2 60))` doesn't actually uses memory until
     one of its facets is accessed (don't simply evaluate it though,
-    printing the result will access the [ARRAY][facet-name] facet if
+    printing the result will access the ARRAY facet if
     *PRINT-MAT*). Also, while facets today all require the same number
     of bytes, this may change in the future. This is a debugging tool,
     don't use it in production.
@@ -981,10 +979,10 @@ used.
 
 ### Facets
 
-A MAT is a CUBE (see @CUBE-MANUAL) whose facets are different
-representations of numeric arrays. These facets can be accessed with
-WITH-FACETS with one of the following [FACET-NAME][locative]
-locatives:
+A MAT is a CUBE (see MGL-CUBE::@CUBE-MANUAL) whose facets are
+different representations of numeric arrays. These facets can be
+accessed with WITH-FACETS with one of the following
+FACET-NAME locatives:
 
 - [facet-name] BACKING-ARRAY
 
@@ -1000,18 +998,18 @@ locatives:
 
 - [facet-name] FOREIGN-ARRAY
 
-    The facet's value is a [FOREIGN-ARRAY][class] which is an
+    The facet's value is a FOREIGN-ARRAY which is an
     OFFSET-POINTER wrapping a CFFI pointer. See
     *FOREIGN-ARRAY-STRATEGY*.
 
 - [facet-name] CUDA-HOST-ARRAY
 
     This facet's value is a basically the same as that of
-    [FOREIGN-ARRAY][facet-name]. In fact, they share storage. The
-    difference is that accessing [CUDA-HOST-ARRAY][facet-name] ensures
+    FOREIGN-ARRAY. In fact, they share storage. The
+    difference is that accessing CUDA-HOST-ARRAY ensures
     that the foreign memory region is page-locked and registered with
     the CUDA Driver API function cuMemHostRegister(). Copying between
-    GPU memory ([CUDA-ARRAY][facet-name]) and registered memory is
+    GPU memory (CUDA-ARRAY) and registered memory is
     significantly faster than with non-registered memory and also allows
     overlapping copying with computation. See
     WITH-SYNCING-CUDA-FACETS.
@@ -1040,7 +1038,7 @@ DIRECTION is :OUTPUT because we clobber all values in `X`. Armed
 with this knowledge about the direction, WITH-FACETS will not copy
 data from another facet if the backing array is not up-to-date.
 
-To transpose a 2d matrix with the [ARRAY][facet-name] facet:
+To transpose a 2d matrix with the ARRAY facet:
 
 ```commonlisp
 (destructuring-bind (n-rows n-columns) (mat-dimensions x)
@@ -1054,7 +1052,7 @@ Note that DIRECTION is :IO, because we need the data in this facet
 to be up-to-date (that's the input part) and we are invalidating all
 other facets by changing values (that's the output part).
 
-To sum the values of a matrix using the [FOREIGN-ARRAY][facet-name]
+To sum the values of a matrix using the FOREIGN-ARRAY
 facet:
 
 ```commonlisp
@@ -1081,16 +1079,16 @@ and initialized. See WITH-CUDA\* for detail.
 
 ### Foreign arrays
 
-One facet of MAT objects is [FOREIGN-ARRAY][facet-name] which is
+One facet of MAT objects is FOREIGN-ARRAY which is
 backed by a memory area that can be a pinned lisp array or is
 allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
 
 - [class] FOREIGN-ARRAY
 
-    [FOREIGN-ARRAY][class] wraps a foreign pointer (in
+    FOREIGN-ARRAY wraps a foreign pointer (in
     the sense of CFFI:POINTERP). That is, both OFFSET-POINTER and
     BASE-POINTER return a foreign pointer. There are no other public
-    operations that work with [FOREIGN-ARRAY][class] objects, their sole
+    operations that work with FOREIGN-ARRAY objects, their sole
     purpose is represent facets of MAT objects.
 
 - [variable] *FOREIGN-ARRAY-STRATEGY* "-see below-"
@@ -1110,8 +1108,8 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     DESTROY-CUBE and DESTROY-FACET may also be of help.
     
     :CUDA-HOST is the same as :STATIC, but any copies to/from the
-    GPU (i.e. the [CUDA-ARRAY][facet-name] facet) will be done via the
-    [CUDA-HOST-ARRAY][facet-name] facet whose memory pages will also be
+    GPU (i.e. the CUDA-ARRAY facet) will be done via the
+    CUDA-HOST-ARRAY facet whose memory pages will also be
     locked and registered with `cuMemHostRegister` which allows quicker
     and asynchronous copying to and from CUDA land.
     
@@ -1164,7 +1162,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     
     If CUDA is already initialized, then it sets up a facet barrier
     which destroys CUDA-ARRAY and CUDA-HOST-ARRAY facets after ensuring
-    that the [ARRAY][facet-name] facet is up-to-date.
+    that the ARRAY facet is up-to-date.
     
     Else, if CUDA is available and ENABLED, then in addition to the
     facet barrier, a CUDA context is set up, *N-MEMCPY-HOST-TO-DEVICE*,
@@ -1186,7 +1184,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
     Set or bind this to false to disable all use of cuda. If this is
     done from within WITH-CUDA*, then cuda becomes temporarily disabled.
     If this is done from outside WITH-CUDA*, then it changes the default
-    values of the ENABLED argument of any future [WITH-CUDA\*][]s which
+    values of the ENABLED argument of any future WITH-CUDA\*s which
     turns off cuda initialization entirely.
 
 - [accessor] CUDA-ENABLED MAT (:CUDA-ENABLED = \*DEFAULT-MAT-CUDA-ENABLED\*)
@@ -1200,7 +1198,7 @@ allocated in foreign memory depending on *FOREIGN-ARRAY-STRATEGY*.
 
 - [variable] *DEFAULT-MAT-CUDA-ENABLED* T
 
-    The default for [CUDA-ENABLED][(accessor mat)].
+    The default for CUDA-ENABLED.
 
 - [variable] *N-MEMCPY-HOST-TO-DEVICE* 0
 
@@ -1283,11 +1281,11 @@ to do the copying concurrently with computation.
     a performing a non-local-exit the following are true:
     
     - All `MAT`s in MATS-TO-CUDA have an up-to-date
-      [CUDA-ARRAY][facet-name] facet.
+      CUDA-ARRAY facet.
     
     - All `MAT`s in MATS-TO-CUDA-HOST have an up-to-date
-      [CUDA-HOST-ARRAY][facet-name] facet and no
-      [CUDA-ARRAY][facet-name].
+      CUDA-HOST-ARRAY facet and no
+      CUDA-ARRAY.
     
     It is an error if the same matrix appears in both MATS-TO-CUDA and
     MATS-TO-CUDA-HOST, but the same matrix may appear any number of
@@ -1304,7 +1302,7 @@ to do the copying concurrently with computation.
     WITH-SYNCING-CUDA-FACETS.
 
 Also note that often the easiest thing to do is to prevent the use
-of CUDA (and consequently the creation of [CUDA-ARRAY][facet-name]
+of CUDA (and consequently the creation of CUDA-ARRAY
 facets, and allocations). This can be done either by binding
 *CUDA-ENABLED* to NIL or by setting CUDA-ENABLED to NIL on specific
 matrices.
@@ -1349,7 +1347,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
     SINGLE-FLOAT are coerced to that type and the appropriate kernel is
     called.
 
-- [variable] *DEFAULT-LISP-KERNEL-DECLARATIONS* ((OPTIMIZE SPEED (SB-C::INSERT-ARRAY-BOUNDS-CHECKS 0)))
+- [variable] *DEFAULT-LISP-KERNEL-DECLARATIONS* ((OPTIMIZE SPEED (SB-C:INSERT-ARRAY-BOUNDS-CHECKS 0)))
 
     These declarations are added automatically to kernel functions.
 
@@ -1358,7 +1356,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 - [function] USE-CUDA-P &REST MATS
 
     Return true if cuda is enabled (*CUDA-ENABLED*), it's initialized
-    and all MATS have [CUDA-ENABLED][(accessor mat)]. Operations of
+    and all MATS have CUDA-ENABLED. Operations of
     matrices use this to decide whether to go for the CUDA
     implementation or BLAS/Lisp. It's provided for implementing new
     operations.
@@ -1538,8 +1536,8 @@ for the latest version.
 
 ## Introduction
 
-This is the library on which MGL-MAT (see MGL-MAT:@MAT-MANUAL) is
-built. The idea of automatically translating between various
+This is the library on which MGL-MAT (see MGL-MAT::@MAT-MANUAL)
+is built. The idea of automatically translating between various
 representations may be useful for other applications, so this got
 its own package and all ties to MGL-MAT has been severed.
 
@@ -1740,7 +1738,7 @@ facets themselves.
 Many of the generic functions in this section take FACET arguments.
 FACET is a structure and is not intended to be subclassed. To be
 able to add specialized methods, the name of the
-facet ([FACET-NAME][structure-accessor]) is also passed as the
+facet (FACET-NAME) is also passed as the
 argument right in front of the corresponding facet argument.
 
 In summary, define EQL specializers on facet name arguments, and use
@@ -1813,8 +1811,8 @@ but you really should (see MGL-PAX::@MGL-PAX-MANUAL).
 - [macro] DEFINE-FACET-NAME SYMBOL LAMBDA-LIST &BODY DOCSTRING
 
     Just a macro to document that SYMBOL refers to a facet name (as in
-    the [FACET-NAME][locative]). This is totally confusing, so here is
-    an example of how MGL-MAT (see MGL-MAT:@MAT-MANUAL) documents the
+    the FACET-NAME). This is totally confusing, so here is
+    an example of how MGL-MAT (see MGL-MAT::@MAT-MANUAL) documents the
     MGL-MAT:BACKING-ARRAY facet:
     
     ```commonlisp

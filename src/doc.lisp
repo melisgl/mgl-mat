@@ -3,7 +3,7 @@
 ;;;; Register in PAX World
 
 (defun pax-sections ()
-  (list @mat-manual @cube-manual))
+  (list @mat-manual mgl-cube::@cube-manual))
 (defun pax-pages ()
   `((:objects
      (, @mat-manual),
@@ -11,7 +11,7 @@
                       :mgl-mat
                       "https://github.com/melisgl/mgl-mat"))
     (:objects
-     (, @cube-manual)
+     (, mgl-cube::@cube-manual)
      :source-uri-fn ,(make-github-source-uri-fn
                       :mgl-mat
                       "https://github.com/melisgl/mgl-mat"))))

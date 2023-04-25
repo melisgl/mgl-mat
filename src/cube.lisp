@@ -17,8 +17,8 @@
   for the latest version.")
 
 (defsection @cube-introduction (:title "Introduction")
-  "This is the library on which \\MGL-MAT (see MGL-MAT:@MAT-MANUAL) is
-  built. The idea of automatically translating between various
+  "This is the library on which \\MGL-MAT (see MGL-MAT::@MAT-MANUAL)
+  is built. The idea of automatically translating between various
   representations may be useful for other applications, so this got
   its own package and all ties to \\MGL-MAT has been severed.
 
@@ -396,7 +396,7 @@
 (define-definer-for-symbol-locative-type define-facet-name facet-name
   "Just a macro to document that SYMBOL refers to a facet name (as in
   the [FACET-NAME][locative]). This is totally confusing, so here is
-  an example of how \\MGL-MAT (see MGL-MAT:@MAT-MANUAL) documents the
+  an example of how \\MGL-MAT (see MGL-MAT::@MAT-MANUAL) documents the
   MGL-MAT:BACKING-ARRAY facet:
 
   ```commonlisp
