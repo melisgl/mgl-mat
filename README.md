@@ -3,7 +3,7 @@
 
 ## Table of Contents
 
-- [1 `MGL-MAT` ASDF System][caca]
+- [1 The `MGL-MAT` ASDF System][caca]
 - [2 Links][54ea]
 - [3 Introduction][7e60]
     - [3.1 What's MGL-MAT?][ff55]
@@ -39,7 +39,7 @@
 
 ###### \[in package MGL-MAT\]
 <a id="x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29"></a>
-## 1 `MGL-MAT` ASDF System
+## 1 The `MGL-MAT` ASDF System
 
 - Version: 0.1.0
 - Description: [`MAT`][6d14] is library for working with multi-dimensional
@@ -2056,7 +2056,7 @@ In summary, define `EQL`([`0`][8517] [`1`][01e5]) specializers on facet name arg
     method simply returns the first up-to-date facet.
 
 PAX integration follows, don't worry about it if you don't use PAX,
-but you really should (see MGL-PAX::@MGL-PAX-MANUAL).
+but you really should (see `MGL-PAX::@PAX-MANUAL`).
 
 <a id="x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29"></a>
 - [locative] **FACET-NAME**
@@ -2079,7 +2079,7 @@ but you really should (see MGL-PAX::@MGL-PAX-MANUAL).
     
     Which makes it possible to refer to this definition (refer as in
     link and `M-.` to) [`MGL-MAT:BACKING-ARRAY`][1fda] facet-name. See
-    MGL-PAX:@MGL-PAX-MANUAL for more.
+    `MGL-PAX::@PAX-MANUAL` for more.
 
 Also see [The Default Implementation of `CALL-WITH-FACET*`][d720].
 

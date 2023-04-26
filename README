@@ -1,7 +1,7 @@
 # MAT Manual
 
 ###### \[in package MGL-MAT\]
-## MGL-MAT ASDF System
+## The MGL-MAT ASDF System
 
 - Version: 0.1.0
 - Description: MAT is library for working with multi-dimensional
@@ -1801,7 +1801,7 @@ FACET-DESCRIPTION to associate arbitrary information with facets.
     method simply returns the first up-to-date facet.
 
 PAX integration follows, don't worry about it if you don't use PAX,
-but you really should (see MGL-PAX::@MGL-PAX-MANUAL).
+but you really should (see MGL-PAX::@PAX-MANUAL).
 
 - [locative] FACET-NAME
 
@@ -1822,7 +1822,7 @@ but you really should (see MGL-PAX::@MGL-PAX-MANUAL).
     
     Which makes it possible to refer to this definition (refer as in
     link and `M-.` to) MGL-MAT:BACKING-ARRAY facet-name. See
-    MGL-PAX:@MGL-PAX-MANUAL for more.
+    MGL-PAX::@PAX-MANUAL for more.
 
 Also see @CUBE-DEFAULT-CALL-WITH-FACET\*.
 
