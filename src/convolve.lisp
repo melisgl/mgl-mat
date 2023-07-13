@@ -165,7 +165,7 @@
   "Y = Y + conv(X, W) and return Y. If BATCHED, then the first
   dimension of X and Y is the number of elements in the batch (B),
   else B is assumed to be 1. The rest of the dimensions encode the
-  input (X) and output (Y} N dimensional feature maps. START, STRIDE
+  input (X) and output (Y) N dimensional feature maps. START, STRIDE
   and ANCHOR are lists of length N. START is the multi-dimensional
   index of the first element of the input feature map (for each
   element in the batch) for which the convolution must be computed.
