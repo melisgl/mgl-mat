@@ -64,7 +64,7 @@
   #+ccl
   `(ccl:without-interrupts ,@body)
   #+lispworks
-  `(mp:without-interrupts ,@body)
+  `(mp:with-interrupts-blocked ,@body)
   #-(or sbcl cmucl allegro scl scl ccl lispworks)
   `(progn ,@body))
 
