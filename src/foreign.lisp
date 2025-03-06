@@ -110,9 +110,9 @@ SBCL gencgc platforms."
       :static)
   "One of :PINNED, :STATIC and :CUDA-HOST (see type
   FOREIGN-ARRAY-STRATEGY). This variable controls how foreign arrays
-  are handled and it can be changed at any time.
+  are handled, and it can be changed at any time.
 
-  If it's :PINNED (only supported if (PINNING-SUPPORTED-P), then no
+  If it's :PINNED (only supported if PINNING-SUPPORTED-P), then no
   separate storage is allocated for the foreign array. Instead, it
   aliases the lisp array (via the BACKING-ARRAY facet).
 
