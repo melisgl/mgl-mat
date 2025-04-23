@@ -7,59 +7,58 @@
 
 ## Table of Contents
 
-- [1 The mgl-mat ASDF System][caca]
-- [2 Links][54ea]
-- [3 Introduction][7e60]
-    - [3.1 What's MGL-MAT?][ff55]
-    - [3.2 What kind of matrices are supported?][2ea4]
-    - [3.3 Where to Get it?][c96c]
-- [4 Tutorial][1b99]
-- [5 Basics][086b]
-- [6 Element types][e798]
-- [7 Printing][43e9]
-- [8 Shaping][7bf8]
-    - [8.1 Comparison to Lisp Arrays][2cbb]
-    - [8.2 Functional Shaping][aa5b]
-    - [8.3 Destructive Shaping][b6a7]
-- [9 Assembling][46e6]
-- [10 Caching][e678]
-- [11 BLAS Operations][4958]
-- [12 Destructive API][545d]
-- [13 Non-destructive API][3e36]
-- [14 Mappings][1600]
-- [15 Random numbers][c669]
-- [16 I/O][7feb]
-- [17 Debugging][ac8d]
-- [18 Facet API][8eda]
-    - [18.1 Facets][7ecb]
-    - [18.2 Foreign arrays][36b5]
-    - [18.3 CUDA][5212]
-        - [18.3.1 CUDA Memory Management][4e65]
-- [19 Writing Extensions][8f0e]
-    - [19.1 Lisp Extensions][d3b8]
-    - [19.2 CUDA Extensions][93e1]
-        - [19.2.1 CUBLAS][b116]
-        - [19.2.2 CURAND][3993]
+- [1 Links][54ea]
+- [2 Introduction][7e60]
+    - [2.1 What's MGL-MAT?][ff55]
+    - [2.2 What kind of matrices are supported?][2ea4]
+    - [2.3 Where to Get it?][c96c]
+- [3 Tutorial][1b99]
+- [4 Basics][086b]
+- [5 Element types][e798]
+- [6 Printing][43e9]
+- [7 Shaping][7bf8]
+    - [7.1 Comparison to Lisp Arrays][2cbb]
+    - [7.2 Functional Shaping][aa5b]
+    - [7.3 Destructive Shaping][b6a7]
+- [8 Assembling][46e6]
+- [9 Caching][e678]
+- [10 BLAS Operations][4958]
+- [11 Destructive API][545d]
+- [12 Non-destructive API][3e36]
+- [13 Mappings][1600]
+- [14 Random numbers][c669]
+- [15 I/O][7feb]
+- [16 Debugging][ac8d]
+- [17 Facet API][8eda]
+    - [17.1 Facets][7ecb]
+    - [17.2 Foreign arrays][36b5]
+    - [17.3 CUDA][5212]
+        - [17.3.1 CUDA Memory Management][4e65]
+- [18 Writing Extensions][8f0e]
+    - [18.1 Lisp Extensions][d3b8]
+    - [18.2 CUDA Extensions][93e1]
+        - [18.2.1 CUBLAS][b116]
+        - [18.2.2 CURAND][3993]
 
 ###### \[in package MGL-MAT\]
 <a id="x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29"></a>
 
-## 1 The mgl-mat ASDF System
-
-- Version: 0.1.0
-- Description: [`MAT`][6d14] is library for working with multi-dimensional
-  arrays which supports efficient interfacing to foreign and CUDA
-  code. BLAS and CUBLAS bindings are available.
-- Licence: MIT, see COPYING.
-- Author: Gábor Melis <mega@retes.hu>
-- Mailto: [mega@retes.hu](mailto:mega@retes.hu)
-- Homepage: [http://melisgl.github.io/mgl-mat](http://melisgl.github.io/mgl-mat)
-- Bug tracker: [https://github.com/melisgl/mgl-mat/issues](https://github.com/melisgl/mgl-mat/issues)
-- Source control: [GIT](https://github.com/melisgl/mgl-mat.git)
+- [system] **"mgl-mat"**
+    - Version: 0.1.0
+    - Description: [`MAT`][6d14] is library for working with multi-dimensional
+        arrays which supports efficient interfacing to foreign and CUDA
+        code. BLAS and CUBLAS bindings are available.
+    - Licence: MIT, see COPYING.
+    - Author: Gábor Melis <mega@retes.hu>
+    - Mailto: [mega@retes.hu](mailto:mega@retes.hu)
+    - Homepage: [http://melisgl.github.io/mgl-mat](http://melisgl.github.io/mgl-mat)
+    - Bug tracker: [https://github.com/melisgl/mgl-mat/issues](https://github.com/melisgl/mgl-mat/issues)
+    - Source control: [GIT](https://github.com/melisgl/mgl-mat.git)
+    - Depends on: alexandria, bordeaux-threads, cffi, cffi-grovel, cl-cuda, flexi-streams, ieee-floats, lla, mgl-pax, num-utils, static-vectors, trivial-garbage
 
 <a id="x-28MGL-MAT-3A-40MAT-LINKS-20MGL-PAX-3ASECTION-29"></a>
 
-## 2 Links
+## 1 Links
 
 Here is the [official
 repository](https://github.com/melisgl/mgl-mat) and the [HTML
@@ -68,11 +67,11 @@ for the latest version.
 
 <a id="x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29"></a>
 
-## 3 Introduction
+## 2 Introduction
 
 <a id="x-28MGL-MAT-3A-40MAT-WHAT-IS-IT-20MGL-PAX-3ASECTION-29"></a>
 
-### 3.1 What's MGL-MAT?
+### 2.1 What's MGL-MAT?
 
 MGL-MAT is library for working with multi-dimensional arrays
 which supports efficient interfacing to foreign and CUDA code with
@@ -81,7 +80,7 @@ and CUBLAS bindings are available.
 
 <a id="x-28MGL-MAT-3A-40MAT-WHAT-KIND-OF-MATRICES-20MGL-PAX-3ASECTION-29"></a>
 
-### 3.2 What kind of matrices are supported?
+### 2.2 What kind of matrices are supported?
 
 Currently only row-major single and double float matrices are
 supported, but it would be easy to add single and double precision
@@ -94,7 +93,7 @@ elements are not affected.
 
 <a id="x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29"></a>
 
-### 3.3 Where to Get it?
+### 2.3 Where to Get it?
 
 All dependencies are in quicklisp except for
 [CL-CUDA](https://github.com/takagi/cl-cuda) that needs to be
@@ -109,7 +108,7 @@ as part of [PAX World](http://melisgl.github.io/mgl-pax-world/).
 
 <a id="x-28MGL-MAT-3A-40MAT-TUTORIAL-20MGL-PAX-3ASECTION-29"></a>
 
-## 4 Tutorial
+## 3 Tutorial
 
 We are going to see how to create matrices, access their contents.
 
@@ -217,7 +216,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id="x-28MGL-MAT-3A-40MAT-BASICS-20MGL-PAX-3ASECTION-29"></a>
 
-## 5 Basics
+## 4 Basics
 
 <a id="x-28MGL-MAT-3AMAT-20CLASS-29"></a>
 
@@ -231,14 +230,14 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id="x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29"></a>
 
-- [reader] **MAT-CTYPE** *MAT (:CTYPE = \*DEFAULT-MAT-CTYPE\*)*
+- [reader] **MAT-CTYPE** *[MAT][6d14] (:CTYPE = \*DEFAULT-MAT-CTYPE\*)*
 
     One of [`*SUPPORTED-CTYPES*`][fc7d]. The matrix can hold
     only values of this type.
 
 <a id="x-28MGL-MAT-3AMAT-DISPLACEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29"></a>
 
-- [reader] **MAT-DISPLACEMENT** *MAT (:DISPLACEMENT = 0)*
+- [reader] **MAT-DISPLACEMENT** *[MAT][6d14] (:DISPLACEMENT = 0)*
 
     A value in the `[0,MAX-SIZE]` interval. This is
     like the DISPLACED-INDEX-OFFSET of a lisp array, but displacement
@@ -246,7 +245,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id="x-28MGL-MAT-3AMAT-DIMENSIONS-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29"></a>
 
-- [reader] **MAT-DIMENSIONS** *MAT (:DIMENSIONS)*
+- [reader] **MAT-DIMENSIONS** *[MAT][6d14] (:DIMENSIONS)*
 
     Like [`ARRAY-DIMENSIONS`][b315]. It holds a list of
     dimensions, but it is allowed to pass in scalars too.
@@ -260,7 +259,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id="x-28MGL-MAT-3AMAT-INITIAL-ELEMENT-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29"></a>
 
-- [reader] **MAT-INITIAL-ELEMENT** *MAT (:INITIAL-ELEMENT = 0)*
+- [reader] **MAT-INITIAL-ELEMENT** *[MAT][6d14] (:INITIAL-ELEMENT = 0)*
 
     If non-nil, then when a facet is created, it is
     filled with `INITIAL-ELEMENT` coerced to the appropriate numeric
@@ -268,7 +267,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id="x-28MGL-MAT-3AMAT-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29"></a>
 
-- [reader] **MAT-SIZE** *MAT*
+- [reader] **MAT-SIZE** *[MAT][6d14]*
 
     The number of elements in the visible portion of
     the array. This is always the product of the elements
@@ -276,7 +275,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id="x-28MGL-MAT-3AMAT-MAX-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29"></a>
 
-- [reader] **MAT-MAX-SIZE** *MAT (:MAX-SIZE)*
+- [reader] **MAT-MAX-SIZE** *[MAT][6d14] (:MAX-SIZE)*
 
     The number of elements for which storage may be
     allocated. This is `DISPLACEMENT` + [`MAT-SIZE`][3573] + `SLACK` where `SLACK`
@@ -366,7 +365,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id="x-28MGL-MAT-3A-40MAT-CTYPES-20MGL-PAX-3ASECTION-29"></a>
 
-## 6 Element types
+## 5 Element types
 
 <a id="x-28MGL-MAT-3A-2ASUPPORTED-CTYPES-2A-20VARIABLE-29"></a>
 
@@ -393,7 +392,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id="x-28MGL-MAT-3A-40MAT-PRINTING-20MGL-PAX-3ASECTION-29"></a>
 
-## 7 Printing
+## 6 Printing
 
 <a id="x-28MGL-MAT-3A-2APRINT-MAT-2A-20VARIABLE-29"></a>
 
@@ -416,7 +415,7 @@ algorithms. MGL-MAT does its best to keep them separate.
 
 <a id="x-28MGL-MAT-3A-40MAT-SHAPING-20MGL-PAX-3ASECTION-29"></a>
 
-## 8 Shaping
+## 7 Shaping
 
 We are going to discuss various ways to change the visible portion
 and dimensions of matrices. Conceptually a matrix has an *underlying
@@ -437,7 +436,7 @@ the matrices that share the same underlying vector.
 
 <a id="x-28MGL-MAT-3A-40MAT-SHAPING-COMPARISON-TO-LISP-20MGL-PAX-3ASECTION-29"></a>
 
-### 8.1 Comparison to Lisp Arrays
+### 7.1 Comparison to Lisp Arrays
 
 One way to reshape and displace [`MAT`][6d14] objects is with [`MAKE-MAT`][e3c3] and
 its `DISPLACED-TO` argument whose semantics are similar to that of
@@ -476,7 +475,7 @@ underlying conceptual non-displaced vector.
 
 <a id="x-28MGL-MAT-3A-40MAT-SHAPING-FUNCTIONAL-20MGL-PAX-3ASECTION-29"></a>
 
-### 8.2 Functional Shaping
+### 7.2 Functional Shaping
 
 The following functions are collectively called the functional
 shaping operations, since they don't alter their arguments in any
@@ -509,7 +508,7 @@ matrix will affect the original.
 
 <a id="x-28MGL-MAT-3A-40MAT-SHAPING-DESTRUCTIVE-20MGL-PAX-3ASECTION-29"></a>
 
-### 8.3 Destructive Shaping
+### 7.3 Destructive Shaping
 
 The following destructive operations don't alter the contents of
 the matrix, but change what is visible. [`ADJUST!`][8100] is the odd one out,
@@ -569,7 +568,7 @@ it may create a new [`MAT`][6d14].
 
 <a id="x-28MGL-MAT-3A-40MAT-ASSEMBLING-20MGL-PAX-3ASECTION-29"></a>
 
-## 9 Assembling
+## 8 Assembling
 
 The functions here assemble a single [`MAT`][6d14] from a number of
 [`MAT`][6d14]s.
@@ -601,7 +600,7 @@ The functions here assemble a single [`MAT`][6d14] from a number of
 
 <a id="x-28MGL-MAT-3A-40MAT-CACHING-20MGL-PAX-3ASECTION-29"></a>
 
-## 10 Caching
+## 9 Caching
 
 Allocating and initializing a [`MAT`][6d14] object and its necessary facets
 can be expensive. The following macros remember the previous value
@@ -663,7 +662,7 @@ particularly efficient but at least it's safe.
 
 <a id="x-28MGL-MAT-3A-40MAT-BLAS-20MGL-PAX-3ASECTION-29"></a>
 
-## 11 BLAS Operations
+## 10 BLAS Operations
 
 Only some BLAS functions are implemented, but it should be easy to
 add more as needed. All of them default to using CUDA, if it is
@@ -746,7 +745,7 @@ Level 3 BLAS operations
 
 <a id="x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29"></a>
 
-## 12 Destructive API
+## 11 Destructive API
 
 <a id="x-28MGL-MAT-3A-2ESQUARE-21-20FUNCTION-29"></a>
 
@@ -981,7 +980,7 @@ Finally, some neural network operations.
 
 <a id="x-28MGL-MAT-3A-40MAT-NON-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29"></a>
 
-## 13 Non-destructive API
+## 12 Non-destructive API
 
 <a id="x-28MGL-MAT-3ACOPY-MAT-20FUNCTION-29"></a>
 
@@ -1071,7 +1070,7 @@ Finally, some neural network operations.
 
 <a id="x-28MGL-MAT-3A-40MAT-MAPPINGS-20MGL-PAX-3ASECTION-29"></a>
 
-## 14 Mappings
+## 13 Mappings
 
 <a id="x-28MGL-MAT-3AMAP-CONCAT-20FUNCTION-29"></a>
 
@@ -1127,7 +1126,7 @@ Finally, some neural network operations.
 
 <a id="x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29"></a>
 
-## 15 Random numbers
+## 14 Random numbers
 
 Unless noted these work efficiently with CUDA.
 
@@ -1169,7 +1168,7 @@ Unless noted these work efficiently with CUDA.
 
 <a id="x-28MGL-MAT-3A-40MAT-IO-20MGL-PAX-3ASECTION-29"></a>
 
-## 16 I/O
+## 15 I/O
 
 <a id="x-28MGL-MAT-3A-2AMAT-HEADERS-2A-20VARIABLE-29"></a>
 
@@ -1198,7 +1197,7 @@ Unless noted these work efficiently with CUDA.
 
 <a id="x-28MGL-MAT-3A-40MAT-DEBUGGING-20MGL-PAX-3ASECTION-29"></a>
 
-## 17 Debugging
+## 16 Debugging
 
 The largest class of bugs has to do with synchronization of facets
 being broken. This is almost always caused by an operation that
@@ -1256,13 +1255,13 @@ used.
 
 <a id="x-28MGL-MAT-3A-40MAT-FACET-API-20MGL-PAX-3ASECTION-29"></a>
 
-## 18 Facet API
+## 17 Facet API
 
 
 
 <a id="x-28MGL-MAT-3A-40MAT-FACETS-20MGL-PAX-3ASECTION-29"></a>
 
-### 18.1 Facets
+### 17.1 Facets
 
 A [`MAT`][6d14] is a [`CUBE`][1659] (see [Cube Manual][713f]) whose facets are
 different representations of numeric arrays. These facets can be
@@ -1374,7 +1373,7 @@ and initialized. See [`WITH-CUDA*`][3db3] for detail.
 
 <a id="x-28MGL-MAT-3A-40MAT-FOREIGN-20MGL-PAX-3ASECTION-29"></a>
 
-### 18.2 Foreign arrays
+### 17.2 Foreign arrays
 
 One facet of [`MAT`][6d14] objects is [`FOREIGN-ARRAY`][4f59] which is
 backed by a memory area that can be a pinned lisp array or is
@@ -1455,7 +1454,7 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][7400].
 
 <a id="x-28MGL-MAT-3A-40MAT-CUDA-20MGL-PAX-3ASECTION-29"></a>
 
-### 18.3 CUDA
+### 17.3 CUDA
 
 <a id="x-28MGL-MAT-3ACUDA-AVAILABLE-P-20FUNCTION-29"></a>
 
@@ -1506,7 +1505,7 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][7400].
 
 <a id="x-28MGL-MAT-3ACUDA-ENABLED-20-28MGL-PAX-3AACCESSOR-20MGL-MAT-3AMAT-29-29"></a>
 
-- [accessor] **CUDA-ENABLED** *MAT (:CUDA-ENABLED = \*DEFAULT-MAT-CUDA-ENABLED\*)*
+- [accessor] **CUDA-ENABLED** *[MAT][6d14] (:CUDA-ENABLED = \*DEFAULT-MAT-CUDA-ENABLED\*)*
 
     The control provided by [`*CUDA-ENABLED*`][aba0] can be too
     coarse. This flag provides a per-object mechanism to turn cuda
@@ -1555,7 +1554,7 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][7400].
 
 <a id="x-28MGL-MAT-3A-40MAT-CUDA-MEMORY-MANAGEMENT-20MGL-PAX-3ASECTION-29"></a>
 
-#### 18.3.1 CUDA Memory Management
+#### 17.3.1 CUDA Memory Management
 
 The GPU (called *device* in CUDA terminology) has its own memory
 and it can only perform computation on data in this *device memory*
@@ -1650,14 +1649,14 @@ matrices.
 
 <a id="x-28MGL-MAT-3A-40MAT-EXTENSIONS-20MGL-PAX-3ASECTION-29"></a>
 
-## 19 Writing Extensions
+## 18 Writing Extensions
 
 New operations are usually implemented in lisp, CUDA, or by calling
 a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 <a id="x-28MGL-MAT-3A-40MAT-LISP-EXTENSIONS-20MGL-PAX-3ASECTION-29"></a>
 
-### 19.1 Lisp Extensions
+### 18.1 Lisp Extensions
 
 <a id="x-28MGL-MAT-3ADEFINE-LISP-KERNEL-20MGL-PAX-3AMACRO-29"></a>
 
@@ -1702,7 +1701,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 <a id="x-28MGL-MAT-3A-40MAT-CUDA-EXTENSIONS-20MGL-PAX-3ASECTION-29"></a>
 
-### 19.2 CUDA Extensions
+### 18.2 CUDA Extensions
 
 <a id="x-28MGL-MAT-3AUSE-CUDA-P-20FUNCTION-29"></a>
 
@@ -1852,7 +1851,7 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
 
 <a id="x-28MGL-MAT-3A-40MAT-CUBLAS-20MGL-PAX-3ASECTION-29"></a>
 
-#### 19.2.1 CUBLAS
+#### 18.2.1 CUBLAS
 
 In a [`WITH-CUDA*`][3db3] [BLAS Operations][4958] will automatically use CUBLAS. No need to
 use these at all.
@@ -1863,11 +1862,11 @@ use these at all.
 
 <a id="x-28MGL-MAT-3ACUBLAS-ERROR-FUNCTION-NAME-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACUBLAS-ERROR-29-29"></a>
 
-- [reader] **CUBLAS-ERROR-FUNCTION-NAME** *CUBLAS-ERROR (:FUNCTION-NAME)*
+- [reader] **CUBLAS-ERROR-FUNCTION-NAME** *[CUBLAS-ERROR][db71] (:FUNCTION-NAME)*
 
 <a id="x-28MGL-MAT-3ACUBLAS-ERROR-STATUS-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACUBLAS-ERROR-29-29"></a>
 
-- [reader] **CUBLAS-ERROR-STATUS** *CUBLAS-ERROR (:STATUS)*
+- [reader] **CUBLAS-ERROR-STATUS** *[CUBLAS-ERROR][db71] (:STATUS)*
 
 <a id="x-28MGL-MAT-3A-2ACUBLAS-HANDLE-2A-20VARIABLE-29"></a>
 
@@ -1891,7 +1890,7 @@ use these at all.
 
 <a id="x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29"></a>
 
-#### 19.2.2 CURAND
+#### 18.2.2 CURAND
 
 This the low level CURAND API. You probably want [Random numbers][c669]
 instead.
@@ -1910,11 +1909,11 @@ instead.
 
 <a id="x-28MGL-MAT-3AN-STATES-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACURAND-XORWOW-STATE-29-29"></a>
 
-- [reader] **N-STATES** *CURAND-XORWOW-STATE (:N-STATES)*
+- [reader] **N-STATES** *[CURAND-XORWOW-STATE][ffae] (:N-STATES)*
 
 <a id="x-28MGL-MAT-3ASTATES-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACURAND-XORWOW-STATE-29-29"></a>
 
-- [reader] **STATES** *CURAND-XORWOW-STATE (:STATES)*
+- [reader] **STATES** *[CURAND-XORWOW-STATE][ffae] (:STATES)*
 
 <a id="x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29"></a>
 
@@ -2071,7 +2070,7 @@ signal safe.
 
 <a id="x-28MGL-CUBE-3ASYNCHRONIZATION-20-28MGL-PAX-3AACCESSOR-20MGL-CUBE-3ACUBE-29-29"></a>
 
-- [accessor] **SYNCHRONIZATION** *CUBE (:SYNCHRONIZATION = \*DEFAULT-SYNCHRONIZATION\*)*
+- [accessor] **SYNCHRONIZATION** *[CUBE][1659] (:SYNCHRONIZATION = \*DEFAULT-SYNCHRONIZATION\*)*
 
     By default, setup and teardown of facets by
     [`WITH-FACET`][0706] is performed in a thread safe way. Corrupting internal
@@ -2577,7 +2576,6 @@ Also see [Lifetime][a810].
   [c4f8]: #x-28MGL-MAT-3AMAT-MAX-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "MGL-MAT:MAT-MAX-SIZE (MGL-PAX:READER MGL-MAT:MAT)"
   [c669]: #x-28MGL-MAT-3A-40MAT-RANDOM-20MGL-PAX-3ASECTION-29 "Random numbers"
   [c96c]: #x-28MGL-MAT-3A-40MAT-INSTALLATION-20MGL-PAX-3ASECTION-29 "Where to Get it?"
-  [caca]: #x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29 '"mgl-mat" ASDF/SYSTEM:SYSTEM'
   [cb94]: #x-28ARRAY-20MGL-CUBE-3AFACET-NAME-29 "ARRAY MGL-CUBE:FACET-NAME"
   [cd9e]: #x-28MGL-MAT-3ASTACK-21-20FUNCTION-29 "MGL-MAT:STACK! FUNCTION"
   [cdc3]: #x-28MGL-MAT-3AFOREIGN-ARRAY-20CLASS-29 "MGL-MAT:FOREIGN-ARRAY CLASS"
@@ -2587,6 +2585,7 @@ Also see [Lifetime][a810].
   [d720]: #x-28MGL-CUBE-3A-40CUBE-DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29 "The Default Implementation of `CALL-WITH-FACET*`"
   [db03]: http://www.lispworks.com/documentation/HyperSpec/Body/f_eql.htm "EQL (MGL-PAX:CLHS FUNCTION)"
   [db31]: #x-28MGL-CUBE-3AADD-FACET-REFERENCE-BY-NAME-20FUNCTION-29 "MGL-CUBE:ADD-FACET-REFERENCE-BY-NAME FUNCTION"
+  [db71]: #x-28MGL-MAT-3ACUBLAS-ERROR-20CONDITION-29 "MGL-MAT:CUBLAS-ERROR CONDITION"
   [dbac]: #x-28MGL-CUBE-3ADESTROY-CUBE-20FUNCTION-29 "MGL-CUBE:DESTROY-CUBE FUNCTION"
   [ddd4]: #x-28MGL-CUBE-3AWITH-FACETS-20MGL-PAX-3AMACRO-29 "MGL-CUBE:WITH-FACETS MGL-PAX:MACRO"
   [dddd]: http://www.lispworks.com/documentation/HyperSpec/Body/f_mk_ins.htm "MAKE-INSTANCE (MGL-PAX:CLHS GENERIC-FUNCTION)"
