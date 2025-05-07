@@ -389,11 +389,11 @@
   implementation (with CALL-NEXT-METHOD) but with a lambda that
   transforms FACET-VALUE before passing it on to FN."))
 
-(define-symbol-locative-type facet-name ()
+(dref-ext:define-symbol-locative-type facet-name ()
   "The FACET-NAME locative is to refer to stuff defined with
   DEFINE-FACET-NAME.")
 
-(define-definer-for-symbol-locative-type define-facet-name facet-name
+(dref-ext:define-definer-for-symbol-locative-type define-facet-name facet-name
   "Just a macro to document that SYMBOL refers to a facet name (as in
   the [FACET-NAME][locative]). This is totally confusing, so here is
   an example of how \\MGL-MAT (see MGL-MAT::@MAT-MANUAL) documents the
