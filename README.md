@@ -44,17 +44,17 @@
 <a id="x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29"></a>
 
 - [system] **"mgl-mat"**
-    - Version: 0.1.0
-    - Description: [`MAT`][6d14] is library for working with multi-dimensional
+    - _Version:_ 0.1.0
+    - _Description:_ [`MAT`][6d14] is library for working with multi-dimensional
         arrays which supports efficient interfacing to foreign and CUDA
         code. BLAS and CUBLAS bindings are available.
-    - Licence: MIT, see COPYING.
-    - Author: Gábor Melis <mega@retes.hu>
-    - Mailto: [mega@retes.hu](mailto:mega@retes.hu)
-    - Homepage: [http://melisgl.github.io/mgl-mat](http://melisgl.github.io/mgl-mat)
-    - Bug tracker: [https://github.com/melisgl/mgl-mat/issues](https://github.com/melisgl/mgl-mat/issues)
-    - Source control: [GIT](https://github.com/melisgl/mgl-mat.git)
-    - Depends on: alexandria, bordeaux-threads, cffi, cffi-grovel, cl-cuda, flexi-streams, ieee-floats, lla, mgl-pax, num-utils, static-vectors, trivial-garbage
+    - _Licence:_ MIT, see COPYING.
+    - _Author:_ Gábor Melis <mega@retes.hu>
+    - _Mailto:_ [mega@retes.hu](mailto:mega@retes.hu)
+    - _Homepage:_ [http://melisgl.github.io/mgl-mat](http://melisgl.github.io/mgl-mat)
+    - _Bug tracker:_ [https://github.com/melisgl/mgl-mat/issues](https://github.com/melisgl/mgl-mat/issues)
+    - _Source control:_ [GIT](https://github.com/melisgl/mgl-mat.git)
+    - *Depends on:* alexandria, bordeaux-threads, cffi, cffi-grovel, cl-cuda, flexi-streams, ieee-floats, lla, mgl-pax, num-utils, static-vectors, trivial-garbage
 
 <a id="x-28MGL-MAT-3A-40MAT-LINKS-20MGL-PAX-3ASECTION-29"></a>
 
@@ -201,7 +201,7 @@ accessing one of the facets directly, as in the following example:
 Notice that [`LOGDET`][e1aa] doesn't know about CUDA at all. [`WITH-FACETS`][ddd4]
 gives it the content of the matrix as a normal multidimensional lisp
 array, copying the data from the GPU or elsewhere if necessary. This
-allows new representations ([`FACET`][6406]s) to be added easily and it also
+allows new representations ([`FACET`][36d6]s) to be added easily and it also
 avoids copying if the facet is already up-to-date. Of course, adding
 CUDA support to `LOGDET` could make it more efficient.
 
@@ -332,7 +332,6 @@ algorithms. MGL-MAT does its best to keep them separate.
     (replace! (make-mat '(1 2 3)) '(#2A((1 2 3) (4 5 6))))
     ==> #<MAT 1x2x3 AB #3A(((1.0d0 2.0d0 3.0d0) (4.0d0 5.0d0 6.0d0)))>
     ```
-
 
 <a id="x-28MGL-MAT-3AMREF-20FUNCTION-29"></a>
 
@@ -597,7 +596,6 @@ The functions here assemble a single [`MAT`][6d14] from a number of
     -->                 (0.0d0 0.0d0 1.0d0))>
     ```
 
-
 <a id="x-28MGL-MAT-3A-40MAT-CACHING-20MGL-PAX-3ASECTION-29"></a>
 
 ## 9 Caching
@@ -651,7 +649,6 @@ particularly efficient but at least it's safe.
                              (b ...))
       ...)
     ```
-
 
 <a id="x-28MGL-MAT-3AWITH-ONES-20MGL-PAX-3AMACRO-29"></a>
 
@@ -741,7 +738,6 @@ Level 3 BLAS operations
         M --A--+  -C++
           -----+  --++
           ++++++  ++++
-
 
 <a id="x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29"></a>
 
@@ -1093,7 +1089,6 @@ Finally, some neural network operations.
     ==> #<MAT 2x3 AB #2A((0.0d0 0.0d0 1.0d0) (1.0d0 1.0d0 1.0d0))>
     ```
 
-
 <a id="x-28MGL-MAT-3AMAP-DISPLACEMENTS-20FUNCTION-29"></a>
 
 - [function] **MAP-DISPLACEMENTS** *FN MAT DIMENSIONS &KEY (DISPLACEMENT-START 0) DISPLACEMENT-STEP*
@@ -1114,7 +1109,6 @@ Finally, some neural network operations.
     .. #<MAT 5+4+5 B #(4.0d0 5.0d0 6.0d0 7.0d0)> 
     .. #<MAT 9+4+1 B #(8.0d0 9.0d0 10.0d0 11.0d0)> 
     ```
-
 
 <a id="x-28MGL-MAT-3AMAP-MATS-INTO-20FUNCTION-29"></a>
 
@@ -1251,7 +1245,6 @@ used.
       (assert (= n-bytes (+ (* 2 3 8) (* 7 4))))
       (assert (= count 2)))
     ```
-
 
 <a id="x-28MGL-MAT-3A-40MAT-FACET-API-20MGL-PAX-3ASECTION-29"></a>
 
@@ -1451,7 +1444,6 @@ allocated in foreign memory depending on [`*FOREIGN-ARRAY-STRATEGY*`][7400].
     f: 450 (3,386,295,808)
     ```
 
-
 <a id="x-28MGL-MAT-3A-40MAT-CUDA-20MGL-PAX-3ASECTION-29"></a>
 
 ### 17.3 CUDA
@@ -1600,7 +1592,6 @@ unused but cached) is never more than `N-POOL-BYTES` as specified in
     d: 450 (3,386,295,808 + 1,816,657,920), h: 14640 (17,380,147,200)
     h->d: 154,102,488, d->h: 117,136,434
     ```
-
 
 That's it about reducing the cost allocations. The other important
 performance consideration, minimizing the amount copying done, is
@@ -1773,7 +1764,6 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
             (incf i stride-x)))))
     ```
 
-
 <a id="x-28MGL-MAT-3ACHOOSE-3D-BLOCK-AND-GRID-20FUNCTION-29"></a>
 
 - [function] **CHOOSE-3D-BLOCK-AND-GRID** *DIMENSIONS MAX-N-WARPS-PER-BLOCK*
@@ -1811,7 +1801,6 @@ a foreign function in, for instance, BLAS, CUBLAS, CURAND.
               (set (aref x i) (+ (aref x i) alpha))
               (incf i stride-x))))))
     ```
-
 
 <a id="x-28MGL-MAT-3ADEFINE-CUDA-KERNEL-20MGL-PAX-3AMACRO-29"></a>
 
@@ -1914,7 +1903,6 @@ instead.
 <a id="x-28MGL-MAT-3ASTATES-20-28MGL-PAX-3AREADER-20MGL-MAT-3ACURAND-XORWOW-STATE-29-29"></a>
 
 - [reader] **STATES** *[CURAND-XORWOW-STATE][ffae] (:STATES)*
-
 <a id="x-28MGL-CUBE-3A-40CUBE-MANUAL-20MGL-PAX-3ASECTION-29"></a>
 
 # Cube Manual
@@ -2051,7 +2039,6 @@ Here we learn what a [`CUBE`][1659] is and how to access the data in it with
       ...)
     ```
 
-
 <a id="x-28MGL-CUBE-3A-40CUBE-SYNCHRONIZATION-20MGL-PAX-3ASECTION-29"></a>
 
 ## 4 Synchronization
@@ -2106,7 +2093,7 @@ signal safe.
 
 ## 5 Facets
 
-The basic currency for implementing new cube types is the [`FACET`][6406].
+The basic currency for implementing new cube types is the [`FACET`][36d6].
 Simply using a cube only involves facet names and values, never
 facets themselves.
 
@@ -2123,9 +2110,9 @@ facets themselves.
     Return the facet of `CUBE` for the facet with `FACET-NAME` or `NIL` if no
     such facet exists.
 
-<a id="x-28MGL-CUBE-3AFACET-20CLASS-29"></a>
+<a id="x-28MGL-CUBE-3AFACET-20STRUCTURE-29"></a>
 
-- [class] **FACET** *[STRUCTURE-OBJECT][2038]*
+- [structure] **FACET**
 
     A cube has facets, as we discussed in [Basics][f36f]. Facets holds
     the data in a particular representation, this is called the *value*
@@ -2186,7 +2173,7 @@ facets themselves.
 
 ## 6 Facet Extension API
 
-Many of the generic functions in this section take [`FACET`][6406] arguments.
+Many of the generic functions in this section take [`FACET`][36d6] arguments.
 `FACET` is a structure and is not intended to be subclassed. To be
 able to add specialized methods, the name of the
 facet ([`FACET-NAME`][8ce7]) is also passed as the
@@ -2264,7 +2251,7 @@ In summary, define `EQL`([`0`][db03] [`1`][5fd4]) specializers on facet name arg
     method simply returns the first up-to-date facet.
 
 PAX integration follows, don't worry about it if you don't use PAX,
-but you really should (see `MGL-PAX::@PAX-MANUAL`).
+but you really should (see PAX Manual).
 
 <a id="x-28MGL-CUBE-3AFACET-NAME-20MGL-PAX-3ALOCATIVE-29"></a>
 
@@ -2289,7 +2276,7 @@ but you really should (see `MGL-PAX::@PAX-MANUAL`).
     
     Which makes it possible to refer to this definition (refer as in
     link and `M-.` to) [`MGL-MAT:BACKING-ARRAY`][1fda] facet-name. See
-    `MGL-PAX::@PAX-MANUAL` for more.
+    PAX Manual for more.
 
 Also see [The Default Implementation of `CALL-WITH-FACET*`][d720].
 
@@ -2297,7 +2284,7 @@ Also see [The Default Implementation of `CALL-WITH-FACET*`][d720].
 
 ## 7 The Default Implementation of `CALL-WITH-FACET*`
 
-<a id="x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20-28METHOD-20NIL-20-28MGL-CUBE-3ACUBE-20T-20T-20T-29-29-29"></a>
+<a id="x-28MGL-CUBE-3ACALL-WITH-FACET-2A-20-28METHOD-20-28MGL-CUBE-3ACUBE-20T-20T-20T-29-29-29"></a>
 
 - [method] **CALL-WITH-FACET\*** *(CUBE CUBE) FACET-NAME DIRECTION FN*
 
@@ -2403,7 +2390,7 @@ to prevent resource leaks caused by stray references.
 - [function] **ADD-FACET-REFERENCE-BY-NAME** *CUBE FACET-NAME*
 
     Make sure `FACET-NAME` exists on `CUBE` and increment its reference
-    count. Return the [`FACET`][6406] behind `FACET-NAME`.
+    count. Return the [`FACET`][36d6] behind `FACET-NAME`.
 
 <a id="x-28MGL-CUBE-3AREMOVE-FACET-REFERENCE-BY-NAME-20FUNCTION-29"></a>
 
@@ -2480,7 +2467,6 @@ Also see [Lifetime][a810].
   [1f37]: #x-28MGL-MAT-3A-2APRINT-MAT-2A-20VARIABLE-29 "MGL-MAT:*PRINT-MAT* VARIABLE"
   [1f99]: http://www.lispworks.com/documentation/HyperSpec/Body/t_array.htm "ARRAY (MGL-PAX:CLHS CLASS)"
   [1fda]: #x-28MGL-MAT-3ABACKING-ARRAY-20MGL-CUBE-3AFACET-NAME-29 "MGL-MAT:BACKING-ARRAY MGL-CUBE:FACET-NAME"
-  [2038]: http://www.lispworks.com/documentation/HyperSpec/Body/t_stu_ob.htm "STRUCTURE-OBJECT (MGL-PAX:CLHS CLASS)"
   [2053]: http://www.lispworks.com/documentation/HyperSpec/Body/f_row_ma.htm "ROW-MAJOR-AREF (MGL-PAX:CLHS FUNCTION)"
   [2cbb]: #x-28MGL-MAT-3A-40MAT-SHAPING-COMPARISON-TO-LISP-20MGL-PAX-3ASECTION-29 "Comparison to Lisp Arrays"
   [2ce8]: #x-28MGL-CUBE-3AUNWATCH-FACET-20GENERIC-FUNCTION-29 "MGL-CUBE:UNWATCH-FACET GENERIC-FUNCTION"
@@ -2489,6 +2475,7 @@ Also see [Lifetime][a810].
   [31a6]: http://www.lispworks.com/documentation/HyperSpec/Body/t_short_.htm "SINGLE-FLOAT (MGL-PAX:CLHS TYPE)"
   [3573]: #x-28MGL-MAT-3AMAT-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "MGL-MAT:MAT-SIZE (MGL-PAX:READER MGL-MAT:MAT)"
   [36b5]: #x-28MGL-MAT-3A-40MAT-FOREIGN-20MGL-PAX-3ASECTION-29 "Foreign arrays"
+  [36d6]: #x-28MGL-CUBE-3AFACET-20STRUCTURE-29 "MGL-CUBE:FACET STRUCTURE"
   [3912]: #x-28MGL-CUBE-3A-40CUBE-LINKS-20MGL-PAX-3ASECTION-29 "Links"
   [3993]: #x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29 "CURAND"
   [39a0]: #x-28MGL-CUBE-3ADESTROY-FACET-20FUNCTION-29 "MGL-CUBE:DESTROY-FACET FUNCTION"
@@ -2514,7 +2501,6 @@ Also see [Lifetime][a810].
   [5a82]: http://www.lispworks.com/documentation/HyperSpec/Body/f_eq.htm "EQ (MGL-PAX:CLHS FUNCTION)"
   [5fd4]: http://www.lispworks.com/documentation/HyperSpec/Body/t_eql.htm "EQL (MGL-PAX:CLHS TYPE)"
   [62f5]: #x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "MGL-MAT:MAT-CTYPE (MGL-PAX:READER MGL-MAT:MAT)"
-  [6406]: #x-28MGL-CUBE-3AFACET-20CLASS-29 "MGL-CUBE:FACET CLASS"
   [64f7]: http://www.lispworks.com/documentation/HyperSpec/Body/f_realpa.htm "REALPART (MGL-PAX:CLHS FUNCTION)"
   [65d4]: #x-28MGL-CUBE-3AFACET-DESCRIPTION-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-20MGL-CUBE-3AFACET-29-29 "MGL-CUBE:FACET-DESCRIPTION (MGL-PAX:STRUCTURE-ACCESSOR MGL-CUBE:FACET)"
   [6832]: http://www.lispworks.com/documentation/HyperSpec/Body/m_defmet.htm "DEFMETHOD (MGL-PAX:CLHS MGL-PAX:MACRO)"

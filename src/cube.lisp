@@ -411,7 +411,7 @@
 
 (defsection @cube-default-call-with-facet*
     (:title "The Default Implementation of CALL-WITH-FACET*")
-  (call-with-facet* (method () (cube t t t)))
+  (call-with-facet* (method (cube t t t)))
   (watch-facet generic-function)
   (unwatch-facet generic-function)
   (*let-input-through-p* variable)
