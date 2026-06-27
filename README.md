@@ -44,6 +44,7 @@
 <a id="x-28-22mgl-mat-22-20ASDF-2FSYSTEM-3ASYSTEM-29"></a>
 
 - [system] **"mgl-mat"**
+
     - _Version:_ 0.1.0
     - _Description:_ [`MAT`][6d14] is library for working with multi-dimensional
         arrays which supports efficient interfacing to foreign and CUDA
@@ -51,8 +52,8 @@
     - _Licence:_ MIT, see COPYING.
     - _Author:_ Gábor Melis <mega@retes.hu>
     - _Mailto:_ [mega@retes.hu](mailto:mega@retes.hu)
-    - _Homepage:_ [http://melisgl.github.io/mgl-mat](http://melisgl.github.io/mgl-mat)
-    - _Bug tracker:_ [https://github.com/melisgl/mgl-mat/issues](https://github.com/melisgl/mgl-mat/issues)
+    - _Homepage:_ <http://melisgl.github.io/mgl-mat>
+    - _Bug tracker:_ <https://github.com/melisgl/mgl-mat/issues>
     - _Source control:_ [GIT](https://github.com/melisgl/mgl-mat.git)
     - *Depends on:* alexandria, bordeaux-threads, cffi, cffi-grovel, cl-cuda, flexi-streams, ieee-floats, lla, mgl-pax, num-utils, static-vectors, trivial-garbage
 
@@ -60,10 +61,9 @@
 
 ## 1 Links
 
-Here is the [official
-repository](https://github.com/melisgl/mgl-mat) and the [HTML
-documentation](http://melisgl.github.io/mgl-mat/mat-manual.html)
-for the latest version.
+The official repository is <https://github.com/melisgl/mgl-mat>, and
+this document in available in various formats on
+<https://fixnum.com> for the latest version.
 
 <a id="x-28MGL-MAT-3A-40MAT-INTRODUCTION-20MGL-PAX-3ASECTION-29"></a>
 
@@ -549,7 +549,7 @@ it may create a new [`MAT`][6d14].
 
 <a id="x-28MGL-MAT-3AWITH-SHAPE-AND-DISPLACEMENT-20MGL-PAX-3AMACRO-29"></a>
 
-- [macro] **WITH-SHAPE-AND-DISPLACEMENT** *(MAT &OPTIONAL (DIMENSIONS NIL) (DISPLACEMENT NIL)) &BODY BODY*
+- [macro] **WITH-SHAPE-AND-DISPLACEMENT** *(MAT &OPTIONAL DIMENSIONS DISPLACEMENT) &BODY BODY*
 
     Reshape and displace `MAT` if `DIMENSIONS` and/or `DISPLACEMENT` is given
     and restore the original shape and displacement after `BODY` is
@@ -1924,10 +1924,9 @@ instead.
 
 ## 1 Links
 
-Here is the [official
-repository](https://github.com/melisgl/mgl-mat) and the [HTML
-documentation](http://melisgl.github.io/mgl-mat/cube-manual.html)
-for the latest version.
+The official repository is <https://github.com/melisgl/mgl-mat>, and
+this document in available in various formats on
+<https://fixnum.com> for the latest version.
 
 <a id="x-28MGL-CUBE-3A-40CUBE-INTRODUCTION-20MGL-PAX-3ASECTION-29"></a>
 
@@ -2179,7 +2178,7 @@ able to add specialized methods, the name of the
 facet ([`FACET-NAME`][8ce7]) is also passed as the
 argument right in front of the corresponding facet argument.
 
-In summary, define `EQL`([`0`][db03] [`1`][5fd4]) specializers on facet name arguments, and use
+In summary, define [`EQL`][38a2] specializers on facet name arguments, and use
 [`FACET-DESCRIPTION`][65d4] to associate arbitrary information with facets.
 
 <a id="x-28MGL-CUBE-3AMAKE-FACET-2A-20GENERIC-FUNCTION-29"></a>
@@ -2476,6 +2475,7 @@ Also see [Lifetime][a810].
   [3573]: #x-28MGL-MAT-3AMAT-SIZE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "MGL-MAT:MAT-SIZE (MGL-PAX:READER MGL-MAT:MAT)"
   [36b5]: #x-28MGL-MAT-3A-40MAT-FOREIGN-20MGL-PAX-3ASECTION-29 "Foreign arrays"
   [36d6]: #x-28MGL-CUBE-3AFACET-20STRUCTURE-29 "MGL-CUBE:FACET STRUCTURE"
+  [38a2]: http://www.lispworks.com/documentation/HyperSpec/Body/a_eql.htm "EQL (MGL-PAX:CLHS NIL)"
   [3912]: #x-28MGL-CUBE-3A-40CUBE-LINKS-20MGL-PAX-3ASECTION-29 "Links"
   [3993]: #x-28MGL-MAT-3A-40MAT-CURAND-20MGL-PAX-3ASECTION-29 "CURAND"
   [39a0]: #x-28MGL-CUBE-3ADESTROY-FACET-20FUNCTION-29 "MGL-CUBE:DESTROY-FACET FUNCTION"
@@ -2499,7 +2499,6 @@ Also see [Lifetime][a810].
   [545d]: #x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29 "Destructive API"
   [54ea]: #x-28MGL-MAT-3A-40MAT-LINKS-20MGL-PAX-3ASECTION-29 "Links"
   [5a82]: http://www.lispworks.com/documentation/HyperSpec/Body/f_eq.htm "EQ (MGL-PAX:CLHS FUNCTION)"
-  [5fd4]: http://www.lispworks.com/documentation/HyperSpec/Body/t_eql.htm "EQL (MGL-PAX:CLHS TYPE)"
   [62f5]: #x-28MGL-MAT-3AMAT-CTYPE-20-28MGL-PAX-3AREADER-20MGL-MAT-3AMAT-29-29 "MGL-MAT:MAT-CTYPE (MGL-PAX:READER MGL-MAT:MAT)"
   [64f7]: http://www.lispworks.com/documentation/HyperSpec/Body/f_realpa.htm "REALPART (MGL-PAX:CLHS FUNCTION)"
   [65d4]: #x-28MGL-CUBE-3AFACET-DESCRIPTION-20-28MGL-PAX-3ASTRUCTURE-ACCESSOR-20MGL-CUBE-3AFACET-29-29 "MGL-CUBE:FACET-DESCRIPTION (MGL-PAX:STRUCTURE-ACCESSOR MGL-CUBE:FACET)"
@@ -2569,7 +2568,6 @@ Also see [Lifetime][a810].
   [d3b8]: #x-28MGL-MAT-3A-40MAT-LISP-EXTENSIONS-20MGL-PAX-3ASECTION-29 "Lisp Extensions"
   [d5f8]: #x-28MGL-MAT-3AFOREIGN-ROOM-20FUNCTION-29 "MGL-MAT:FOREIGN-ROOM FUNCTION"
   [d720]: #x-28MGL-CUBE-3A-40CUBE-DEFAULT-CALL-WITH-FACET-2A-20MGL-PAX-3ASECTION-29 "The Default Implementation of `CALL-WITH-FACET*`"
-  [db03]: http://www.lispworks.com/documentation/HyperSpec/Body/f_eql.htm "EQL (MGL-PAX:CLHS FUNCTION)"
   [db31]: #x-28MGL-CUBE-3AADD-FACET-REFERENCE-BY-NAME-20FUNCTION-29 "MGL-CUBE:ADD-FACET-REFERENCE-BY-NAME FUNCTION"
   [db71]: #x-28MGL-MAT-3ACUBLAS-ERROR-20CONDITION-29 "MGL-MAT:CUBLAS-ERROR CONDITION"
   [dbac]: #x-28MGL-CUBE-3ADESTROY-CUBE-20FUNCTION-29 "MGL-CUBE:DESTROY-CUBE FUNCTION"

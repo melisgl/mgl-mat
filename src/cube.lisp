@@ -11,10 +11,9 @@
   (@cube-lifetime section))
 
 (defsection @cube-links (:title "Links")
-  "Here is the [official
-  repository](https://github.com/melisgl/mgl-mat) and the [HTML
-  documentation](http://melisgl.github.io/mgl-mat/cube-manual.html)
-  for the latest version.")
+  "The official repository is <https://github.com/melisgl/mgl-mat>, and
+  this document in available in various formats on
+  <https://fixnum.com> for the latest version.")
 
 (defsection @cube-introduction (:title "Introduction")
   "This is the library on which \\MGL-MAT (see MGL-MAT::@MAT-MANUAL)
