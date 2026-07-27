@@ -12,7 +12,7 @@
 
 (defsection @cube-links (:title "Links")
   "The official repository is <https://github.com/melisgl/mgl-mat>, and
-  this document in available in various formats on
+  this document is available in various formats on
   <https://fixnum.com> for the latest version.")
 
 (defsection @cube-introduction (:title "Introduction")
