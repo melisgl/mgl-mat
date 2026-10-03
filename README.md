@@ -779,6 +779,26 @@ Level 3 BLAS operations
           -----+  --++
           ++++++  ++++
 
+<a id="x-28MGL-MAT-3AGEMM-STRIDED-BATCHED-21-20FUNCTION-29"></a>
+
+- \[function\] **GEMM-STRIDED-BATCHED!** *ALPHA A B BETA C STRIDE-A STRIDE-B STRIDE-C \&KEY TRANSPOSE-A? TRANSPOSE-B? M N K LDA LDB LDC BATCH-COUNT*
+
+    This is like [`GEMM!`][e95b], but it performs `BATCH-COUNT` matrix multiplication
+    instead of one. Conceptually, it does a `GEMM!` on `A`, `B`, `C`, then it
+    does another on them as if they were displaced by their respective
+    strides, and so on.
+
+    In the CUDA case, this is implemented as a single cuBLAS call, but
+    BLAS has no direct counterpart, so in that case we call `GEMM!`
+    `BATCH-COUNT` times with `A`, `B`, `C` displaced accordingly.
+
+    Note that `STRIDE-A`, `STRIDE-B`, and `STRIDE-C` give the number of array
+    elements from one instance to the next in the batch. If one matrix
+    isn't actually batched (say `A` is batched, while `B` isn't and the same
+    matrix `B` gets multiplied by every instance in `A`), then its stride is
+    0. Aside from that, the same principles for calling `GEMM!` apply
+    here.
+
 <a id="x-28MGL-MAT-3A-40MAT-DESTRUCTIVE-API-20MGL-PAX-3ASECTION-29"></a>
 
 ## 11 Destructive API

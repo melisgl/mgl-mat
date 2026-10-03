@@ -67,7 +67,7 @@
   :author "Gábor Melis <mega@retes.hu>"
   :mailto "mega@retes.hu"
   :description "Test system for MGL-MAT."
-  :depends-on (#:mgl-mat #:cl-fad)
+  :depends-on (#:mgl-mat #:cl-fad #:let-plus)
   :components ((:module "test"
                 :serial t
                 :components ((:file "test-mat"))))

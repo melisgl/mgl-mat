@@ -280,6 +280,135 @@
                                 (array-dimensions c))
                            result))))))
 
+;; HEIGHT and WIDTH are logical dimensions. This expects an array from
+;; MAT-TO-ARRAY, hence no displacement to worry about.
+(defun extract-submatrix (backing-array rows-in-batch batch-i height width)
+  (let ((row-offset (* batch-i rows-in-batch))
+	(sub-array (make-array (list height width)
+			       :element-type (array-element-type backing-array))))
+    (dotimes (row height)
+      (dotimes (col width)
+	(setf (aref sub-array row col)
+	      (aref backing-array (+ row-offset row) col))))
+    sub-array))
+
+(defun batched-sloppy-random-array (type height width batched? batch-count
+                                    displacement)
+  ;; SLACK covers extra rows between batches.
+  (let* ((slack (random 3))
+	 ;; extra rows at very end of whole array
+	 (trailing (random 3))
+	 (batch-count (if batched? batch-count 1))
+	 (sloppy-height (+ height (random 3)))
+	 (sloppy-width (+ width (random 3)))
+	 (stride-rows (+ sloppy-height slack))
+	 (stride (* stride-rows sloppy-width))
+	 (total-rows (+ (* (1- batch-count) stride-rows)
+                        sloppy-height trailing))
+	 (backing-size (+ (* total-rows sloppy-width) displacement))
+	 (backing (random-array type backing-size)))
+    ;; SLOPPY-WIDTH is needed for LDA.
+    (values backing (if (> batch-count 1) stride 0)
+            total-rows stride-rows sloppy-width)))
+
+(defun gemm-strided-batched-validation-output
+    (array-a array-b array-c stride-rows-a stride-rows-b stride-rows-c
+     alpha beta m k n batch-count validation-output
+     &key transpose-a? transpose-b? batched-a? batched-b?)
+  (loop for i upfrom 0 below batch-count
+	do (let* ((a-i (extract-submatrix
+			array-a stride-rows-a (if batched-a? i 0)
+			(if transpose-a? k m) (if transpose-a? m k)))
+		  (b-i (extract-submatrix
+			array-b stride-rows-b (if batched-b? i 0)
+			(if transpose-b? n k) (if transpose-b? k n)))
+		  (c-i (extract-submatrix
+			array-c stride-rows-c i m n))
+		  (result
+                    (nu:e+ (nu:e* alpha
+				  (lla:mm
+				   (if transpose-a? (nu:transpose a-i) a-i)
+				   (if transpose-b? (nu:transpose b-i) b-i)))
+			   (nu:e* beta c-i))))
+	     (loop for result-row upfrom 0 below m
+		   do (loop for result-col upfrom 0 below n
+			    do (setf (aref validation-output
+					   (+ (* m i) result-row) result-col)
+				     (aref result result-row result-col)))))))
+
+(defun test-gemm-strided-batched! ()
+  (do-configurations (gemm-strided-batched!)
+    (loop repeat 100 do
+      (let-plus:let+
+	  ((m (1+ (random 10)))
+	   (n (1+ (random 10)))
+	   (k (1+ (random 10)))
+	   (batch-count (1+ (random 10)))
+	   (transpose-a? (if (zerop (random 2)) t nil))
+	   (transpose-b? (if (zerop (random 2)) t nil))
+	   ((a-displacement b-displacement c-displacement)
+            (loop repeat 3 collect (random 3)))
+	   (batched-a? (zerop (random 2)))
+	   (batched-b? (zerop (random 2)))
+	   ((let-plus:&values backing-a stride-a total-rows-a stride-rows-a lda)
+	    (if transpose-a?
+		(batched-sloppy-random-array
+		 'double-float k m batched-a? batch-count a-displacement)
+		(batched-sloppy-random-array
+		 'double-float m k batched-a? batch-count a-displacement)))
+	   ((let-plus:&values backing-b stride-b total-rows-b stride-rows-b ldb)
+	    (if transpose-b?
+		(batched-sloppy-random-array
+		 'double-float n k batched-b? batch-count b-displacement)
+		(batched-sloppy-random-array
+		 'double-float k n batched-b? batch-count b-displacement)))
+	   ((let-plus:&values backing-c stride-c total-rows-c stride-rows-c ldc)
+	    (batched-sloppy-random-array
+	     'double-float m n t batch-count c-displacement))
+	   (alpha (random 10d0))
+	   (beta (random 10d0))
+	   ((mat-a mat-b mat-c)
+            (mapcar
+	     (lambda (mat dims disp)
+	       (reshape-and-displace! (array-to-mat mat) dims disp))
+	     (list backing-a backing-b backing-c) (list (list total-rows-a lda)
+							(list total-rows-b ldb)
+							(list total-rows-c ldc))
+	     (list a-displacement b-displacement c-displacement)))
+	   ((array-a array-b array-c)
+            (mapcar #'mat-to-array (list mat-a mat-b mat-c)))
+	   (validation-output (make-array (list (* m batch-count) n)
+                                          :element-type 'double-float
+					  :initial-element 0d0)))
+	(gemm-strided-batched-validation-output
+         array-a array-b array-c
+	 stride-rows-a stride-rows-b stride-rows-c
+	 alpha beta m k n batch-count validation-output
+	 :transpose-a? transpose-a? :transpose-b? transpose-b?
+	 :batched-a? batched-a? :batched-b? batched-b?)
+	(gemm-strided-batched! alpha mat-a mat-b beta mat-c
+                               stride-a stride-b stride-c
+			       :transpose-a? transpose-a?
+                               :transpose-b? transpose-b?
+			       :m m :n n :k k :lda lda :ldb ldb :ldc ldc
+                               :batch-count batch-count)
+	(let ((array-c-after (mat-to-array mat-c))
+	      (array-test-target (make-array (list (* m batch-count) n)
+					     :element-type 'double-float
+					     :initial-element 0d0)))
+	  (loop
+            for i upfrom 0 below batch-count
+	    do (let ((c-i-after (extract-submatrix array-c-after
+                                                   stride-rows-c i m n)))
+		 (loop for result-row upfrom 0 below m
+		       do (loop for result-col upfrom 0 below n
+				do (setf
+				    (aref array-test-target
+                                          (+ (* m i) result-row)
+                                          result-col)
+				    (aref c-i-after result-row result-col))))))
+	  (assert (nu:num= array-test-target validation-output)))))))
+
 (defun test-geerv! ()
   (do-configurations (geerv!)
     (let ((a (make-mat 8))
@@ -605,6 +734,7 @@
   (test-copy!)
   (test-nrm2)
   (test-gemm!)
+  (test-gemm-strided-batched!)
   (test-geerv!)
   (test-.expt!)
   (test-.<!)
