@@ -1595,6 +1595,109 @@
                    alpha b ldb a lda
                    beta c ldc)))
   c)
+
+(defun gemm-strided-batched! (alpha a b beta c stride-a stride-b stride-c
+				    &key transpose-a? transpose-b? m n k lda ldb ldc batch-count)
+  "This is pretty similar to `GEMM!', but has to dispatch to Lisp code that loops BLAS GEMM calls
+  when CUDA isn't available, since BLAS doesn't include this. In the typical case (matrix
+  multiplication between two batched matrices) strides could be inferred from matrix dimensions
+  and batch-count (or vice versa),but they're required here to avoid mistaken inference in other
+  cases (e.g. 2d by 3d matrix multiplication, where the second matrix is batched via strides).
+
+  Note that STRIDE-A, STRIDE-B, and STRIDE-C give the number of physical elements between the
+  start of one batch instance's data and the next. If one matrix isn't actually batched (say
+  A is batched, while B isn't and the same matrix B gets multiplied by every instance in A), then
+  its stride value is 0. Aside from that, the same principles for calling GEMM! apply here."
+  (let* ((m (or m (mat-dimension c 0)))
+	 (n (or n (mat-dimension c 1)))
+	 (k (or k (if transpose-a?
+		      (mat-dimension a 0)
+		    (mat-dimension a 1))))
+	 (lda (or lda (mat-dimension a 1)))
+	 (ldb (or ldb (mat-dimension b 1)))
+	 (ldc (or ldc (mat-dimension c 1)))
+	 (ctype (common-mat-ctype a b c))
+	 (alpha (coerce-to-ctype alpha :ctype ctype))
+	 (beta (coerce-to-ctype beta :ctype ctype))
+	 (a-size (mat-size a))
+	 (b-size (mat-size b))
+	 (c-size (mat-size c))
+	 (batch-count (or batch-count
+			  (if (zerop stride-c) 1
+			    (multiple-value-bind
+			     (quotient remainder)
+			     (truncate c-size stride-c)
+			     (assert (zerop remainder))
+			     quotient)))))
+    (cond (transpose-a?
+	   (assert (<= m lda))
+	   (assert (or (zerop stride-a) (<= (* lda k) stride-a)))
+	   (assert (<= (+ (* (1- batch-count) stride-a) (* k lda)) a-size)))
+	  (t
+	   (assert (<= k lda))
+	   (assert (or (zerop stride-a) (<= (* m lda) stride-a)))
+	   (assert (<= (+ (* (1- batch-count) stride-a) (* m lda)) a-size))))
+    (cond (transpose-b?
+	   (assert (<= k ldb))
+	   (assert (or (zerop stride-b) (<= (* ldb n) stride-b)))
+	   (assert (<= (+ (* (1- batch-count) stride-b) (* n ldb)) b-size)))
+	  (t
+	   (assert (<= n ldb))
+	   (assert (or (zerop stride-b) (<= (* k ldb) stride-b)))
+	   (assert (<= (+ (* (1- batch-count) stride-b) (* k ldb)) b-size))))
+    (assert (or (> stride-c 0) (= batch-count 1)))
+    (assert (<= n ldc))
+    (assert (or (zerop stride-c) (<= (* m ldc) stride-c)))
+    (assert (<= (+ (* (1- batch-count) stride-c) (* m ldc)) c-size))
+    (if (use-cuda-p a b c)
+	(cublas-gemm-strided-batched (if transpose-b? :cublas-op-c :cublas-op-n)
+				     (if transpose-a? :cublas-op-c :cublas-op-n)
+				     n m k
+				     alpha b ldb stride-b
+				     a lda stride-a 
+				     beta c ldc stride-c
+				     batch-count)
+      (batched-blas-gemm alpha a b beta c stride-a stride-b stride-c
+			 :transpose-a? transpose-a? :transpose-b? transpose-b?
+			 :m m :n n :k k :lda lda :ldb ldb :ldc ldc :batch-count batch-count))))
+
+
+(defun batched-blas-gemm (alpha a b beta c stride-a stride-b stride-c
+			  &key transpose-a? transpose-b? m n k
+			    lda ldb ldc batch-count)
+  (loop for batch-i of-type index upfrom 0 below batch-count
+	for a-disp of-type index = (mat-displacement a) then (+ a-disp stride-a)
+	for b-disp of-type index = (mat-displacement b) then (+ b-disp stride-b)
+	for c-disp of-type index = (mat-displacement c) then (+ c-disp stride-c)
+	do (with-shape-and-displacement
+	       (a (list (if transpose-a? k m) lda) a-disp)
+	     (with-shape-and-displacement
+		 (b (list (if transpose-b? n k) ldb) b-disp)
+	       (with-shape-and-displacement (c (list m ldc) c-disp)
+		 (gemm! alpha a b beta c
+			:transpose-a? transpose-a?
+			:transpose-b? transpose-b?
+			:m m :n n :k k :lda lda :ldb ldb :ldc ldc))))))
+
+
+(defun batched-blas-gemm (alpha a b beta c stride-a stride-b stride-c
+			  &key transpose-a? transpose-b? m n k
+			    lda ldb ldc batch-count)
+  "This is the BLAS-side implementation for strided batched GEMM. Since BLAS doesn't standardly
+   include a dedicated operation for this, we loop GEMM! calls instead."
+  (loop for batch-i of-type index upfrom 0 below batch-count
+	for a-disp of-type index = (mat-displacement a) then (+ a-disp stride-a)
+	for b-disp of-type index = (mat-displacement b) then (+ b-disp stride-b)
+	for c-disp of-type index = (mat-displacement c) then (+ c-disp stride-c)
+	do (with-shape-and-displacement
+	       (a (list (if transpose-a? k m) lda) a-disp)
+	     (with-shape-and-displacement
+		 (b (list (if transpose-b? n k) ldb) b-disp)
+	       (with-shape-and-displacement (c (list m ldc) c-disp)
+		 (gemm! alpha a b beta c
+			:transpose-a? transpose-a?
+			:transpose-b? transpose-b?
+			:m m :n n :k k :lda lda :ldb ldb :ldc ldc))))))
 
 
 (defsection @mat-non-destructive-api (:title "Non-destructive API")

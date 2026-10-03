@@ -125,9 +125,26 @@
                             params)
                   :handle ,handle)))))
 
+;; This is necessary because some cuBLAS public functions in the C ABI suffix '_v2' to support
+;; an older deprecated calling convention and a new one (v2), so this is the appropriate suffix
+;; most of the time. For functions like gemmBatchedStrided, however, which don't originate with
+;; BLAS proper, there's no older calling convention to worry about, hence no '_v2' suffix.
+(defun cublas-function-suffix (name)
+  (case (alexandria:make-keyword (string-upcase name))
+    (:GEMM-STRIDED-BATCHED "")
+    (t "_v2")))
+
+(defun string-camel-case (name)
+  (let ((name-parts (uiop:split-string name :separator "-")))
+    (format nil "~A~{~A~}"
+	    (string-downcase (car name-parts))
+	    (mapcar #'string-capitalize (cdr name-parts)))))
+
 (defun cublas-foreign-function-name (name ctype)
-  (format nil "cublas~A~A_v2" (string-upcase (ctype-blas-prefix ctype))
-          (string-downcase (symbol-name name))))
+  (coerce (format nil "cublas~A~A~A" (string-upcase (ctype-blas-prefix ctype))
+		  (string-camel-case (symbol-name name))
+		  (cublas-function-suffix name))
+	  '(simple-array character (*))))
 
 (defun cublas-funcall-form (name ctype params args)
   (let ((cname (cublas-foreign-function-name name ctype)))
