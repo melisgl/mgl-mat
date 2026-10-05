@@ -308,6 +308,31 @@
     ;; sloppy-width is needed for LDA
     (values backing (if (> batch-count 1) stride 0) total-rows stride-rows sloppy-width)))
 
+(defun gemm-strided-batched-validation-output (array-a array-b array-c
+				  stride-rows-a stride-rows-b stride-rows-c
+				  alpha beta m k n batch-count validation-output
+				  &key transpose-a? transpose-b?
+				    batched-a? batched-b?)
+  (loop for i upfrom 0 below batch-count
+	do (let* ((a-i (extract-submatrix
+			array-a stride-rows-a (if batched-a? i 0)
+			(if transpose-a? k m) (if transpose-a? m k)))
+		  (b-i (extract-submatrix
+			array-b stride-rows-b (if batched-b? i 0)
+			(if transpose-b? n k) (if transpose-b? k n)))
+		  (c-i (extract-submatrix
+			array-c stride-rows-c i m n))
+		  (result (nu:e+ (nu:e* alpha
+					(lla:mm
+					 (if transpose-a? (nu:transpose a-i) a-i)
+					 (if transpose-b? (nu:transpose b-i) b-i)))
+				 (nu:e* beta c-i))))
+	     (loop for result-row upfrom 0 below m
+		   do (loop for result-col upfrom 0 below n
+			    do (setf (aref validation-output
+					   (+ (* m i) result-row) result-col)
+				     (aref result result-row result-col)))))))
+
 (defun test-gemm-strided-batched! ()
   (do-configurations (gemm-strided-batched!)
     (loop repeat 100 do
@@ -348,25 +373,11 @@
 	   ((array-a array-b array-c) (mapcar #'mat-to-array (list mat-a mat-b mat-c)))
 	   (validation-output (make-array (list (* m batch-count) n) :element-type 'double-float
 								     :initial-element 0d0)))
-	(loop for i upfrom 0 below batch-count
-	      do (let* ((a-i (extract-submatrix
-			      array-a stride-rows-a (if batched-a? i 0)
-			      (if transpose-a? k m) (if transpose-a? m k)))
-			(b-i (extract-submatrix
-			      array-b stride-rows-b (if batched-b? i 0)
-			      (if transpose-b? n k) (if transpose-b? k n)))
-			(c-i (extract-submatrix
-			      array-c stride-rows-c i m n))
-			(result (nu:e+ (nu:e* alpha
-					      (lla:mm
-					       (if transpose-a? (nu:transpose a-i) a-i)
-					       (if transpose-b? (nu:transpose b-i) b-i)))
-				       (nu:e* beta c-i))))
-		   (loop for result-row upfrom 0 below m
-			 do (loop for result-col upfrom 0 below n
-				  do (setf (aref validation-output
-						 (+ (* m i) result-row) result-col)
-					   (aref result result-row result-col))))))
+	(gemm-strided-batched-validation-output array-a array-b array-c
+				   stride-rows-a stride-rows-b stride-rows-c
+				   alpha beta m k n batch-count validation-output
+				   :transpose-a? transpose-a? :transpose-b? transpose-b?
+				   :batched-a? batched-a? :batched-b? batched-b?)
 	(gemm-strided-batched! alpha mat-a mat-b beta mat-c stride-a stride-b stride-c
 			       :transpose-a? transpose-a? :transpose-b? transpose-b?
 			       :m m :n n :k k :lda lda :ldb ldb :ldc ldc :batch-count batch-count)
