@@ -1075,7 +1075,7 @@ Finally, some neural network operations.
 
 - \[function\] **MM\*** *M \&REST ARGS*
 
-    Convenience function to multiply several matrices. 
+    Convenience function to multiply several matrices.
 
     (mm\* a b c) => a \* b \* c
 

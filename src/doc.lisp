@@ -19,6 +19,7 @@
 
 #+nil
 (progn
-  (update-asdf-system-readmes (pax-sections) :mgl-mat)
+  (update-asdf-system-readmes (pax-sections) :mgl-mat
+                              :formats '(:markdown :plain))
   (update-asdf-system-html-docs (pax-sections) :mgl-mat
                                 :pages (pax-pages)))
